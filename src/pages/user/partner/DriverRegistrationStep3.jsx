@@ -59,14 +59,17 @@ function DriverRegistrationStep3() {
             // Save step 3 data
             saveDriverStepData(3, formData)
 
-            // Submit registration
-            const result = await submitDriverRegistration()
+            // Submit registration with formData directly to avoid stale state
+            const result = await submitDriverRegistration(formData)
 
             if (result.success) {
                 navigate('/partner/driver/status')
+            } else {
+                alert(result.error || 'Pendaftaran gagal. Silakan coba lagi.')
             }
         } catch (error) {
             console.error('Submission error:', error)
+            alert('Terjadi kesalahan: ' + (error.message || 'Silakan coba lagi.'))
         } finally {
             setIsSubmitting(false)
         }

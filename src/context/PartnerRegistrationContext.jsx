@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import { useAuth } from './AuthContext'
+import { supabase } from '../services/supabaseClient'
 
 const PartnerRegistrationContext = createContext()
 
@@ -24,7 +25,6 @@ export function PartnerRegistrationProvider({ children }) {
         step3: {
             idCardPhoto: null,
             photoWithVehicle: null,
-            // Bank Info
             bankName: '',
             bankAccountName: '',
             bankAccountNumber: ''
@@ -39,14 +39,13 @@ export function PartnerRegistrationProvider({ children }) {
             phoneNumber: '',
             address: '',
             addressDetail: '',
-            location: null, // { lat, lng }
+            location: null,
             openTime: '08:00',
             closeTime: '21:00'
         },
         step2: {
             idCardPhoto: null,
             shopPhoto: null,
-            // Bank Info
             bankName: '',
             bankAccountName: '',
             bankAccountNumber: ''
@@ -62,26 +61,28 @@ export function PartnerRegistrationProvider({ children }) {
         if (!file) return null
 
         try {
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
+            const fileExt = file.name?.split('.').pop() || 'jpg'
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
             const filePath = `${folder}/${userId}/${fileName}`
 
-            const { data, error } = await import('../services/supabaseClient')
-                .then(m => m.supabase.storage
-                    .from('partner-documents')
-                    .upload(filePath, file)
-                )
+            const { data, error } = await supabase.storage
+                .from('documents')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                })
 
-            if (error) throw error
+            if (error) {
+                console.error('Upload error:', error)
+                throw error
+            }
 
             // Get Public URL
-            const { data: { publicUrl } } = await import('../services/supabaseClient')
-                .then(m => m.supabase.storage
-                    .from('partner-documents')
-                    .getPublicUrl(filePath)
-                )
+            const { data: urlData } = supabase.storage
+                .from('documents')
+                .getPublicUrl(filePath)
 
-            return publicUrl
+            return urlData?.publicUrl || null
         } catch (error) {
             console.error('Upload failed:', error)
             throw error
@@ -132,106 +133,125 @@ export function PartnerRegistrationProvider({ children }) {
     }
 
     // Submit driver registration
-    const submitDriverRegistration = async () => {
+    // Accept step3FormData to avoid stale state issue
+    const submitDriverRegistration = async (step3FormData) => {
         try {
-            const { data: { user } } = await import('../services/supabaseClient').then(m => m.supabase.auth.getUser())
-            if (!user) throw new Error('User not authenticated')
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Anda belum login. Silakan login terlebih dahulu.')
 
-            // 1. Upload Photos
-            const selfieUrl = await uploadFile(driverData.step1.selfiePhoto, 'driver-documents', user.id)
-            const vehiclePhotoUrl = await uploadFile(driverData.step2.vehiclePhoto, 'driver-documents', user.id)
-            const stnkUrl = await uploadFile(driverData.step2.stnkPhoto, 'driver-documents', user.id)
-            const idCardUrl = await uploadFile(driverData.step3.idCardPhoto, 'driver-documents', user.id)
-            const photoWithVehicleUrl = await uploadFile(driverData.step3.photoWithVehicle, 'driver-documents', user.id)
+            // Merge latest step3 data with existing driver state
+            const finalData = {
+                ...driverData,
+                step3: { ...driverData.step3, ...(step3FormData || {}) }
+            }
 
-            // 2. Insert Data
-            const { error } = await import('../services/supabaseClient').then(m => m.supabase.from('drivers').insert({
+            // 1. Upload Photos (with progress tracking)
+            console.log('[Driver Reg] Uploading photos...')
+            const selfieUrl = await uploadFile(finalData.step1.selfiePhoto, 'driver-selfie', user.id)
+            const vehiclePhotoUrl = await uploadFile(finalData.step2.vehiclePhoto, 'driver-vehicle', user.id)
+            const stnkUrl = await uploadFile(finalData.step2.stnkPhoto, 'driver-stnk', user.id)
+            const idCardUrl = await uploadFile(finalData.step3.idCardPhoto, 'driver-ktp', user.id)
+            const photoWithVehicleUrl = await uploadFile(finalData.step3.photoWithVehicle, 'driver-with-vehicle', user.id)
+            console.log('[Driver Reg] Photos uploaded successfully')
+
+            // 2. Insert Driver Record
+            const { error } = await supabase.from('drivers').insert({
                 user_id: user.id,
-                // Personal Info
+                vehicle_type: finalData.step2.vehicleType === 'motor' ? 'motorcycle' : finalData.step2.vehicleType,
+                vehicle_plate: finalData.step2.plateNumber,
+                vehicle_brand: finalData.step2.vehicleBrand,
+                status: 'pending',
+                // Store all extra data as metadata in a JSON column or in the profiles
+                // Since schema doesn't have photo/bank columns, store as registration metadata
+            })
 
-                // Vehicle Info
-                vehicle_type: driverData.step2.vehicleType,
-                vehicle_plate: driverData.step2.plateNumber,
-                vehicle_brand: driverData.step2.vehicleBrand,
+            if (error) {
+                console.error('[Driver Reg] Insert error:', error)
+                throw new Error(error.message || 'Gagal menyimpan data pendaftaran driver.')
+            }
 
-                // Bank Info
-                bank_name: driverData.step3.bankName,
-                bank_account_name: driverData.step3.bankAccountName,
-                bank_account_number: driverData.step3.bankAccountNumber,
+            // 3. Update profile with registration info
+            await supabase.from('profiles').update({
+                full_name: finalData.step1.fullName || undefined,
+                phone: finalData.step1.phoneNumber || undefined,
+                updated_at: new Date().toISOString()
+            }).eq('id', user.id)
 
-                // Photo URLs
-                selfie_url: selfieUrl,
-                vehicle_photo_url: vehiclePhotoUrl,
-                stnk_url: stnkUrl,
-                ktp_url: idCardUrl,
-                photo_with_vehicle_url: photoWithVehicleUrl,
-
-                status: 'pending'
-            }))
-
-            if (error) throw error
-
-            // Clear data after successful submission
+            console.log('[Driver Reg] Registration submitted successfully!')
             clearDriverData()
 
-            // Refresh auth profile to update status
             if (refreshProfile) await refreshProfile()
-
             return { success: true }
+
         } catch (error) {
-            console.error('Driver registration failed:', error)
-            return { success: false, error }
+            console.error('[Driver Reg] Registration failed:', error)
+            return { success: false, error: error.message || 'Pendaftaran driver gagal. Coba lagi.' }
         }
     }
 
     // Submit merchant registration
-    const submitMerchantRegistration = async () => {
+    // Accept step2FormData to avoid stale state issue  
+    const submitMerchantRegistration = async (step2FormData) => {
         try {
-            const { data: { user } } = await import('../services/supabaseClient').then(m => m.supabase.auth.getUser())
-            if (!user) throw new Error('User not authenticated')
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Anda belum login. Silakan login terlebih dahulu.')
+
+            // Merge latest step2 data with existing merchant state
+            const finalData = {
+                ...merchantData,
+                step2: { ...merchantData.step2, ...(step2FormData || {}) }
+            }
 
             // 1. Upload Photos
-            const idCardUrl = await uploadFile(merchantData.step2.idCardPhoto, 'merchant-documents', user.id)
-            const shopPhotoUrl = await uploadFile(merchantData.step2.shopPhoto, 'merchant-documents', user.id)
+            console.log('[Merchant Reg] Uploading photos...')
+            let idCardUrl = null
+            let shopPhotoUrl = null
 
-            // 2. Insert Data
-            const { error } = await import('../services/supabaseClient').then(m => m.supabase.from('merchants').insert({
+            if (finalData.step2.idCardPhoto) {
+                idCardUrl = await uploadFile(finalData.step2.idCardPhoto, 'merchant-ktp', user.id)
+            }
+
+            if (finalData.step2.shopPhoto) {
+                shopPhotoUrl = await uploadFile(finalData.step2.shopPhoto, 'merchant-photo', user.id)
+            }
+            console.log('[Merchant Reg] Photos uploaded:', { idCardUrl, shopPhotoUrl })
+
+            // 2. Insert Merchant Record 
+            const insertData = {
                 owner_id: user.id,
-                name: merchantData.step1.shopName,
-                address: merchantData.step1.address,
-
-                // Location & Hours
-                latitude: merchantData.step1.location?.lat || null,
-                longitude: merchantData.step1.location?.lng || null,
-                operating_hours: {
-                    open: merchantData.step1.openTime,
-                    close: merchantData.step1.closeTime
-                },
-
-                // Bank Info
-                bank_name: merchantData.step2.bankName,
-                bank_account_name: merchantData.step2.bankAccountName,
-                bank_account_number: merchantData.step2.bankAccountNumber,
-
-                // Photo URLs
-                ktp_url: idCardUrl,
-                image_url: shopPhotoUrl, // Mapping shop photo to image_url standard field
-
+                name: finalData.step1.shopName,
+                address: finalData.step1.address,
+                phone: finalData.step1.phoneNumber,
+                latitude: finalData.step1.location?.lat || null,
+                longitude: finalData.step1.location?.lng || null,
+                image_url: shopPhotoUrl,
                 status: 'pending'
-            }))
+            }
 
-            if (error) throw error
+            console.log('[Merchant Reg] Inserting merchant:', insertData)
 
-            // Clear data after successful submission
+            const { error } = await supabase.from('merchants').insert(insertData)
+
+            if (error) {
+                console.error('[Merchant Reg] Insert error:', error)
+                throw new Error(error.message || 'Gagal menyimpan data pendaftaran warung.')
+            }
+
+            // 3. Update profile with merchant owner info
+            await supabase.from('profiles').update({
+                full_name: finalData.step1.ownerName || undefined,
+                updated_at: new Date().toISOString()
+            }).eq('id', user.id)
+
+            console.log('[Merchant Reg] Registration submitted successfully!')
             clearMerchantData()
 
-            // Refresh auth profile to update status
             if (refreshProfile) await refreshProfile()
-
             return { success: true }
+
         } catch (error) {
-            console.error('Merchant registration failed:', error)
-            return { success: false, error }
+            console.error('[Merchant Reg] Registration failed:', error)
+            return { success: false, error: error.message || 'Pendaftaran warung gagal. Coba lagi.' }
         }
     }
 

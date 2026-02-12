@@ -56,14 +56,18 @@ function MerchantRegistrationStep2() {
         setIsSubmitting(true)
 
         try {
+            // Pass formData directly to avoid stale React state
             saveMerchantStepData(2, formData)
-            const result = await submitMerchantRegistration()
+            const result = await submitMerchantRegistration(formData)
 
             if (result.success) {
                 navigate('/partner/merchant/status')
+            } else {
+                alert(result.error || 'Pendaftaran gagal. Silakan coba lagi.')
             }
         } catch (error) {
             console.error('Submission error:', error)
+            alert('Terjadi kesalahan: ' + (error.message || 'Silakan coba lagi.'))
         } finally {
             setIsSubmitting(false)
         }
