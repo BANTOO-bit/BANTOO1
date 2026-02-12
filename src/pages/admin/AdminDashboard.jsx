@@ -91,13 +91,13 @@ function AdminDashboard() {
             />
 
             {/* Main Content */}
-            <main className="flex-1 lg:ml-[280px] flex flex-col min-w-0">
+            <main className="flex-1 lg:ml-[250px] flex flex-col min-w-0 relative">
                 {/* Header */}
                 <AdminHeader onMenuClick={() => setIsSidebarOpen(true)} />
 
                 {/* Dashboard Content */}
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col gap-6 h-full">
+                <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+                    <div className="max-w-6xl mx-auto flex flex-col gap-5 h-full">
 
                         {/* Quick Actions */}
                         <div>
@@ -108,7 +108,7 @@ function AdminDashboard() {
                         {/* Stats Grid — Row 1: Key Metrics */}
                         <div>
                             <h3 className="text-sm font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wide mb-4">Ringkasan Operasional</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                 <AdminStatCard
                                     title="Total Pesanan Hari Ini"
                                     value={loading ? '...' : stats.total_orders.toString()}
@@ -148,7 +148,7 @@ function AdminDashboard() {
                         </div> */}
 
                         {/* Charts Row */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <AdminBarChart
                                 title="Pesanan Mingguan"
                                 data={weeklyOrderData}
@@ -162,7 +162,7 @@ function AdminDashboard() {
                         </div>
 
                         {/* Donut Charts Row */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#2a3b4d] p-5 shadow-sm">
                                 <h4 className="text-sm font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wide mb-4">Status Pesanan Hari Ini</h4>
                                 <AdminDonutChart
@@ -182,7 +182,7 @@ function AdminDashboard() {
                         </div>
 
                         {/* Content Grid: Alerts + Transactions */}
-                        <div className="flex flex-col lg:flex-row gap-6">
+                        <div className="flex flex-col lg:flex-row gap-4">
                             {/* Alert Panel */}
                             <div className="lg:w-1/3">
                                 <AdminAlertPanel />

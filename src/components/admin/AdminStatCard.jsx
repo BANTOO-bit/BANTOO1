@@ -28,7 +28,7 @@ export default function AdminStatCard({ title, value, subtext, icon, trend, tren
     const colors = getColorClasses(color);
 
     return (
-        <div className="bg-white dark:bg-[#1a2632] p-5 rounded-xl border border-[#e5e7eb] dark:border-[#2a3b4d] shadow-sm flex flex-col gap-3 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#1a2632] p-4 rounded-xl border border-[#e5e7eb] dark:border-[#2a3b4d] shadow-sm flex flex-col gap-2 relative overflow-hidden">
             {color === 'red' && (
                 <div className="absolute right-0 top-0 w-16 h-16 bg-red-500/5 rounded-bl-full -mr-8 -mt-8 z-0"></div>
             )}

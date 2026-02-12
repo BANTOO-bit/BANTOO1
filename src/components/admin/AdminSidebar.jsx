@@ -95,11 +95,11 @@ export default function AdminSidebar({ isOpen, onClose }) {
             {/* Sidebar */}
             <aside className={`
                 fixed lg:static inset-y-0 left-0 z-30
-                flex flex-col w-[280px] h-screen bg-white dark:bg-[#1a2632] border-r border-[#e5e7eb] dark:border-[#2a3b4d]
+                flex flex-col w-[250px] h-screen bg-white dark:bg-[#1a2632] border-r border-[#e5e7eb] dark:border-[#2a3b4d]
                 transform transition-transform duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
-                <div className="p-6">
+                <div className="p-4 pb-3">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-admin-primary/10 text-admin-primary">
                             <span className="material-symbols-outlined text-2xl">local_shipping</span>
