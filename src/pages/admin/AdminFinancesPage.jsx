@@ -19,7 +19,7 @@ export default function AdminFinancesPage() {
                 onClose={() => setIsSidebarOpen(false)}
             />
 
-            <main className="flex-1 lg:ml-[250px] flex flex-col min-w-0">
+            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0">
                 <AdminHeader
                     onMenuClick={() => setIsSidebarOpen(true)}
                     title="Kontrol COD & Setoran"

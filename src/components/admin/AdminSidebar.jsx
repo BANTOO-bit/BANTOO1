@@ -95,27 +95,27 @@ export default function AdminSidebar({ isOpen, onClose }) {
             {/* Sidebar */}
             <aside className={`
                 fixed lg:static inset-y-0 left-0 z-30
-                flex flex-col w-[250px] h-screen bg-white dark:bg-[#1a2632] border-r border-[#e5e7eb] dark:border-[#2a3b4d]
+                flex flex-col w-[240px] h-screen bg-white dark:bg-[#1a2632] border-r border-[#e5e7eb] dark:border-[#2a3b4d]
                 transform transition-transform duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
-                <div className="p-4 pb-3">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-admin-primary/10 text-admin-primary">
-                            <span className="material-symbols-outlined text-2xl">local_shipping</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <h1 className="text-base font-bold leading-tight text-[#111418] dark:text-white">Panel Admin</h1>
-                            <p className="text-[#617589] dark:text-[#94a3b8] text-xs font-medium">Pengiriman Regional</p>
-                        </div>
+                {/* Brand */}
+                <div className="h-14 flex items-center gap-2.5 px-4 border-b border-[#e5e7eb] dark:border-[#2a3b4d]">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-admin-primary/10 text-admin-primary">
+                        <span className="material-symbols-outlined text-xl">local_shipping</span>
+                    </div>
+                    <div className="flex flex-col leading-none">
+                        <h1 className="text-sm font-bold text-[#111418] dark:text-white">Panel Admin</h1>
+                        <p className="text-[10px] text-[#617589] dark:text-[#94a3b8] font-medium mt-0.5">Pengiriman Regional</p>
                     </div>
                 </div>
 
-                <nav className="flex-1 px-4 pb-6 flex flex-col gap-1 overflow-y-auto">
+                {/* Navigation */}
+                <nav className="flex-1 px-3 py-3 flex flex-col gap-0.5 overflow-y-auto">
                     {navSections.map((section, sIdx) => (
-                        <div key={sIdx} className={sIdx > 0 ? 'mt-4' : ''}>
+                        <div key={sIdx} className={sIdx > 0 ? 'mt-3' : ''}>
                             {section.heading && (
-                                <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#617589]/60 dark:text-[#94a3b8]/50">
+                                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#617589]/60 dark:text-[#94a3b8]/50">
                                     {section.heading}
                                 </p>
                             )}
@@ -126,19 +126,19 @@ export default function AdminSidebar({ isOpen, onClose }) {
                                             to={item.path}
                                             end={!!item.children}
                                             onClick={onClose}
-                                            className={({ isActive }) => `flex-1 flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg transition-colors group ${isActive
-                                                ? 'bg-admin-primary/10 text-admin-primary font-medium'
-                                                : 'text-[#617589] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] hover:text-[#111418] dark:hover:text-white'
+                                            className={({ isActive }) => `flex-1 flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg transition-colors group text-[13px] ${isActive
+                                                ? 'bg-admin-primary/10 text-admin-primary font-semibold'
+                                                : 'text-[#617589] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] hover:text-[#111418] dark:hover:text-white font-medium'
                                                 }`}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <span className={`material-symbols-outlined text-[20px] ${item.icon === 'dashboard' ? 'filled' : ''}`}>
+                                            <div className="flex items-center gap-2.5">
+                                                <span className={`material-symbols-outlined text-[18px] ${item.icon === 'dashboard' ? 'filled' : ''}`}>
                                                     {item.icon}
                                                 </span>
-                                                <span className="text-sm font-medium">{item.label}</span>
+                                                <span>{item.label}</span>
                                             </div>
                                             {item.badge && (
-                                                <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold ${getBadgeStyles(item.badgeColor)}`}>
+                                                <span className={`flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-bold ${getBadgeStyles(item.badgeColor)}`}>
                                                     {item.badge}
                                                 </span>
                                             )}
@@ -146,9 +146,9 @@ export default function AdminSidebar({ isOpen, onClose }) {
                                         {item.children && (
                                             <button
                                                 onClick={() => toggleGroup(item.label)}
-                                                className="p-1.5 mr-1 rounded-md text-[#617589] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors"
+                                                className="p-1 mr-1 rounded-md text-[#617589] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors"
                                             >
-                                                <span className={`material-symbols-outlined text-[16px] transition-transform duration-200 ${expandedGroups[item.label] ? 'rotate-180' : ''}`}>
+                                                <span className={`material-symbols-outlined text-[14px] transition-transform duration-200 ${expandedGroups[item.label] ? 'rotate-180' : ''}`}>
                                                     expand_more
                                                 </span>
                                             </button>
@@ -156,18 +156,18 @@ export default function AdminSidebar({ isOpen, onClose }) {
                                     </div>
                                     {/* Sub-menu items */}
                                     {item.children && expandedGroups[item.label] && (
-                                        <div className="ml-8 mt-0.5 flex flex-col gap-0.5">
+                                        <div className="ml-7 mt-0.5 flex flex-col gap-0.5">
                                             {item.children.map((child) => (
                                                 <NavLink
                                                     key={child.path}
                                                     to={child.path}
                                                     onClick={onClose}
-                                                    className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors ${isActive
-                                                        ? 'text-admin-primary bg-admin-primary/5'
-                                                        : 'text-[#617589] dark:text-[#94a3b8] hover:text-[#111418] dark:hover:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d]'
+                                                    className={({ isActive }) => `flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${isActive
+                                                        ? 'text-admin-primary bg-admin-primary/5 font-semibold'
+                                                        : 'text-[#617589] dark:text-[#94a3b8] hover:text-[#111418] dark:hover:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] font-medium'
                                                         }`}
                                                 >
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>
+                                                    <span className="w-1 h-1 rounded-full bg-current opacity-50"></span>
                                                     {child.label}
                                                 </NavLink>
                                             ))}
@@ -179,29 +179,30 @@ export default function AdminSidebar({ isOpen, onClose }) {
                     ))}
                 </nav>
 
-                <div className="p-4 border-t border-[#e5e7eb] dark:border-[#2a3b4d]">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 overflow-hidden">
+                {/* User Footer */}
+                <div className="px-3 py-3 border-t border-[#e5e7eb] dark:border-[#2a3b4d]">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 overflow-hidden">
                             {displayAvatar ? (
-                                <div className="bg-center bg-no-repeat bg-cover rounded-full size-10 shrink-0"
+                                <div className="bg-center bg-no-repeat bg-cover rounded-full w-8 h-8 shrink-0"
                                     style={{ backgroundImage: `url("${displayAvatar}")` }}>
                                 </div>
                             ) : (
-                                <div className="flex items-center justify-center size-10 rounded-full bg-admin-primary/10 text-admin-primary text-sm font-bold shrink-0">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-admin-primary/10 text-admin-primary text-xs font-bold shrink-0">
                                     {displayInitials}
                                 </div>
                             )}
-                            <div className="flex flex-col overflow-hidden">
-                                <p className="text-sm font-medium text-[#111418] dark:text-white truncate">{displayName}</p>
-                                <p className="text-xs text-[#617589] dark:text-[#94a3b8] truncate">Administrator</p>
+                            <div className="flex flex-col overflow-hidden leading-none">
+                                <p className="text-xs font-semibold text-[#111418] dark:text-white truncate">{displayName}</p>
+                                <p className="text-[10px] text-[#617589] dark:text-[#94a3b8] truncate mt-0.5">Administrator</p>
                             </div>
                         </div>
                         <button
                             onClick={handleLogout}
-                            className="p-2 text-[#617589] dark:text-[#94a3b8] hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                            className="p-1.5 text-[#617589] dark:text-[#94a3b8] hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
                             title="Keluar"
                         >
-                            <span className="material-symbols-outlined text-[20px]">logout</span>
+                            <span className="material-symbols-outlined text-[18px]">logout</span>
                         </button>
                     </div>
                 </div>

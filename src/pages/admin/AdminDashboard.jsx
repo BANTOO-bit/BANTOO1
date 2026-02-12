@@ -91,7 +91,7 @@ function AdminDashboard() {
             />
 
             {/* Main Content */}
-            <main className="flex-1 lg:ml-[250px] flex flex-col min-w-0 relative">
+            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
                 {/* Header */}
                 <AdminHeader onMenuClick={() => setIsSidebarOpen(true)} />
 
@@ -101,13 +101,13 @@ function AdminDashboard() {
 
                         {/* Quick Actions */}
                         <div>
-                            <h3 className="text-sm font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wide mb-4">Tindakan Cepat</h3>
+                            <h3 className="text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wide mb-3">Tindakan Cepat</h3>
                             <AdminQuickActions />
                         </div>
 
                         {/* Stats Grid — Row 1: Key Metrics */}
                         <div>
-                            <h3 className="text-sm font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wide mb-4">Ringkasan Operasional</h3>
+                            <h3 className="text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wide mb-3">Ringkasan Operasional</h3>
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                 <AdminStatCard
                                     title="Total Pesanan Hari Ini"

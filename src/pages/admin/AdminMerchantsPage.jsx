@@ -32,7 +32,7 @@ export default function AdminMerchantsPage() {
                 onClose={() => setIsSidebarOpen(false)}
             />
 
-            <main className="flex-1 lg:ml-[250px] flex flex-col min-w-0 relative">
+            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
                 <AdminHeader
                     onMenuClick={() => setIsSidebarOpen(true)}
                     title="Manajemen Warung"

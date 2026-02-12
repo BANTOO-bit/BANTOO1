@@ -38,25 +38,22 @@ export default function AdminQuickActions() {
     ]
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
             {quickActions.map((action) => (
                 <Link
                     key={action.path}
                     to={action.path}
-                    className={`relative flex items-center gap-4 p-5 rounded-xl border-2 border-transparent ${action.bgColor} ${action.hoverColor} transition-all group hover:border-${action.color}-200 dark:hover:border-${action.color}-800 hover:shadow-lg`}
+                    className={`relative flex items-center gap-3 p-4 rounded-xl border border-transparent ${action.bgColor} ${action.hoverColor} transition-all group hover:shadow-md`}
                 >
-                    <div className={`flex items-center justify-center w-12 h-12 rounded-full ${action.bgColor} ${action.iconColor} group-hover:scale-110 transition-transform`}>
-                        <span className="material-symbols-outlined text-[28px]">{action.icon}</span>
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full ${action.bgColor} ${action.iconColor} group-hover:scale-105 transition-transform`}>
+                        <span className="material-symbols-outlined text-xl">{action.icon}</span>
                     </div>
-                    <div className="flex-1">
-                        <p className="text-sm font-medium text-[#617589] dark:text-[#94a3b8] mb-1">{action.label}</p>
-                        <p className="text-2xl font-bold text-[#111418] dark:text-white">{action.count}</p>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-[#617589] dark:text-[#94a3b8] truncate">{action.label}</p>
+                        <p className="text-xl font-bold text-[#111418] dark:text-white">{action.count}</p>
                     </div>
-                    <div className={`absolute top-3 right-3 flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full ${action.badgeColor} text-white text-xs font-bold shadow-sm`}>
+                    <div className={`absolute top-2.5 right-2.5 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full ${action.badgeColor} text-white text-[10px] font-bold`}>
                         {action.count}
-                    </div>
-                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="material-symbols-outlined text-[#617589] dark:text-[#94a3b8] text-[20px]">arrow_forward</span>
                     </div>
                 </Link>
             ))}
