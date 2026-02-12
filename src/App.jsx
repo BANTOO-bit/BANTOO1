@@ -239,6 +239,7 @@ function AppContent() {
                 <Route path="/otp" element={<OTPVerificationPage />} />
                 <Route path="/create-admin-secret" element={<CreateAdminPage />} />
                 <Route path="/manage/auth" element={<Suspense fallback={<PageLoader />}><AdminLoginPage /></Suspense>} />
+                <Route path="/admin/login" element={<Suspense fallback={<PageLoader />}><AdminLoginPage /></Suspense>} />
                 <Route path="*" element={<WelcomePage />} />
             </Routes>
         )
