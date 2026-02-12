@@ -307,6 +307,7 @@ function AppContent() {
                     <Route path="/driver/order/complete" element={<ProtectedRoute allowedRoles={['driver']}><DriverOrderComplete /></ProtectedRoute>} />
 
 
+                    <Route path="/admin/login" element={<AdminLoginPage />} />
                     <Route path="/admin/dashboard" element={
                         <ProtectedRoute allowedRoles={['admin']}>
                             <AdminDashboard />

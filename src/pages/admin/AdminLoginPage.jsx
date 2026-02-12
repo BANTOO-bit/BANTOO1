@@ -27,19 +27,15 @@ export default function AdminLoginPage() {
                 throw new Error('Login gagal')
             }
 
-            // Check if user has admin role
+            // Check if user has admin role in profiles table
             const userId = data.user.id
-            const { data: roleData } = await supabase
-                .from('user_roles')
+            const { data: profileData } = await supabase
+                .from('profiles')
                 .select('role')
-                .eq('user_id', userId)
-                .eq('role', 'admin')
-                .maybeSingle()
+                .eq('id', userId)
+                .single()
 
-            // Also check user_metadata as fallback
-            const metaRole = data.user.user_metadata?.role
-
-            if (!roleData && metaRole !== 'admin') {
+            if (profileData?.role !== 'admin') {
                 // Not an admin - sign out and show error
                 await authService.signOut()
                 setError('Akun ini bukan admin. Gunakan halaman login biasa untuk customer/merchant/driver.')
