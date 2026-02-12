@@ -102,7 +102,7 @@ function SmoothDriverMarker({ position }) {
 }
 
 function TrackingMap({
-    merchantLocation = [-6.2088, 106.8456],
+    merchantLocation = [-7.0747, 110.8767],
     userLocation = [-6.2250, 106.8500],
     driverLocation,
     height = "300px"

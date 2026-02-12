@@ -89,7 +89,7 @@ function DriverPickupOrder() {
                 {/* Map: Route to Merchant */}
                 <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: '200px' }}>
                     <TrackingMap
-                        merchantLocation={activeOrder.merchantCoords || [-6.2088, 106.8456]}
+                        merchantLocation={activeOrder.merchantCoords || [-7.0747, 110.8767]}
                         userLocation={activeOrder.customerCoords || [-6.2250, 106.8500]}
                         driverLocation={activeOrder.driverCoords || null}
                         height="200px"
@@ -111,7 +111,7 @@ function DriverPickupOrder() {
                         </div>
                     </div>
                     <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${(activeOrder.merchantCoords || [-6.2088, 106.8456]).join(',')}`}
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${(activeOrder.merchantCoords || [-7.0747, 110.8767]).join(',')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-4 w-full py-2.5 px-4 bg-blue-50 text-blue-600 font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"

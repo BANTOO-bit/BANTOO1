@@ -92,7 +92,7 @@ function DriverDeliveryOrder() {
             <div className="absolute inset-x-0 top-[72px] bottom-0 z-0 bg-gray-200 w-full">
                 <div className="w-full h-[55%] relative overflow-hidden">
                     <TrackingMap
-                        merchantLocation={activeOrder.merchantCoords || [-6.2088, 106.8456]}
+                        merchantLocation={activeOrder.merchantCoords || [-7.0747, 110.8767]}
                         userLocation={activeOrder.customerCoords || [-6.2250, 106.8500]}
                         driverLocation={activeOrder.driverCoords || null}
                         height="100%"

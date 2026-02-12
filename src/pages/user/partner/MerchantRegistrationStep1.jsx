@@ -332,7 +332,7 @@ function MerchantRegistrationStep1() {
                     </div>
                 }>
                     <MapSelector
-                        location={formData.location || { lat: -6.9667, lng: 110.4196 }} // Default: Semarang
+                        location={formData.location || { lat: -7.0747, lng: 110.8767 }} // Default: Tanggungharjo, Grobogan
                         onLocationChange={handleLocationSelect}
                         onClose={() => setShowMapSelector(false)}
                     />

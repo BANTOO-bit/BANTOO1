@@ -43,7 +43,7 @@ function FlyToLocation({ coords }) {
 }
 
 const LeafletMapPicker = ({
-    initialLocation = { lat: -6.2088, lng: 106.8456 }, // Jakarta Default
+    initialLocation = { lat: -7.0747, lng: 110.8767 }, // Default Tanggungharjo, Grobogan
     onLocationSelect,
     triggerFlyTo, // coordinate object to fly to
     isInteractionDisabled = false

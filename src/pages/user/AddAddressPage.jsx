@@ -32,7 +32,7 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
     const [errors, setErrors] = useState({})
 
     // Map States
-    const [mapCenter, setMapCenter] = useState({ lat: -6.2088, lng: 106.8456 }) // Default Jakarta
+    const [mapCenter, setMapCenter] = useState({ lat: -7.0747, lng: 110.8767 }) // Default Tanggungharjo
     const [flyToCoords, setFlyToCoords] = useState(null)
     const [isMapMoving, setIsMapMoving] = useState(false)
     const [isGeocoding, setIsGeocoding] = useState(false)
