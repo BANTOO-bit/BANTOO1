@@ -167,9 +167,17 @@ export function PartnerRegistrationProvider({ children }) {
                 vehicle_type: finalData.step2.vehicleType === 'motor' ? 'motorcycle' : finalData.step2.vehicleType,
                 vehicle_plate: finalData.step2.plateNumber,
                 vehicle_brand: finalData.step2.vehicleBrand,
-                status: 'pending',
-                // Store all extra data as metadata in a JSON column or in the profiles
-                // Since schema doesn't have photo/bank columns, store as registration metadata
+                selfie_url: selfieUrl,
+                vehicle_photo_url: vehiclePhotoUrl,
+                stnk_url: stnkUrl,
+                ktp_url: idCardUrl,
+                photo_with_vehicle_url: photoWithVehicleUrl,
+                address: finalData.step1.address || null,
+                phone: finalData.step1.phoneNumber || null,
+                bank_name: finalData.step3.bankName || null,
+                bank_account_name: finalData.step3.accountName || null,
+                bank_account_number: finalData.step3.accountNumber || null,
+                status: 'pending'
             })
 
             if (error) {
@@ -232,6 +240,10 @@ export function PartnerRegistrationProvider({ children }) {
                 latitude: finalData.step1.location?.lat || null,
                 longitude: finalData.step1.location?.lng || null,
                 image_url: shopPhotoUrl,
+                ktp_url: idCardUrl,
+                bank_name: finalData.step2.bankName || null,
+                bank_account_name: finalData.step2.accountName || null,
+                bank_account_number: finalData.step2.accountNumber || null,
                 status: 'pending'
             }
 

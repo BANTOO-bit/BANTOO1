@@ -67,6 +67,19 @@ export const driverService = {
                 .single()
 
             if (error) throw error
+
+            // Update the user's profile role to 'driver' so they can access driver dashboard
+            if (data?.user_id) {
+                await supabase
+                    .from('profiles')
+                    .update({
+                        role: 'driver',
+                        active_role: 'driver',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', data.user_id)
+            }
+
             logger.info(`Driver ${driverId} approved by admin ${adminId}`, 'driverService')
             return data
         } catch (error) {

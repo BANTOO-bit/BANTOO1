@@ -257,6 +257,19 @@ export const merchantService = {
                 .single()
 
             if (error) throw error
+
+            // Update the owner's profile role to 'merchant' so they can access merchant dashboard
+            if (data?.owner_id) {
+                await supabase
+                    .from('profiles')
+                    .update({
+                        role: 'merchant',
+                        active_role: 'merchant',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', data.owner_id)
+            }
+
             logger.info(`Merchant ${merchantId} approved by admin ${adminId}`, 'merchantService')
             return data
         } catch (error) {
