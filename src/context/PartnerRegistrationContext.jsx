@@ -62,12 +62,19 @@ export function PartnerRegistrationProvider({ children }) {
 
         try {
             const fileExt = file.name?.split('.').pop() || 'jpg'
+            const contentType = file.type || `image/${fileExt}`
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
             const filePath = `${folder}/${userId}/${fileName}`
 
+            // Read file into memory first to avoid ERR_UPLOAD_FILE_CHANGED
+            // Chrome loses File handle reference when files are selected then page rerenders
+            const arrayBuffer = await file.arrayBuffer()
+            const blob = new Blob([arrayBuffer], { type: contentType })
+
             const { data, error } = await supabase.storage
                 .from('documents')
-                .upload(filePath, file, {
+                .upload(filePath, blob, {
+                    contentType: contentType,
                     cacheControl: '3600',
                     upsert: false
                 })
