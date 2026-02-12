@@ -1,0 +1,288 @@
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import BottomNavigation from '../../components/user/BottomNavigation'
+import merchantService from '../../services/merchantService'
+import { useCart } from '../../context/CartContext'
+import { useFavorites } from '../../context/FavoritesContext'
+import LoadingState from '../../components/shared/LoadingState'
+import ErrorState from '../../components/shared/ErrorState'
+import EmptyState from '../../components/shared/EmptyState'
+
+// Sub-categories mapping for each main category
+const subCategoriesMap = {
+    'makanan-berat': ['Semua', 'Nasi Goreng', 'Ayam & Bebek', 'Bakmi', 'Sate', 'Padang'],
+    'jajanan': ['Semua', 'Gorengan', 'Martabak', 'Roti', 'Bakso'],
+    'kue': ['Semua', 'Kue Basah', 'Kue Kering', 'Roti Manis'],
+    'makanan-ringan': ['Semua', 'Keripik', 'Snack', 'Crackers'],
+    'seafood': ['Semua', 'Ikan', 'Udang', 'Cumi', 'Kepiting'],
+    'frozenfood': ['Semua', 'Nugget', 'Sosis', 'Dimsum', 'Frozen Meat'],
+    'minuman': ['Semua', 'Es Teh', 'Jus', 'Boba', 'Smoothie'],
+    'kopi-teh': ['Semua', 'Kopi', 'Teh', 'Matcha'],
+    'dessert': ['Semua', 'Es Krim', 'Cake', 'Puding'],
+    'makanan-sehat': ['Semua', 'Salad', 'Grain Bowl', 'Vegan'],
+    'makanan-bayi': ['Semua', 'Bubur', 'Puree', 'Snack Bayi'],
+    'sarapan': ['Semua', 'Nasi Uduk', 'Bubur', 'Lontong'],
+    'buah-sayur': ['Semua', 'Buah Segar', 'Sayur Segar', 'Salad'],
+    'sembako': ['Semua', 'Beras', 'Minyak', 'Bumbu'],
+}
+
+// Category to merchant mapping (based on existing merchant data)
+const categoryMerchantMap = {
+    'makanan-berat': ['Fast Food', 'Asian', 'Italian'],
+    'jajanan': ['Fast Food', 'Asian'],
+    'kue': ['Italian'],
+    'makanan-ringan': ['Fast Food'],
+    'seafood': ['Japanese', 'Asian'],
+    'frozenfood': [],
+    'minuman': ['Fast Food', 'Italian', 'Japanese', 'Asian'],
+    'kopi-teh': ['Italian'],
+    'dessert': ['Italian'],
+    'makanan-sehat': [],
+    'makanan-bayi': [],
+    'sarapan': ['Asian'],
+    'buah-sayur': [],
+    'sembako': [],
+}
+
+// Map IDs back to Display Names if needed for title
+const categoryNames = {
+    'makanan-berat': 'Makanan Berat',
+    'jajanan': 'Jajanan',
+    'kue': 'Kue',
+    'makanan-ringan': 'Makanan Ringan',
+    'seafood': 'Seafood',
+    'frozenfood': 'Frozen Food',
+    'minuman': 'Minuman',
+    'kopi-teh': 'Kopi & Teh',
+    'dessert': 'Dessert',
+    'makanan-sehat': 'Makanan Sehat',
+    'makanan-bayi': 'Makanan Bayi',
+    'sarapan': 'Sarapan',
+    'buah-sayur': 'Buah & Sayur',
+    'sembako': 'Sembako',
+}
+
+// Merchant Card Component
+function MerchantCard({ merchant, onClick }) {
+    const { isFavorite, toggleFavorite } = useFavorites()
+    const isFav = isFavorite(merchant.id)
+
+    const handleFavoriteClick = (e) => {
+        e.stopPropagation()
+        toggleFavorite(merchant)
+    }
+
+    return (
+        <div
+            onClick={() => onClick?.(merchant)}
+            className="group flex flex-col rounded-xl bg-white p-3 shadow-soft hover:shadow-lg transition-all duration-300 cursor-pointer border border-transparent hover:border-primary/10"
+        >
+            <div
+                className="w-full aspect-[2/1] bg-cover bg-center rounded-lg mb-3 relative overflow-hidden bg-gray-100"
+                style={{ backgroundImage: `url('${merchant.image}')` }}
+            >
+                {/* Favorite Button */}
+                <button
+                    onClick={handleFavoriteClick}
+                    className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full p-1.5 shadow-sm active:scale-95 transition-transform"
+                >
+                    <span
+                        className={`material-symbols-outlined block text-[20px] ${isFav ? 'text-red-500' : 'text-gray-400'}`}
+                        style={{ fontVariationSettings: isFav ? "'FILL' 1" : "'FILL' 0" }}
+                    >
+                        favorite
+                    </span>
+                </button>
+
+                {/* Promo Badge */}
+                {merchant.hasPromo && (
+                    <div className="absolute top-2 left-2 px-2 py-0.5 bg-green-500 text-white text-[10px] font-medium rounded">
+                        Promo
+                    </div>
+                )}
+            </div>
+
+            <div className="flex justify-between items-start">
+                <div className="flex flex-col gap-1.5 flex-1">
+                    <p className="text-base font-bold leading-tight text-text-main">{merchant.name}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                        <span className="material-symbols-outlined text-primary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                        <span className="font-bold text-text-main">{merchant.rating}</span>
+                        <span className="w-1 h-1 bg-gray-300 rounded-full mx-0.5"></span>
+                        <span>{merchant.distance}</span>
+                        <span className="w-1 h-1 bg-gray-300 rounded-full mx-0.5"></span>
+                        <span>{merchant.deliveryTime}</span>
+                    </div>
+                    <div className="flex gap-2 mt-1">
+                        {merchant.hasPromo && (
+                            <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-medium rounded">Promo</span>
+                        )}
+                        {merchant.deliveryFee === 'Gratis' && (
+                            <span className="px-2 py-0.5 bg-orange-50 text-orange-700 text-[10px] font-medium rounded">Gratis Ongkir</span>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function CategoryDetailPage() {
+    const navigate = useNavigate()
+    const { id } = useParams()
+
+    // Safety check just in case
+    const categoryId = id || 'makanan-berat'
+    const categoryName = categoryNames[categoryId] || 'Kategori'
+
+    const { cartItems } = useCart()
+    const [activeFilter, setActiveFilter] = useState('Semua')
+    const [allMerchants, setAllMerchants] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+
+    const fetchMerchants = useCallback(async () => {
+        setLoading(true)
+        setError(null)
+        try {
+            const data = await merchantService.getMerchants()
+            setAllMerchants(data)
+        } catch (err) {
+            setError(err.message || 'Gagal memuat data merchant')
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchMerchants()
+    }, [fetchMerchants])
+
+    // Get sub-categories for this category and add Promo/Terlaris after Semua
+    const baseSubCategories = subCategoriesMap[categoryId] || ['Semua']
+    // Insert Promo and Terlaris after Semua
+    const subCategories = [
+        baseSubCategories[0], // 'Semua'
+        'Promo',
+        'Terlaris',
+        ...baseSubCategories.slice(1) // Rest of sub-categories
+    ]
+
+    const filteredMerchants = useMemo(() => {
+        let merchants = allMerchants
+
+        // Filter by category
+        const categoryTypes = categoryMerchantMap[categoryId] || []
+        if (categoryTypes.length > 0) {
+            merchants = merchants.filter(m => categoryTypes.includes(m.category))
+        }
+
+        // Filter by Promo
+        if (activeFilter === 'Promo') {
+            merchants = merchants.filter(m => m.hasPromo || m.has_promo)
+        }
+
+        // Filter by Terlaris (using rating as proxy)
+        if (activeFilter === 'Terlaris') {
+            merchants = merchants.filter(m => m.rating >= 4.5)
+            merchants = [...merchants].sort((a, b) => b.rating - a.rating)
+        }
+
+        return merchants
+    }, [categoryId, activeFilter, allMerchants])
+
+    if (loading) return <LoadingState message="Memuat merchant..." />
+    if (error) return <ErrorState message="Gagal Memuat Data" detail={error} onRetry={fetchMerchants} />
+
+    return (
+        <div className="relative flex h-full min-h-screen w-full flex-col overflow-hidden mx-auto max-w-md bg-background-light shadow-2xl">
+            {/* Status Bar Space */}
+            <div className="h-12 w-full bg-white shrink-0"></div>
+
+            {/* Header */}
+            <div className="flex items-center bg-white px-4 py-3 justify-between sticky top-0 z-20 shadow-sm">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer text-text-main"
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>arrow_back_ios_new</span>
+                </button>
+                <h2 className="text-text-main text-lg font-bold leading-tight tracking-tight flex-1 text-center">
+                    {categoryName}
+                </h2>
+                {/* Cart Button */}
+                <button
+                    onClick={() => navigate('/cart')}
+                    className="relative flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer text-primary"
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>shopping_cart</span>
+                    {cartItemCount > 0 && (
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                            {cartItemCount > 99 ? '99+' : cartItemCount}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {/* Filter Chips */}
+            <div className="sticky top-[60px] z-10 bg-background-light py-4 pl-4 overflow-hidden">
+                <div className="flex gap-3 overflow-x-auto no-scrollbar pr-4 items-center">
+                    {/* Sub-category Filters */}
+                    {subCategories.map((subCat) => (
+                        <button
+                            key={subCat}
+                            onClick={() => setActiveFilter(subCat)}
+                            className={`flex h-9 shrink-0 items-center justify-center px-5 gap-1.5 rounded-lg cursor-pointer transition-all ${activeFilter === subCat
+                                ? 'bg-primary text-white shadow-md shadow-primary/20'
+                                : 'bg-white border border-gray-100'
+                                }`}
+                        >
+                            {/* Show tag icon for Promo */}
+                            {subCat === 'Promo' && (
+                                <span
+                                    className={`material-symbols-outlined ${activeFilter === subCat ? 'text-white' : 'text-primary'}`}
+                                    style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}
+                                >
+                                    local_offer
+                                </span>
+                            )}
+                            <p className={`text-sm font-medium leading-normal ${activeFilter === subCat ? 'text-white font-semibold' : 'text-text-main'}`}>
+                                {subCat}
+                            </p>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Merchant List */}
+            <div className="flex flex-col gap-4 px-4 pb-24 flex-grow">
+                {filteredMerchants.length === 0 ? (
+                    <div className="flex flex-col items-center py-12">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <span className="material-symbols-outlined text-4xl text-gray-400">storefront</span>
+                        </div>
+                        <h3 className="font-bold text-text-main mb-1">Tidak ada merchant</h3>
+                        <p className="text-sm text-text-secondary text-center">
+                            Coba filter lain atau kategori berbeda
+                        </p>
+                    </div>
+                ) : (
+                    filteredMerchants.map(merchant => (
+                        <MerchantCard
+                            key={merchant.id}
+                            merchant={merchant}
+                            onClick={() => navigate(`/merchant/${merchant.id}`)}
+                        />
+                    ))
+                )}
+            </div>
+
+            {/* Bottom Navigation */}
+            <BottomNavigation activeTab="search" />
+        </div>
+    )
+}
+
+export default CategoryDetailPage
