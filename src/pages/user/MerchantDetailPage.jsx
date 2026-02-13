@@ -7,11 +7,7 @@ import ErrorState from '../../components/shared/ErrorState'
 import EmptyState from '../../components/shared/EmptyState'
 
 // Menu categories for filtering
-const menuCategories = [
-    { id: 'all', name: 'Semua' },
-    { id: 'makanan', name: 'Makanan' },
-    { id: 'minuman', name: 'Minuman' },
-]
+// Menu categories are now derived dynamically from the data
 
 function MenuItemCard({ item, merchant }) {
     const { addToCart, getItemQuantity, updateQuantity } = useCart()
@@ -137,6 +133,39 @@ function MerchantDetailPage() {
 
     const showCartButton = cartCount > 0 && merchantInfo?.id === currentMerchant?.id
 
+    // Derive categories from menu items
+    const uniqueCategories = [...new Set(merchantMenus.map(item => item.category).filter(Boolean))]
+    uniqueCategories.sort()
+
+    // Category Tabs Component
+    const CategoryTabs = () => (
+        <div className="sticky top-0 z-10 bg-background-light px-4 py-3 border-b border-border-color mt-4">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                <button
+                    onClick={() => setActiveCategory('all')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeCategory === 'all'
+                        ? 'bg-primary text-white shadow-md'
+                        : 'bg-white text-text-secondary border border-border-color'
+                        }`}
+                >
+                    Semua
+                </button>
+                {uniqueCategories.map(cat => (
+                    <button
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeCategory === cat
+                            ? 'bg-primary text-white shadow-md'
+                            : 'bg-white text-text-secondary border border-border-color'
+                            }`}
+                    >
+                        {cat}
+                    </button>
+                ))}
+            </div>
+        </div>
+    )
+
     if (loading) return <LoadingState message="Memuat merchant..." />
     if (error) return <ErrorState message="Gagal Memuat" detail={error} onRetry={fetchMerchantData} />
     if (!currentMerchant) return null
@@ -189,22 +218,7 @@ function MerchantDetailPage() {
             </div>
 
             {/* Category Tabs */}
-            <div className="sticky top-0 z-10 bg-background-light px-4 py-3 border-b border-border-color mt-4">
-                <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                    {menuCategories.map(cat => (
-                        <button
-                            key={cat.id}
-                            onClick={() => setActiveCategory(cat.id)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeCategory === cat.id
-                                ? 'bg-primary text-white shadow-md'
-                                : 'bg-white text-text-secondary border border-border-color'
-                                }`}
-                        >
-                            {cat.name}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <CategoryTabs />
 
             {/* Menu Items */}
             <div className="flex-1 p-4">

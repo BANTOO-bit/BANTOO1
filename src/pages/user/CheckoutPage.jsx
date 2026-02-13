@@ -20,7 +20,7 @@ const deliveryOptions = [
 function CheckoutPage() {
     const navigate = useNavigate()
     const { user, isShopOpen } = useAuth()
-    const { cartItems, merchantInfo, cartTotal, deliveryFee, grandTotal, clearCart } = useCart()
+    const { cartItems, merchantInfo, cartTotal, deliveryFee, grandTotal, clearCart, calculateDeliveryFee } = useCart()
     const { selectedAddress, addresses, selectAddress } = useAddress()
     const toast = useToast()
     const [selectedPayment, setSelectedPayment] = useState('cash')
@@ -30,6 +30,12 @@ function CheckoutPage() {
     const [showAddressModal, setShowAddressModal] = useState(false)
     const [paymentMethods, setPaymentMethods] = useState([])
     const [loadingPayments, setLoadingPayments] = useState(true)
+
+    useEffect(() => {
+        if (merchantInfo?.id && selectedAddress?.lat && selectedAddress?.lng) {
+            calculateDeliveryFee(merchantInfo.id, selectedAddress.lat, selectedAddress.lng)
+        }
+    }, [merchantInfo, selectedAddress, calculateDeliveryFee])
 
     useEffect(() => {
         async function fetchPaymentMethods() {

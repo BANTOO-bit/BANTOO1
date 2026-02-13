@@ -1,23 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import driverService from '../../services/driverService'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
 
 function DriverProfilePage() {
     const navigate = useNavigate()
-    const { logout } = useAuth()
+    const { logout, user } = useAuth()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
+    const [driverData, setDriverData] = useState(null)
+    const [stats, setStats] = useState(null)
+    const [loading, setLoading] = useState(true)
 
-    // Mock driver data
-    const driver = {
-        name: 'Budi Santoso',
-        id: 'DRV-8829-JKT',
-        verified: true,
-        rating: '-',
-        trips: 0,
-        joinDate: 'Baru',
-        photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBbrWfUKf0v3ygsHK1Gd08zoduoiOHyK-AzHdSjbcrg-uJJcqfeBou-uEGP9nsqoEjQe_HeTGeRfUq3tMA0xDsdoeQbX_WQr9RZDIlAbT4u29ITJuCJAq8hXRZmjfPm4Vh2VJP7RZ0urGXOPUvNj1H_ggdF-JS0OBQ0Cf6ld73t9kKCtRoecNq0qHmHIJNL9AyMPKeZhZMzVlWfQ6NbVlkNe7LPVQjnVKIpSMVCeRGY_zCv2G4v9EDM6KFZq-jHgctmifnVATzUlQ'
-    }
+    useEffect(() => {
+        const fetchDriverData = async () => {
+            if (!user?.id) return
+            try {
+                const [profile, drvStats] = await Promise.all([
+                    driverService.getProfile(),
+                    driverService.getStats()
+                ])
+                setDriverData(profile)
+                setStats(drvStats)
+            } catch (error) {
+                console.error('Failed to fetch driver profile:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchDriverData()
+    }, [user])
 
     const handleLogout = () => {
         logout()
@@ -35,6 +47,14 @@ function DriverProfilePage() {
         { icon: 'security', label: 'Pusat Keamanan', bgColor: 'bg-teal-50', iconColor: 'text-teal-600', path: '/driver/security' },
     ]
 
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-background-light">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        )
+    }
+
     return (
         <div className="font-display bg-background-light text-slate-900 antialiased min-h-screen">
             <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-background-light">
@@ -44,10 +64,10 @@ function DriverProfilePage() {
                         {/* Profile Photo */}
                         <div className="relative">
                             <div
-                                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-24 ring-4 ring-white shadow-lg"
-                                style={{ backgroundImage: `url("${driver.photo}")` }}
+                                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-24 ring-4 ring-white shadow-lg bg-gray-200"
+                                style={{ backgroundImage: `url("${driverData?.profile?.avatar_url || 'https://via.placeholder.com/150'}")` }}
                             />
-                            {driver.verified && (
+                            {driverData?.status === 'approved' && (
                                 <div className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1.5 ring-4 ring-white shadow-sm flex items-center justify-center" title="Terverifikasi">
                                     <span className="material-symbols-outlined text-white text-[16px] font-bold">check</span>
                                 </div>
@@ -56,12 +76,14 @@ function DriverProfilePage() {
 
                         {/* Driver Info */}
                         <div className="flex flex-col gap-1 items-center">
-                            <h1 className="text-2xl font-bold text-slate-900">{driver.name}</h1>
-                            <p className="text-slate-500 text-sm font-medium">ID: {driver.id}</p>
-                            {driver.verified && (
+                            <h1 className="text-2xl font-bold text-slate-900">{driverData?.profile?.full_name || 'Driver'}</h1>
+                            <p className="text-slate-500 text-sm font-medium">
+                                {driverData?.vehicle_plate || 'No Plat'} • {driverData?.vehicle_brand || 'Kendaraan'}
+                            </p>
+                            {driverData?.status === 'approved' && (
                                 <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold border border-green-100">
                                     <span className="material-symbols-outlined text-[14px]">verified</span>
-                                    Terverifikasi
+                                    Mitra Resmi
                                 </div>
                             )}
                         </div>
@@ -69,17 +91,19 @@ function DriverProfilePage() {
                         {/* Stats */}
                         <div className="flex w-full justify-center gap-8 mt-2">
                             <div className="flex flex-col items-center">
-                                <span className="text-lg font-bold text-slate-900">{driver.rating}</span>
+                                <span className="text-lg font-bold text-slate-900">5.0</span>
                                 <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Rating</span>
                             </div>
                             <div className="w-px h-8 bg-slate-200" />
                             <div className="flex flex-col items-center">
-                                <span className="text-lg font-bold text-slate-900">{driver.trips}</span>
-                                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Trip</span>
+                                <span className="text-lg font-bold text-slate-900">{stats?.completedOrders || 0}</span>
+                                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Order</span>
                             </div>
                             <div className="w-px h-8 bg-slate-200" />
                             <div className="flex flex-col items-center">
-                                <span className="text-lg font-bold text-slate-900">{driver.joinDate}</span>
+                                <span className="text-lg font-bold text-slate-900">
+                                    {new Date(driverData?.created_at).toLocaleDateString('id-ID', { month: 'short', year: '2-digit' })}
+                                </span>
                                 <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Gabung</span>
                             </div>
                         </div>

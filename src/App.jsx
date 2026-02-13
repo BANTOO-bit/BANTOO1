@@ -301,7 +301,7 @@ function AppContent() {
                     <Route path="/driver/deposit/verification" element={<ProtectedRoute allowedRoles={['driver']}><DriverDepositVerification /></ProtectedRoute>} />
 
                     {/* Driver Order Flow (COD) */}
-                    <Route path="/driver/order/incoming" element={<ProtectedRoute allowedRoles={['driver']}><DriverIncomingOrder /></ProtectedRoute>} />
+                    <Route path="/driver/order/incoming/:orderId" element={<ProtectedRoute allowedRoles={['driver']}><DriverIncomingOrder /></ProtectedRoute>} />
                     <Route path="/driver/order/pickup" element={<ProtectedRoute allowedRoles={['driver']}><DriverPickupOrder /></ProtectedRoute>} />
                     <Route path="/driver/order/delivery" element={<ProtectedRoute allowedRoles={['driver']}><DriverDeliveryOrder /></ProtectedRoute>} />
                     <Route path="/driver/order/payment" element={<ProtectedRoute allowedRoles={['driver']}><DriverPaymentConfirmation /></ProtectedRoute>} />

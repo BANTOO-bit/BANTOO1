@@ -44,13 +44,15 @@ function DriverPickupOrder() {
         try {
             setIsConfirming(true)
 
-            // Update order status to picked_up
-            await orderService.updateStatus(activeOrder.dbId, 'picked_up')
+            // Update order status to picked_up via Driver Service
+            const { driverService } = await import('../../../services/driverService')
+            await driverService.updateOrderStatus(activeOrder.dbId, 'picked_up')
 
             // Update context
             setActiveOrder({ ...activeOrder, status: 'picked_up' })
 
-            // Navigate to delivery page (handles both COD and Wallet)
+            toast.success('Status diupdate: Menuju Customer')
+            // Navigate to delivery page
             navigate('/driver/order/delivery')
         } catch (error) {
             console.error('Error confirming pickup:', error)

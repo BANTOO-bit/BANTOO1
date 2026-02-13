@@ -14,7 +14,8 @@ function MerchantAddMenuPage() {
     const toast = useToast()
     const [isLoading, setIsLoading] = useState(false)
     const [imageType, setImageType] = useState('url') // 'url' or 'upload' (disabled)
-    const [imageUrl, setImageUrl] = useState('')
+    const [imageUrl, setImageUrl] = useState('') // For preview
+    const [imageFile, setImageFile] = useState(null) // For upload
     const [categories, setCategories] = useState([])
     const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false)
 
@@ -77,9 +78,29 @@ function MerchantAddMenuPage() {
 
             if (merchantError || !merchant) throw new Error('Merchant profile not found')
 
-            // 2. Prepare Image URL
-            // If empty, use a nice placeholder based on category
-            let finalImage = imageUrl
+            // 2. Upload Image to Storage (if exists)
+            let finalImage = null
+
+            if (imageFile) {
+                const fileExt = imageFile.name.split('.').pop()
+                const fileName = `${merchant.id}/${Date.now()}.${fileExt}`
+                const filePath = `${fileName}`
+
+                const { error: uploadError } = await supabase.storage
+                    .from('menu-images')
+                    .upload(filePath, imageFile)
+
+                if (uploadError) throw uploadError
+
+                // Get Public URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('menu-images')
+                    .getPublicUrl(filePath)
+
+                finalImage = publicUrl
+            }
+
+            // Fallback placeholder logic
             if (!finalImage) {
                 const placeholders = {
                     makanan: 'https://placehold.co/400x400/orange/white?text=Makanan',
@@ -92,7 +113,7 @@ function MerchantAddMenuPage() {
 
             // 3. Insert Product
             const { error: insertError } = await supabase
-                .from('products')
+                .from('menu_items')
                 .insert({
                     merchant_id: merchant.id,
                     name: formData.name,
@@ -106,6 +127,7 @@ function MerchantAddMenuPage() {
             if (insertError) throw insertError
 
             // Success
+            handleSuccess('Menu berhasil ditambahkan', toast)
             navigate('/merchant/menu')
 
         } catch (error) {
@@ -142,9 +164,16 @@ function MerchantAddMenuPage() {
                         onChange={(e) => {
                             const file = e.target.files[0]
                             if (file) {
+                                // Validate file size (max 2MB)
+                                if (file.size > 2 * 1024 * 1024) {
+                                    toast.error('Ukuran gambar maksimal 2MB')
+                                    return
+                                }
+
+                                setImageFile(file)
                                 const reader = new FileReader()
                                 reader.onloadend = () => {
-                                    setImageUrl(reader.result)
+                                    setImageUrl(reader.result) // For preview only
                                 }
                                 reader.readAsDataURL(file)
                             }

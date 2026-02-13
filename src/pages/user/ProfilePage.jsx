@@ -59,11 +59,7 @@ function ProfilePage() {
         phone: user.phone || user.user_metadata?.phone || '-',
         avatar: user.user_metadata?.avatar_url || "https://ui-avatars.com/api/?name=" + (user.user_metadata?.full_name || 'User') + "&background=random",
         ...user // Include other props like merchantStatus
-    } : {
-        name: "Andi Pratama",
-        phone: "+62 812 3456 7890",
-        avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAJULxQP8-WBbgl-tgUFqjJXQRPYPsZcrd7Ags5mJ0hMsJHsDcpiA9HylyjOygI59qzd4Yb8u7AXFjbk8aUfTnQEQf-t2mDyq2WxaIoBmPCI6THounXSaGSQPRKtF6jtNoA0j7riAO9E3DYe0jBWKThIg7md1Sbbb7L37bk27XC29PAqNYbLXGYZFEbqI1aW1gDNuIVD45Vqfb3-P5SeY2u4RyWHJTE13i2cSeIrBY1P7ylTm6lJ_uZZiNyd-I_4FEl4bEEN_rjTaEZ"
-    }
+    } : null // Don't show mock data if user is null (e.g. during logout)
 
     const handleEditProfile = () => {
         navigate('/profile/edit')
@@ -73,11 +69,14 @@ function ProfilePage() {
         setShowLogoutModal(true)
     }
 
-    const confirmLogout = () => {
+    const confirmLogout = async () => {
         setShowLogoutModal(false)
-        if (logout) logout()
-        navigate('/login')
+        if (logout) await logout()
+        navigate('/login', { replace: true })
     }
+
+    // If logging out or no user, don't render profile content to avoid flash/crash
+    if (!userData) return null
 
     return (
         <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-[100px] bg-background-light">

@@ -1,11 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
-
+import AdminLayout from '../../components/admin/AdminLayout'
 export default function AdminCreatePromoPage() {
     const navigate = useNavigate()
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [promoType, setPromoType] = useState('discount') // discount, freeshipping
     const [isOpenType, setIsOpenType] = useState(false)
 
@@ -16,20 +13,7 @@ export default function AdminCreatePromoPage() {
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden relative">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Manajemen Promo"
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-4xl mx-auto flex flex-col gap-6">
+        <AdminLayout title="Manajemen Promo">
 
                         {/* Breadcrumbs & Title */}
                         <div className="flex flex-col gap-2">
@@ -214,9 +198,6 @@ export default function AdminCreatePromoPage() {
                                 </div>
                             </form>
                         </div>
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

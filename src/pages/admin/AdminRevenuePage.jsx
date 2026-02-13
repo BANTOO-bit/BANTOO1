@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
+import AdminLayout from '../../components/admin/AdminLayout'
 import { dashboardService } from '../../services/dashboardService'
 
 export default function AdminRevenuePage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [period, setPeriod] = useState('daily') // daily, weekly, monthly
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -40,20 +38,7 @@ export default function AdminRevenuePage() {
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden relative">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Laporan Pendapatan"
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col gap-6">
+        <AdminLayout title="Laporan Pendapatan">
 
                         {/* Time Period Selectors */}
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -208,9 +193,6 @@ export default function AdminRevenuePage() {
                                 </div>
                             </>
                         )}
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

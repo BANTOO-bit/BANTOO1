@@ -44,17 +44,19 @@ function DriverDeliveryOrder() {
             // Stop broadcasting GPS since delivery is complete
             stopBroadcasting()
 
-            // Update order status to delivered
-            await orderService.updateStatus(activeOrder.dbId, 'delivered')
-
             // Update context
             setActiveOrder({ ...activeOrder, status: 'delivered' })
 
             // Navigate based on payment method
             if (activeOrder.paymentMethod === 'COD') {
-                // COD: Go to payment confirmation (cash verification)
+                // COD: Go to payment confirmation (cash verification) -> RPC called there
                 navigate('/driver/order/payment')
             } else {
+                // Wallet: Update status to delivered/completed via Driver Service
+                // This marks it as paid and done
+                const { driverService } = await import('../../../services/driverService')
+                await driverService.updateOrderStatus(activeOrder.dbId, 'delivered')
+
                 // Wallet: Skip cash verification, go directly to completion
                 navigate('/driver/order/complete')
             }

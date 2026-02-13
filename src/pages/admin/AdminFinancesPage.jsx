@@ -1,10 +1,6 @@
 import { useState } from 'react'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
-
+import AdminLayout from '../../components/admin/AdminLayout'
 export default function AdminFinancesPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-
     // Stats data
     const stats = [
         { label: 'Total COD Hari Ini', value: 'Rp 4,250,000', subtext: '18 transaksi', icon: 'account_balance_wallet', color: 'blue' },
@@ -13,20 +9,7 @@ export default function AdminFinancesPage() {
     ]
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Kontrol COD & Setoran"
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col gap-6 h-full">
+        <AdminLayout title="Kontrol COD & Setoran">
 
                         {/* Stats Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -82,10 +65,6 @@ export default function AdminFinancesPage() {
                                 </p>
                             </div>
                         </div>
-
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

@@ -47,9 +47,9 @@ function MerchantOrdersPage() {
 
                 // Map tab to database status
                 const statusMap = {
-                    'baru': 'pending',
-                    'diproses': 'accepted',
-                    'selesai': 'completed'
+                    'baru': ['pending'],
+                    'diproses': ['accepted', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'],
+                    'selesai': ['completed', 'cancelled']
                 }
 
                 const data = await orderService.getMerchantOrders(user.merchantId, statusMap[activeTab])
@@ -60,7 +60,7 @@ function MerchantOrdersPage() {
                     dbId: order.id, // Keep database ID for updates
                     time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     payment: order.payment_method === 'cod' ? 'Tunai' : order.payment_method,
-                    status: activeTab === 'baru' ? 'Baru' : activeTab === 'diproses' ? 'Diproses' : 'Selesai',
+                    status: order.status, // Pass raw status for logic, component handles display text
                     total: order.total_amount,
                     items: order.items?.map(item => ({
                         qty: item.quantity,
@@ -71,6 +71,10 @@ function MerchantOrdersPage() {
                     customer: order.customer ? {
                         name: order.customer.full_name,
                         initials: order.customer.full_name?.split(' ').map(n => n[0]).join('').toUpperCase()
+                    } : null,
+                    driver: order.driver ? {
+                        name: order.driver.full_name,
+                        phone: order.driver.phone
                     } : null,
                     timeline: {
                         created: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -109,6 +113,10 @@ function MerchantOrdersPage() {
 
                 // Show notification for new order
                 if (payload.new.status === 'pending') {
+                    // Play notification sound
+                    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')
+                    audio.play().catch(e => console.log('Audio play failed:', e))
+
                     addNotification({
                         type: 'success',
                         message: `Pesanan baru #${generateOrderId(payload.new.id)} masuk!`,
@@ -136,7 +144,13 @@ function MerchantOrdersPage() {
                 const statusMap = {
                     'pending': 'baru',
                     'accepted': 'diproses',
-                    'completed': 'selesai'
+                    'processing': 'diproses',
+                    'ready': 'diproses',
+                    'pickup': 'diproses',
+                    'picked_up': 'diproses',
+                    'delivering': 'diproses',
+                    'completed': 'selesai',
+                    'cancelled': 'selesai'
                 }
 
                 // If order moved to current tab or away from it, refresh
@@ -532,7 +546,7 @@ function MerchantOrdersPage() {
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Driver</span>
-                                    <span className="text-sm font-bold text-text-main dark:text-white">Budi Santoso</span>
+                                    <span className="text-sm font-bold text-text-main dark:text-white">{selectedOrder?.driver?.name || 'Menunggu Driver'}</span>
                                 </div>
                             </div>
                             <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-600 dark:text-green-400">
@@ -619,11 +633,18 @@ function MerchantOrdersPage() {
                                             >
                                                 <div className="flex justify-between items-start mb-2">
                                                     <span className="text-sm font-bold text-text-main dark:text-white">#{order.id}</span>
-                                                    <span className={`text-xs px-2 py-0.5 rounded-md ${order.status === 'Baru' ? 'bg-orange-100 text-orange-700' :
-                                                        order.status === 'Diproses' ? 'bg-blue-100 text-blue-700' :
-                                                            'bg-green-100 text-green-700'
+                                                    <span className={`text-xs px-2 py-0.5 rounded-md ${order.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                                                        ['accepted', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(order.status) ? 'bg-blue-100 text-blue-700' :
+                                                            order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                                'bg-green-100 text-green-700'
                                                         }`}>
-                                                        {order.status}
+                                                        {order.status === 'pending' ? 'Baru' :
+                                                            order.status === 'accepted' ? 'Diproses' :
+                                                                order.status === 'ready' ? 'Siap' :
+                                                                    order.status === 'pickup' ? 'Driver' :
+                                                                        order.status === 'picked_up' ? 'Diantar' :
+                                                                            order.status === 'cancelled' ? 'Batal' :
+                                                                                'Selesai'}
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-text-secondary">
@@ -682,13 +703,20 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                         </span>
                     </div>
                 </div>
-                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${order.status === 'Baru'
-                    ? 'bg-orange-50 dark:bg-orange-900/20 text-primary dark:text-orange-300 border-orange-100 dark:border-orange-800/30'
-                    : order.status === 'Diproses'
-                        ? 'bg-orange-100 dark:bg-orange-900/40 text-primary dark:text-orange-300 border-orange-200 dark:border-orange-800/30'
-                        : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 border-green-100 dark:border-green-800/30'
+                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${order.status === 'pending' ? 'bg-orange-50 dark:bg-orange-900/20 text-primary dark:text-orange-300 border-orange-100 dark:border-orange-800/30' :
+                    ['accepted', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(order.status) ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800/30' :
+                        order.status === 'cancelled' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 border-red-100 dark:border-red-800/30' :
+                            'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 border-green-100 dark:border-green-800/30'
                     }`}>
-                    {order.status === 'Diproses' ? 'Sedang Disiapkan' : order.status}
+                    {order.status === 'pending' ? 'Baru' :
+                        order.status === 'accepted' ? 'Sedang Disiapkan' :
+                            order.status === 'processing' ? 'Sedang Disiapkan' :
+                                order.status === 'ready' ? 'Menunggu Driver' :
+                                    order.status === 'pickup' ? 'Driver Menuju Resto' :
+                                        order.status === 'picked_up' ? 'Sedang Diantar' :
+                                            order.status === 'delivering' ? 'Sedang Diantar' :
+                                                order.status === 'cancelled' ? 'Dibatalkan' :
+                                                    'Selesai'}
                 </span>
             </div>
 
@@ -752,12 +780,34 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                     </div>
                 )}
                 {isDiproses && (
-                    <button
-                        onClick={onHandover}
-                        className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
-                    >
-                        <span>Siap Antar</span>
-                    </button>
+                    <>
+                        {['accepted', 'processing'].includes(order.status) && (
+                            <button
+                                onClick={onHandover}
+                                className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                            >
+                                <span>Siap Antar</span>
+                            </button>
+                        )}
+                        {order.status === 'ready' && (
+                            <div className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-secondary font-bold text-sm flex items-center justify-center gap-2 cursor-default">
+                                <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
+                                <span>Menunggu Driver</span>
+                            </div>
+                        )}
+                        {order.status === 'pickup' && (
+                            <div className="flex-1 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-sm flex items-center justify-center gap-2 cursor-default border border-blue-100 dark:border-blue-800/30">
+                                <span className="material-symbols-outlined text-[18px]">person_pin_circle</span>
+                                <span>Driver Menuju Resto</span>
+                            </div>
+                        )}
+                        {['picked_up', 'delivering'].includes(order.status) && (
+                            <div className="flex-1 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 font-bold text-sm flex items-center justify-center gap-2 cursor-default border border-green-100 dark:border-green-800/30">
+                                <span className="material-symbols-outlined text-[18px]">local_shipping</span>
+                                <span>Sedang Diantar</span>
+                            </div>
+                        )}
+                    </>
                 )}
                 {isSelesai && (
                     <div className="flex items-center gap-1 text-green-600 dark:text-green-400">

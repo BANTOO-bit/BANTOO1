@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
                 const timeout = new Promise(resolve => {
                     timeoutId = setTimeout(() => {
                         resolve({ data: null, error: { message: 'Timeout' } })
-                    }, 5000)
+                    }, 15000)
                 })
 
                 try {

@@ -259,14 +259,31 @@ function CategoryDetailPage() {
             {/* Merchant List */}
             <div className="flex flex-col gap-4 px-4 pb-24 flex-grow">
                 {filteredMerchants.length === 0 ? (
-                    <div className="flex flex-col items-center py-12">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <span className="material-symbols-outlined text-4xl text-gray-400">storefront</span>
+                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-4 ring-8 ring-red-50/50">
+                            <span className="material-symbols-outlined text-5xl text-red-400" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>restaurant_off</span>
                         </div>
-                        <h3 className="font-bold text-text-main mb-1">Tidak ada merchant</h3>
-                        <p className="text-sm text-text-secondary text-center">
-                            Coba filter lain atau kategori berbeda
+                        <h3 className="text-lg font-bold text-text-main mb-2">Belum Ada Menu Disini</h3>
+                        <p className="text-sm text-text-secondary max-w-[260px] mx-auto mb-8">
+                            Maaf, belum ada merchant untuk kategori ini. Coba cek kategori lain yang mungkin kamu suka.
                         </p>
+
+                        <div className="flex flex-col gap-3 w-full max-w-[280px]">
+                            <button
+                                onClick={() => navigate('/categories')}
+                                className="w-full py-2.5 px-4 bg-primary text-white font-medium rounded-full shadow-lg shadow-primary/20 hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">category</span>
+                                Lihat Kategori Lain
+                            </button>
+                            <button
+                                onClick={() => navigate('/')}
+                                className="w-full py-2.5 px-4 bg-white border border-gray-200 text-text-main font-medium rounded-full hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">home</span>
+                                Ke Beranda
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     filteredMerchants.map(merchant => (

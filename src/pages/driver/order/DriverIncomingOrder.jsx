@@ -18,30 +18,42 @@ function DriverIncomingOrder() {
     const [isLoading, setIsLoading] = useState(true)
     const [isAccepting, setIsAccepting] = useState(false)
 
-    // Fetch available orders
+    // Fetch specific order
     useEffect(() => {
-        async function fetchAvailableOrders() {
+        async function fetchOrder() {
+            if (!orderId) {
+                navigate('/driver/dashboard')
+                return
+            }
+
             try {
                 setIsLoading(true)
-                const orders = await orderService.getAvailableOrders()
+                // We reuse orderService.getOrderById or fetch via Supabase directly if service missing
+                // Ideally driverService should have getOrderById but orderService usually works if RLS allows
+                const order = await orderService.getOrderWithLocations(orderId)
 
-                if (orders && orders.length > 0) {
-                    // Show first available order
-                    setAvailableOrder(orders[0])
+                if (order) {
+                    // Access check: must be 'ready' and no driver
+                    if (order.status !== 'ready' || order.driver_id) {
+                        toast.error('Pesanan sudah tidak tersedia')
+                        navigate('/driver/dashboard')
+                        return
+                    }
+                    setAvailableOrder(order)
                 } else {
-                    // No orders available, go back to dashboard
-                    setTimeout(() => navigate('/driver/dashboard'), 2000)
+                    toast.error('Pesanan tidak ditemukan')
+                    navigate('/driver/dashboard')
                 }
             } catch (error) {
-                console.error('Error fetching available orders:', error)
-                setTimeout(() => navigate('/driver/dashboard'), 2000)
+                console.error('Error fetching order:', error)
+                navigate('/driver/dashboard')
             } finally {
                 setIsLoading(false)
             }
         }
 
-        fetchAvailableOrders()
-    }, [])
+        fetchOrder()
+    }, [orderId, navigate, toast])
 
     // Timer countdown
     useEffect(() => {
@@ -60,8 +72,11 @@ function DriverIncomingOrder() {
         try {
             setIsAccepting(true)
 
-            // Accept order via API
-            await orderService.acceptOrder(availableOrder.id)
+            // Accept order via Driver Service (Transactional)
+            // Import dynamically if not imported or use orderService if it maps to the new RPC
+            // We'll use the new driverService we created
+            const { driverService } = await import('../../../services/driverService')
+            await driverService.acceptOrder(availableOrder.id)
 
             // Set active order in context
             setActiveOrder({
@@ -73,7 +88,7 @@ function DriverIncomingOrder() {
                 customerAddress: availableOrder.delivery_address || '',
                 totalAmount: availableOrder.total_amount,
                 paymentMethod: availableOrder.payment_method === 'cod' ? 'COD' : availableOrder.payment_method.toUpperCase(),
-                status: 'accepted',
+                status: 'pickup', // Update to pickup immediately
                 items: availableOrder.items?.map(item => ({
                     name: item.product_name,
                     quantity: item.quantity,
@@ -86,11 +101,16 @@ function DriverIncomingOrder() {
                 customerNote: availableOrder.notes || ''
             })
 
-            // Navigate to pickup page (handles both COD and Wallet)
+            toast.success('Order berhasil diterima!')
+            // Navigate to pickup page
             navigate('/driver/order/pickup')
         } catch (error) {
             console.error('Error accepting order:', error)
             handleError(error, toast, { context: 'Accept Order' })
+            // If failed (e.g. taken by other), return to dashboard
+            if (error.message?.includes('sudah diambil') || error.message?.includes('tidak tersedia')) {
+                setTimeout(() => navigate('/driver/dashboard'), 1500)
+            }
             setIsAccepting(false)
         }
     }

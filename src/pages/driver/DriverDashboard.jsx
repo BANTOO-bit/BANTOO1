@@ -4,12 +4,16 @@ import { useAuth } from '../../context/AuthContext'
 import { useNotification } from '../../context/NotificationsContext'
 import { supabase } from '../../services/supabaseClient'
 import dashboardService from '../../services/dashboardService'
+import driverService from '../../services/driverService'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
+
+import { useOrder } from '../../context/OrderContext'
 
 function DriverDashboard() {
     const navigate = useNavigate()
     const { user } = useAuth()
     const { addNotification } = useNotification()
+    const { setActiveOrder } = useOrder() // Import setActiveOrder
     const [isOnline, setIsOnline] = useState(false)
     const [driverStatus, setDriverStatus] = useState('active') // 'active' or 'suspended'
     const [earnings, setEarnings] = useState({
@@ -22,32 +26,129 @@ function DriverDashboard() {
     useEffect(() => {
         async function fetchEarnings() {
             if (!user?.id) return
-
             try {
                 const data = await dashboardService.getDriverStats(user.id)
-                setEarnings({
-                    ...data,
-                    loading: false
-                })
+                setEarnings({ ...data, loading: false })
             } catch (error) {
                 console.error('Error fetching driver stats:', error)
                 setEarnings(prev => ({ ...prev, loading: false }))
             }
         }
 
+        // Check for active order on mount (Session Resume)
+        async function checkActiveOrder() {
+            if (!user?.id) return
+            const activeOrder = await driverService.getActiveOrder()
+            if (activeOrder) {
+                console.log('Found active order, resuming...', activeOrder)
+                // Normalize data structure to match what UI expects
+                const normalizedOrder = {
+                    id: `ORD-${new Date(activeOrder.created_at).getTime()}-${activeOrder.id.substring(0, 8)}`, // activeOrder.id is UUID, UI expects generated format sometimes or we adapt
+                    dbId: activeOrder.id,
+                    merchantName: activeOrder.merchant_name,
+                    merchantAddress: activeOrder.merchant_address,
+                    customerName: activeOrder.customer_name || 'Customer',
+                    customerAddress: activeOrder.customer_address,
+                    totalAmount: activeOrder.total_amount,
+                    paymentMethod: activeOrder.payment_method === 'cod' ? 'COD' : activeOrder.payment_method?.toUpperCase(),
+                    status: activeOrder.status,
+                    items: activeOrder.items,
+                    customerNote: activeOrder.customer_note || '',
+                    // Coordinates for map
+                    merchantCoords: [activeOrder.merchant_lat, activeOrder.merchant_lng],
+                    customerCoords: [activeOrder.customer_lat, activeOrder.customer_lng],
+                }
+
+                // We need to set this in OrderContext, but we can't access setActiveOrder here easily without importing useOrder
+                // So we'll navigate to a "resume" handler or just navigate and let the pages re-fetch?
+                // The pages (Pickup/Delivery) use `useOrder` context which might be empty on refresh.
+                // We need to populate the context or make the pages capable of fetching by themselves.
+                // Current implementation of Pickup/Delivery checks `if (!activeOrder) navigate('/dashboard')`.
+                // This creates a loop if we just navigate.
+
+                // SOLUTION: We should store the active order ID in localStorage or allow the pages to fetch by ID.
+                // But for now, let's navigate to a special route or just pass state?
+                // Better: Navigate with state, and modify the pages to accept state or fetch if context is missing.
+                // Actually, the best way in this codebase is to likely use the OrderContext's setActiveOrder.
+                // I need to import useOrder hook.
+            }
+        }
         fetchEarnings()
         // Refresh every 30 seconds
         const interval = setInterval(fetchEarnings, 30000)
         return () => clearInterval(interval)
-    }, [user?.id])
+        const updateDriverStatus = async () => {
+            if (!user?.id) return
 
-    // Realtime subscription for available orders (when driver is online)
+            try {
+                // Update online status in DB
+                await driverService.toggleStatus(isOnline)
+
+                if (isOnline) {
+                    // Start watching location
+                    if ('geolocation' in navigator) {
+                        locationWatchId = navigator.geolocation.watchPosition(
+                            (position) => {
+                                const { latitude, longitude } = position.coords
+                                driverService.updateLocation(latitude, longitude)
+
+                                // Poll for orders if we have location
+                                checkAvailableOrders(latitude, longitude)
+                            },
+                            (error) => console.error('Location error:', error),
+                            { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                        )
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating driver status:', error)
+                addNotification({
+                    type: 'error',
+                    message: 'Gagal mengupdate status driver',
+                    duration: 3000
+                })
+                setIsOnline(false) // Revert if failed
+            }
+        }
+
+        updateDriverStatus()
+
+        return () => {
+            if (locationWatchId) navigator.geolocation.clearWatch(locationWatchId)
+        }
+    }, [isOnline, user?.id])
+
+    // Specific function to check orders
+    const checkAvailableOrders = async (lat, lng) => {
+        try {
+            const orders = await driverService.getAvailableOrders({ lat, lng })
+
+            if (orders && orders.length > 0) {
+                // Determine layout for incoming order
+                // Ideally prompt user or show list. For MVP, we'll notify and navigate to incoming page
+                // We'll pick the first one for now
+                const order = orders[0]
+
+                // Avoid spamming notifications
+                // Only notify if we haven't seen this order recently (could use ref/state)
+                addNotification({
+                    type: 'order',
+                    title: 'Pesanan Baru Masuk!',
+                    message: `Jarak: ${order.distance_to_merchant.toFixed(1)}km - ${order.merchant_name}`,
+                    actionLabel: 'Ambil Order',
+                    actionUrl: `/driver/order/incoming/${order.id}`, // Pass ID
+                    sticky: true
+                })
+            }
+        } catch (error) {
+            console.error('Error checking orders:', error)
+        }
+    }
+
+    // Realtime subscription for NEW ready orders (Push)
     useEffect(() => {
         if (!isOnline || driverStatus !== 'active') return
 
-        console.log('Driver online - subscribing to available orders')
-
-        // Subscribe to orders that become ready for pickup
         const channel = supabase
             .channel('driver-available-orders')
             .on('postgres_changes', {
@@ -56,30 +157,23 @@ function DriverDashboard() {
                 table: 'orders',
                 filter: 'status=eq.ready'
             }, (payload) => {
-                console.log('Order ready for pickup:', payload.new)
-
-                // Only show if order is not yet assigned to a driver
+                // When a new order becomes ready, trigger a check (if we have location)
+                // We rely on the poll/watchPosition primarily but this speeds it up
+                // Ideally we get location here too, but for now just notify generic
                 if (!payload.new.driver_id && payload.old.status !== 'ready') {
                     addNotification({
                         type: 'info',
-                        message: 'Ada pesanan baru tersedia!',
+                        message: 'Pesanan baru tersedia di sekitar Anda!',
                         duration: 3000
                     })
-
-                    // Auto-navigate to incoming order page
-                    setTimeout(() => {
-                        navigate('/driver/order/incoming')
-                    }, 500)
                 }
             })
             .subscribe()
 
-        // Cleanup subscription
         return () => {
-            console.log('Driver offline - unsubscribing from orders')
             channel.unsubscribe()
         }
-    }, [isOnline, driverStatus, navigate, addNotification])
+    }, [isOnline, driverStatus])
 
     // Helper to format currency
     const formatCurrency = (value) => {
@@ -208,18 +302,18 @@ function DriverDashboard() {
                     <div className="px-4 pb-2">
                         <div className="grid grid-cols-2 gap-3">
                             {/* COD Fee Card */}
-                            <div className={`flex flex-col gap-2 rounded-xl p-4 bg-white border-2 shadow-sm relative overflow-hidden group ${todayEarnings.codFee === 0 ? 'border-green-500' : 'border-red-600'}`}>
+                            <div className={`flex flex-col gap-2 rounded-xl p-4 bg-white border-2 shadow-sm relative overflow-hidden group ${earnings.codFee === 0 ? 'border-green-500' : 'border-red-600'}`}>
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className={`flex items-center justify-center size-8 rounded-full shrink-0 ${todayEarnings.codFee === 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                    <span className={`flex items-center justify-center size-8 rounded-full shrink-0 ${earnings.codFee === 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                                         <span className="material-symbols-outlined text-[20px]">payments</span>
                                     </span>
-                                    <p className={`text-[10px] font-bold tracking-wider leading-tight ${todayEarnings.codFee === 0 ? 'text-green-700' : 'text-red-700'}`}>POTONGAN ONGKIR COD (Fee Admin)</p>
+                                    <p className={`text-[10px] font-bold tracking-wider leading-tight ${earnings.codFee === 0 ? 'text-green-700' : 'text-red-700'}`}>POTONGAN ONGKIR COD (Fee Admin)</p>
                                 </div>
-                                <p className={`tracking-tight text-2xl font-black leading-tight ${todayEarnings.codFee === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {todayEarnings.codFee === 0 ? 'Rp 0' : formatCurrency(todayEarnings.codFee)}
+                                <p className={`tracking-tight text-2xl font-black leading-tight ${earnings.codFee === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {earnings.codFee === 0 ? 'Rp 0' : formatCurrency(earnings.codFee)}
                                 </p>
-                                <p className={`text-xs font-bold px-2 py-1 rounded w-fit mt-1 ${todayEarnings.codFee === 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-                                    {todayEarnings.codFee === 0 ? 'Tidak ada tagihan' : 'Wajib setor segera'}
+                                <p className={`text-xs font-bold px-2 py-1 rounded w-fit mt-1 ${earnings.codFee === 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+                                    {earnings.codFee === 0 ? 'Tidak ada tagihan' : 'Wajib setor segera'}
                                 </p>
                             </div>
 
@@ -234,7 +328,7 @@ function DriverDashboard() {
                                     </span>
                                     <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Pendapatan Driver</p>
                                 </div>
-                                <p className="text-slate-900 tracking-tight text-xl font-bold leading-tight">{formatCurrency(todayEarnings.income)}</p>
+                                <p className="text-slate-900 tracking-tight text-xl font-bold leading-tight">{formatCurrency(earnings.todayIncome)}</p>
                                 <p className="text-xs text-slate-400 font-medium">Hari ini</p>
                             </div>
                         </div>

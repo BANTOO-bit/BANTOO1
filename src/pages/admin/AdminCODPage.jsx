@@ -1,9 +1,6 @@
 import { useState } from 'react'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
-
+import AdminLayout from '../../components/admin/AdminLayout'
 export default function AdminCODPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [showReminderModal, setShowReminderModal] = useState(false)
     const [selectedDriver, setSelectedDriver] = useState(null)
 
@@ -83,69 +80,7 @@ export default function AdminCODPage() {
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden relative">
-
-            {/* Modal Reminder */}
-            {showReminderModal && selectedDriver && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-[#1a2632] w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border border-[#e5e7eb] dark:border-[#2a3b4d]">
-                        <div className="px-6 py-4 border-b border-[#e5e7eb] dark:border-[#2a3b4d] flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-[#111418] dark:text-white">Kirim Pengingat Setoran</h3>
-                            <button onClick={handleCloseReminder} className="text-[#617589] hover:text-[#111418] dark:text-[#94a3b8] dark:hover:text-white transition-colors">
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-[#1e2c3a] rounded-lg">
-                                <div className={`w-10 h-10 rounded-full bg-${selectedDriver.color}-100 dark:bg-${selectedDriver.color}-900/30 flex items-center justify-center text-${selectedDriver.color}-600 text-sm font-bold shrink-0`}>
-                                    {selectedDriver.initials}
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-[#617589] dark:text-[#94a3b8] mb-1">Penerima</p>
-                                    <p className="text-base font-bold text-[#111418] dark:text-white">{selectedDriver.name}</p>
-                                    <div className="flex items-center gap-1.5 mt-1 text-sm text-[#617589] dark:text-[#94a3b8]">
-                                        <span className="material-symbols-outlined text-[16px]">call</span>
-                                        <span>0812-3456-7890</span>
-                                        <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded ml-1 font-medium">WhatsApp</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-[#111418] dark:text-white">Pratinjau Pesan</label>
-                                <div className="relative">
-                                    <div className="w-full p-4 text-sm leading-relaxed text-[#111418] dark:text-gray-200 bg-white dark:bg-[#15202b] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-lg">
-                                        Halo {selectedDriver.name}, saldo Ongkir COD (Fee Admin) Anda telah mencapai <strong>{formatCurrency(selectedDriver.remaining)}</strong>. Mohon segera lakukan setoran ke kantor pusat atau transfer ke rekening terdaftar agar akun tetap aktif. Terima kasih.
-                                    </div>
-                                </div>
-                                <p className="text-xs text-[#617589] dark:text-[#94a3b8]">Pesan ini akan dikirim otomatis melalui sistem WhatsApp Business API.</p>
-                            </div>
-                        </div>
-                        <div className="px-6 py-4 bg-gray-50 dark:bg-[#1e2c3a] border-t border-[#e5e7eb] dark:border-[#2a3b4d] flex justify-end gap-3">
-                            <button onClick={handleCloseReminder} className="px-4 py-2 text-sm font-medium text-[#617589] hover:text-[#111418] dark:text-[#94a3b8] dark:hover:text-white transition-colors">
-                                Batal
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#25D366] hover:bg-[#20bd5a] rounded-lg transition-colors shadow-sm">
-                                <span className="material-symbols-outlined text-[18px]">send</span>
-                                Kirim via WhatsApp
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Kontrol COD & Setoran"
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col gap-6 h-full">
+        <AdminLayout title="Kontrol COD & Setoran">
 
                         {/* Stats Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -318,10 +253,6 @@ export default function AdminCODPage() {
                                 </div>
                             </div>
                         </div>
-
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

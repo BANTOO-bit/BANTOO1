@@ -1,11 +1,18 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
-import { getPopularMenus, getMerchantById } from '../../data/merchantsData'
+import merchantService from '../../services/merchantService'
 
 function MenuCard({ item }) {
     const { addToCart, getItemQuantity, updateQuantity } = useCart()
     const quantity = getItemQuantity(item.id)
-    const merchant = getMerchantById(item.merchantId)
+
+    // Construct merchant object from item data
+    const merchant = {
+        id: item.merchantId,
+        name: item.merchantName,
+        image: item.merchantImage
+    }
 
     const handleAdd = () => {
         // No merchant restriction - just add to cart
@@ -68,7 +75,47 @@ function MenuCard({ item }) {
 
 function MenuPopuler() {
     const navigate = useNavigate()
-    const popularMenus = getPopularMenus()
+    const [popularMenus, setPopularMenus] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        async function fetchPopularMenus() {
+            try {
+                const data = await merchantService.getPopularMenus(10)
+                setPopularMenus(data)
+            } catch (error) {
+                console.error('Failed to fetch popular menus:', error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchPopularMenus()
+    }, [])
+
+    if (isLoading) {
+        return (
+            <section>
+                <div className="flex justify-between items-center mb-3">
+                    <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="flex gap-4 overflow-hidden">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="flex-none w-[160px] h-[220px] bg-gray-100 rounded-xl animate-pulse"></div>
+                    ))}
+                </div>
+            </section>
+        )
+    }
+
+    if (popularMenus.length === 0) {
+        return (
+            <section className="py-4 text-center">
+                <p className="text-sm text-gray-500">Belum ada menu populer saat ini.</p>
+            </section>
+        )
+    }
 
     return (
         <section>

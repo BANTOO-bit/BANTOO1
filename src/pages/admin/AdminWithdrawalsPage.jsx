@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
+import AdminLayout from '../../components/admin/AdminLayout'
 import AdminWithdrawalModal from '../../components/admin/AdminWithdrawalModal'
 import { financeService } from '../../services/financeService'
 import { useAuth } from '../../context/AuthContext'
 
 export default function AdminWithdrawalsPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('pending') // 'pending', 'approved', 'rejected'
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedWithdrawal, setSelectedWithdrawal] = useState(null)
@@ -65,28 +63,7 @@ export default function AdminWithdrawalsPage() {
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden relative">
-
-            <AdminWithdrawalModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                data={selectedWithdrawal}
-                onConfirm={handleConfirmTransfer}
-            />
-
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Manajemen Penarikan Dana"
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col gap-6 h-full">
+        <AdminLayout title="Manajemen Penarikan Dana">
 
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -203,9 +180,6 @@ export default function AdminWithdrawalsPage() {
                                 </table>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

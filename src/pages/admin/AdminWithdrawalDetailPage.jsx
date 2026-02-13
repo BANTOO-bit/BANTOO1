@@ -1,30 +1,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
-
+import AdminLayout from '../../components/admin/AdminLayout'
 export default function AdminWithdrawalDetailPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const { id } = useParams()
     const navigate = useNavigate()
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Tinjauan Penarikan Dana"
-                    showBack={true}
-                    onBackClick={() => navigate(-1)}
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto bg-[#f9fafb] dark:bg-[#101922]">
-                    <div className="max-w-4xl mx-auto">
+        <AdminLayout title="Tinjauan Penarikan Dana" showBack>
 
                         {/* Information Alert */}
                         <div className="mb-6 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl p-4 flex items-start gap-3">
@@ -159,10 +141,6 @@ export default function AdminWithdrawalDetailPage() {
                                 </div>
                             </div>
                         </div>
-
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

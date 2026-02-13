@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../components/user/BottomNavigation'
 import { useCart } from '../../context/CartContext'
+import merchantService from '../../services/merchantService'
 
-// All food categories (14 categories as per design)
-const allCategories = [
+// Metadata for categories (ID & Icon mapping)
+const categoryMetadata = [
     { id: 'makanan-berat', name: 'Makanan Berat', icon: 'dinner_dining' },
     { id: 'jajanan', name: 'Jajanan', icon: 'fastfood' },
     { id: 'kue', name: 'Kue', icon: 'cake' },
@@ -48,15 +49,53 @@ function AllCategoriesPage() {
     const navigate = useNavigate()
     const { cartItems } = useCart()
     const [searchQuery, setSearchQuery] = useState('')
+    const [activeCategories, setActiveCategories] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
 
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 
+    useEffect(() => {
+        async function fetchCategories() {
+            try {
+                // Get unique category names from DB
+                const dbCategories = await merchantService.getCategories()
+
+                // Map to metadata to get icons and IDs
+                const mappedCategories = dbCategories.map(catName => {
+                    // Try to find matching metadata
+                    const meta = categoryMetadata.find(
+                        m => m.name.toLowerCase() === catName.toLowerCase()
+                    )
+
+                    if (meta) {
+                        return meta
+                    } else {
+                        // Fallback for new categories not in metadata
+                        return {
+                            id: catName.toLowerCase().replace(/\s+/g, '-'),
+                            name: catName,
+                            icon: 'restaurant' // Default icon
+                        }
+                    }
+                })
+
+                setActiveCategories(mappedCategories)
+            } catch (error) {
+                console.error('Failed to fetch categories:', error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchCategories()
+    }, [])
+
     // Filter categories based on search
     const filteredCategories = searchQuery.trim()
-        ? allCategories.filter(cat =>
+        ? activeCategories.filter(cat =>
             cat.name.toLowerCase().includes(searchQuery.toLowerCase())
         )
-        : allCategories
+        : activeCategories
 
     const handleCategoryClick = (category) => {
         navigate(`/category/${category.id}`)
@@ -112,14 +151,26 @@ function AllCategoriesPage() {
             {/* Main Content */}
             <main className="flex flex-col gap-8 px-4 pt-4 flex-grow">
                 <section>
-                    {filteredCategories.length === 0 ? (
+                    {isLoading ? (
+                        <div className="grid grid-cols-4 gap-y-6 gap-x-2">
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                <div key={i} className="flex flex-col items-center gap-2">
+                                    <div className="w-14 h-14 rounded-full bg-gray-200 animate-pulse"></div>
+                                    <div className="w-12 h-3 bg-gray-200 rounded animate-pulse"></div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : filteredCategories.length === 0 ? (
                         <div className="flex flex-col items-center py-12">
                             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                 <span className="material-symbols-outlined text-4xl text-gray-400">search_off</span>
                             </div>
                             <h3 className="font-bold text-text-main mb-1">Kategori tidak ditemukan</h3>
                             <p className="text-sm text-text-secondary text-center">
-                                Coba kata kunci lain
+                                {activeCategories.length === 0
+                                    ? "Belum ada merchant yang aktif saat ini."
+                                    : "Coba kata kunci lain"
+                                }
                             </p>
                         </div>
                     ) : (

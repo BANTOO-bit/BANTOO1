@@ -1,11 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
-
+import AdminLayout from '../../components/admin/AdminLayout'
 export default function AdminIssuesPage() {
     const navigate = useNavigate()
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('all') // all, open, closed
     const [filterCategory, setFilterCategory] = useState('Semua Kategori')
 
@@ -100,20 +97,7 @@ export default function AdminIssuesPage() {
     })
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden relative">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Pusat Bantuan & Masalah Operasional"
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col h-full gap-6">
+        <AdminLayout title="Pusat Bantuan & Masalah Operasional">
 
                         {/* Stats Cards */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -277,9 +261,6 @@ export default function AdminIssuesPage() {
                                 </div>
                             </div>
                         )}
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

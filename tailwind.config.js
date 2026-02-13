@@ -26,6 +26,8 @@ export default {
                 "border-light": "#E5E7EB",
                 "border-dark": "#374151",
                 "danger": "#DC2626",
+                "warning": "#EAB308",
+                "success": "#22C55E",
             },
             fontFamily: {
                 "display": ["Inter", "sans-serif"],

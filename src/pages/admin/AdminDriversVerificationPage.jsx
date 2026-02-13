@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
+import AdminLayout from '../../components/admin/AdminLayout'
 import driverService from '../../services/driverService'
 
 export default function AdminDriversVerificationPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('pending')
     const [verificationQueue, setVerificationQueue] = useState([])
     const [loading, setLoading] = useState(true)
@@ -69,22 +67,7 @@ export default function AdminDriversVerificationPage() {
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Verifikasi Driver Baru"
-                    showBack={true}
-                    onBackClick={() => window.history.back()}
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-[1200px] mx-auto">
+        <AdminLayout title="Verifikasi Driver Baru" showBack>
 
                         {/* Tabs */}
                         <div className="flex items-center gap-6 border-b border-[#e5e7eb] dark:border-[#2a3b4d] mb-6 overflow-x-auto">
@@ -181,10 +164,6 @@ export default function AdminDriversVerificationPage() {
                                 )}
                             </div>
                         )}
-
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

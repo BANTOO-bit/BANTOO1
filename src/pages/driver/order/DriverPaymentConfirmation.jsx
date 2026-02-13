@@ -47,11 +47,10 @@ function DriverPaymentConfirmation() {
         try {
             setIsConfirming(true)
 
-            // Confirm COD payment received
-            await orderService.confirmPayment(activeOrder.dbId, activeOrder.totalAmount, 'cod')
-
-            // Update order status to completed
-            await orderService.updateStatus(activeOrder.dbId, 'completed')
+            // Confirm COD payment & Complete Order via Driver Service
+            // The RPC 'completed' status sets payment_status='paid' and delivered_at=NOW()
+            const { driverService } = await import('../../../services/driverService')
+            await driverService.updateOrderStatus(activeOrder.dbId, 'completed')
 
             // Update context
             setActiveOrder({ ...activeOrder, status: 'completed', proofPhoto: photo })

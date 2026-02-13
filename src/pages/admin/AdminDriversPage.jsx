@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
-
+import AdminLayout from '../../components/admin/AdminLayout'
+import AdminEmptyState from '../../components/admin/AdminEmptyState'
 export default function AdminDriversPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isTerminateModalOpen, setIsTerminateModalOpen] = useState(false)
     const [selectedDriver, setSelectedDriver] = useState(null)
     const [confirmText, setConfirmText] = useState('')
@@ -28,169 +26,162 @@ export default function AdminDriversPage() {
     const isConfirmValid = confirmText === expectedConfirmText
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+        <AdminLayout title="Manajemen Driver">
 
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Manajemen Driver"
-                />
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-5 flex flex-col gap-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="material-symbols-outlined text-[#617589] dark:text-[#94a3b8]">groups</span>
+                        <p className="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Total Armada</p>
+                    </div>
+                    <h3 className="text-3xl font-bold text-[#111418] dark:text-white">1,248</h3>
+                </div>
+                <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-5 flex flex-col gap-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="material-symbols-outlined text-green-500">fiber_manual_record</span>
+                        <p className="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Driver Online</p>
+                    </div>
+                    <h3 className="text-3xl font-bold text-[#111418] dark:text-white">856</h3>
+                </div>
+                <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-5 flex flex-col gap-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="material-symbols-outlined text-gray-400">fiber_manual_record</span>
+                        <p className="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Driver Offline</p>
+                    </div>
+                    <h3 className="text-3xl font-bold text-[#111418] dark:text-white">392</h3>
+                </div>
+            </div>
 
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col gap-6">
-
-                        {/* Stats Cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-5 flex flex-col gap-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-outlined text-[#617589] dark:text-[#94a3b8]">groups</span>
-                                    <p className="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Total Armada</p>
-                                </div>
-                                <h3 className="text-3xl font-bold text-[#111418] dark:text-white">1,248</h3>
-                            </div>
-                            <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-5 flex flex-col gap-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-outlined text-green-500">fiber_manual_record</span>
-                                    <p className="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Driver Online</p>
-                                </div>
-                                <h3 className="text-3xl font-bold text-[#111418] dark:text-white">856</h3>
-                            </div>
-                            <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-5 flex flex-col gap-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-outlined text-gray-400">fiber_manual_record</span>
-                                    <p className="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Driver Offline</p>
-                                </div>
-                                <h3 className="text-3xl font-bold text-[#111418] dark:text-white">392</h3>
-                            </div>
-                        </div>
-
-                        {/* Verification Queue Alert */}
-                        <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-full bg-white dark:bg-[#1a2632] text-primary flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-800 shadow-sm">
-                                    <span className="material-symbols-outlined text-[24px]">verified_user</span>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">Antrean Verifikasi Baru</h3>
-                                    <p className="text-[#617589] dark:text-[#94a3b8] mt-1 text-sm">Terdapat <span className="font-bold text-[#111418] dark:text-white">5 Driver Baru</span> yang menunggu peninjauan dokumen.</p>
-                                </div>
-                            </div>
-                            <Link to="/admin/drivers/verification" className="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap flex items-center gap-2 shadow-sm">
-                                Tinjau Antrean
-                                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                            </Link>
-                        </div>
-
-                        {/* Driver List Table */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pb-1">
-                            <h3 className="text-lg font-bold text-[#111418] dark:text-white">Daftar Driver Aktif</h3>
-                            <div className="flex gap-2">
-                                <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] hover:bg-[#f0f2f4] dark:hover:bg-[#202e3b] text-[#111418] dark:text-white font-medium rounded-lg transition-colors text-sm">
-                                    <span className="material-symbols-outlined text-[20px]">filter_list</span>
-                                    Filter
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl overflow-hidden flex-1 mb-20">
-                            <div className="overflow-x-visible">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-[#e5e7eb] dark:border-[#2a3b4d] text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase bg-[#f9fafb] dark:bg-[#1e2c3a]">
-                                            <th className="px-6 py-4 whitespace-nowrap">Nama Driver</th>
-                                            <th className="px-6 py-4 whitespace-nowrap">Kendaraan</th>
-                                            <th className="px-6 py-4 whitespace-nowrap">Bergabung</th>
-                                            <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                                            <th className="px-6 py-4 whitespace-nowrap text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3b4d]">
-                                        {drivers.map((driver) => (
-                                            <tr key={driver.id} className="hover:bg-[#f9fafb] dark:hover:bg-[#202e3b] transition-colors relative z-10">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-full bg-${driver.color}-100 dark:bg-${driver.color}-900 text-${driver.color}-600 dark:text-${driver.color}-200 flex items-center justify-center font-bold text-sm`}>
-                                                            {driver.initials}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-semibold text-[#111418] dark:text-white">{driver.name}</p>
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="material-symbols-outlined text-xs text-yellow-500">star</span>
-                                                                <p className="text-xs text-[#617589] dark:text-[#94a3b8]">{driver.rating}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <p className="text-sm font-medium text-[#111418] dark:text-white">{driver.vehicle}</p>
-                                                    <p className="text-xs text-[#617589] dark:text-[#94a3b8]">{driver.plate}</p>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <p className="text-sm text-[#617589] dark:text-[#94a3b8]">{driver.joined}</p>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${driver.status === 'Online'
-                                                        ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800'
-                                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
-                                                        }`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${driver.status === 'Online' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
-                                                        {driver.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-right relative">
-                                                    <div className="relative inline-block text-left group">
-                                                        <button className="text-[#617589] hover:text-[#111418] dark:text-[#94a3b8] dark:hover:text-white p-2 hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] rounded-lg transition-colors">
-                                                            <span className="material-symbols-outlined text-[20px]">more_vert</span>
-                                                        </button>
-                                                        <div className="hidden group-hover:block absolute right-0 top-full z-50 w-56 bg-white dark:bg-[#1a2632] rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] flex flex-col py-1 text-left shadow-lg">
-                                                            <button className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left">
-                                                                <span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">person</span>
-                                                                Lihat Profil
-                                                            </button>
-                                                            <Link to={`/admin/drivers/edit/${driver.id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left">
-                                                                <span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">edit</span>
-                                                                Edit Data
-                                                            </Link>
-                                                            <button className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left">
-                                                                <span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">pause_circle</span>
-                                                                Nonaktifkan Sementara
-                                                            </button>
-                                                            <div className="h-px bg-[#e5e7eb] dark:bg-[#2a3b4d] my-1 mx-2"></div>
-                                                            <button
-                                                                onClick={() => handleTerminateClick(driver)}
-                                                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left"
-                                                            >
-                                                                <span className="material-symbols-outlined text-[18px]">person_off</span>
-                                                                Putus Kemitraan
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="px-6 py-4 border-t border-[#e5e7eb] dark:border-[#2a3b4d] flex items-center justify-between">
-                                <p className="text-sm text-[#617589] dark:text-[#94a3b8]">Menampilkan <span className="font-semibold text-[#111418] dark:text-white">1-{drivers.length}</span> dari <span className="font-semibold text-[#111418] dark:text-white">1,248</span> driver</p>
-                                <div className="flex items-center gap-2">
-                                    <button className="p-2 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] text-[#617589] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#202e3b] disabled:opacity-50 transition-colors" disabled>
-                                        <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-                                    </button>
-                                    <button className="p-2 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] text-[#617589] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#202e3b] transition-colors">
-                                        <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
+            {/* Verification Queue Alert */}
+            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-white dark:bg-[#1a2632] text-primary flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-800 shadow-sm">
+                        <span className="material-symbols-outlined text-[24px]">verified_user</span>
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-[#111418] dark:text-white">Antrean Verifikasi Baru</h3>
+                        <p className="text-[#617589] dark:text-[#94a3b8] mt-1 text-sm">Terdapat <span className="font-bold text-[#111418] dark:text-white">5 Driver Baru</span> yang menunggu peninjauan dokumen.</p>
                     </div>
                 </div>
-            </main>
+                <Link to="/admin/drivers/verification" className="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap flex items-center gap-2 shadow-sm">
+                    Tinjau Antrean
+                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </Link>
+            </div>
+
+            {/* Driver List Table */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pb-1">
+                <h3 className="text-lg font-bold text-[#111418] dark:text-white">Daftar Driver Aktif</h3>
+                <div className="flex gap-2">
+                    <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] hover:bg-[#f0f2f4] dark:hover:bg-[#202e3b] text-[#111418] dark:text-white font-medium rounded-lg transition-colors text-sm">
+                        <span className="material-symbols-outlined text-[20px]">filter_list</span>
+                        Filter
+                    </button>
+                </div>
+            </div>
+
+            {drivers.length > 0 ? (
+                <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl overflow-hidden flex-1 mb-20">
+                    <div className="overflow-x-visible">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-[#e5e7eb] dark:border-[#2a3b4d] text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase bg-[#f9fafb] dark:bg-[#1e2c3a]">
+                                    <th className="px-6 py-4 whitespace-nowrap">Nama Driver</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Kendaraan</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Bergabung</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                                    <th className="px-6 py-4 whitespace-nowrap text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3b4d]">
+                                {drivers.map((driver) => (
+                                    <tr key={driver.id} className="hover:bg-[#f9fafb] dark:hover:bg-[#202e3b] transition-colors relative z-10">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-full bg-${driver.color}-100 dark:bg-${driver.color}-900 text-${driver.color}-600 dark:text-${driver.color}-200 flex items-center justify-center font-bold text-sm`}>
+                                                    {driver.initials}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-[#111418] dark:text-white">{driver.name}</p>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-xs text-yellow-500">star</span>
+                                                        <p className="text-xs text-[#617589] dark:text-[#94a3b8]">{driver.rating}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <p className="text-sm font-medium text-[#111418] dark:text-white">{driver.vehicle}</p>
+                                            <p className="text-xs text-[#617589] dark:text-[#94a3b8]">{driver.plate}</p>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <p className="text-sm text-[#617589] dark:text-[#94a3b8]">{driver.joined}</p>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${driver.status === 'Online'
+                                                ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800'
+                                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
+                                                }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${driver.status === 'Online' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                                                {driver.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right relative">
+                                            <div className="relative inline-block text-left group">
+                                                <button className="text-[#617589] hover:text-[#111418] dark:text-[#94a3b8] dark:hover:text-white p-2 hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] rounded-lg transition-colors">
+                                                    <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                                                </button>
+                                                <div className="hidden group-hover:block absolute right-0 top-full z-50 w-56 bg-white dark:bg-[#1a2632] rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] flex flex-col py-1 text-left shadow-lg">
+                                                    <button className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left">
+                                                        <span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">person</span>
+                                                        Lihat Profil
+                                                    </button>
+                                                    <Link to={`/admin/drivers/edit/${driver.id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left">
+                                                        <span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">edit</span>
+                                                        Edit Data
+                                                    </Link>
+                                                    <button className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left">
+                                                        <span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">pause_circle</span>
+                                                        Nonaktifkan Sementara
+                                                    </button>
+                                                    <div className="h-px bg-[#e5e7eb] dark:bg-[#2a3b4d] my-1 mx-2"></div>
+                                                    <button
+                                                        onClick={() => handleTerminateClick(driver)}
+                                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[18px]">person_off</span>
+                                                        Putus Kemitraan
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="px-6 py-4 border-t border-[#e5e7eb] dark:border-[#2a3b4d] flex items-center justify-between">
+                        <p className="text-sm text-[#617589] dark:text-[#94a3b8]">Menampilkan <span className="font-semibold text-[#111418] dark:text-white">1-{drivers.length}</span> dari <span className="font-semibold text-[#111418] dark:text-white">1,248</span> driver</p>
+                        <div className="flex items-center gap-2">
+                            <button className="p-2 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] text-[#617589] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#202e3b] disabled:opacity-50 transition-colors" disabled>
+                                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                            </button>
+                            <button className="p-2 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] text-[#617589] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#202e3b] transition-colors">
+                                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <AdminEmptyState
+                    title="Belum Ada Driver"
+                    description="Daftar driver yang daftar dan disetujui akan muncul di halaman ini."
+                    icon="two_wheeler"
+                />
+            )}
+
+
 
             {/* Terminate Partnership Modal */}
             {isTerminateModalOpen && (
@@ -254,6 +245,6 @@ export default function AdminDriversPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </AdminLayout>
     )
 }

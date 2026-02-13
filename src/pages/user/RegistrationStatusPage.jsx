@@ -99,8 +99,8 @@ function DriverRegistrationCard({ status, rejectionReasons, onOpenDashboard, onF
                 </div>
             </div>
 
-            {/* Status: Processing */}
-            {status === 'processing' && (
+            {/* Status: Processing/Pending */}
+            {(status === 'processing' || status === 'pending') && (
                 <>
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex gap-3 items-start">
                         <span className="material-symbols-outlined text-blue-500 text-lg mt-0.5">schedule</span>
@@ -108,7 +108,7 @@ function DriverRegistrationCard({ status, rejectionReasons, onOpenDashboard, onF
                             Pendaftaran Anda sedang ditinjau oleh Admin. Estimasi waktu 1-2 hari kerja.
                         </p>
                     </div>
-                    <div className="w-full bg-warning text-white font-medium py-3 rounded-xl cursor-default transition-colors text-sm flex items-center justify-center gap-2 select-none">
+                    <div className="w-full bg-yellow-500 text-white font-medium py-3 rounded-xl cursor-default transition-colors text-sm flex items-center justify-center gap-2 select-none">
                         <span className="material-symbols-outlined text-sm">hourglass_top</span>
                         <span>Sedang Diproses</span>
                     </div>
@@ -194,8 +194,8 @@ function MerchantRegistrationCard({ status, rejectionReasons, onOpenDashboard, o
                 </div>
             </div>
 
-            {/* Status: Processing */}
-            {status === 'processing' && (
+            {/* Status: Processing/Pending */}
+            {(status === 'processing' || status === 'pending') && (
                 <>
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex gap-3 items-start">
                         <span className="material-symbols-outlined text-blue-500 text-lg mt-0.5">schedule</span>
@@ -203,7 +203,7 @@ function MerchantRegistrationCard({ status, rejectionReasons, onOpenDashboard, o
                             Pendaftaran Anda sedang ditinjau oleh Admin. Estimasi waktu 1-2 hari kerja.
                         </p>
                     </div>
-                    <div className="w-full bg-warning text-white font-medium py-3 rounded-xl cursor-default transition-colors text-sm flex items-center justify-center gap-2 select-none">
+                    <div className="w-full bg-yellow-500 text-white font-medium py-3 rounded-xl cursor-default transition-colors text-sm flex items-center justify-center gap-2 select-none">
                         <span className="material-symbols-outlined text-sm">hourglass_top</span>
                         <span>Sedang Diproses</span>
                     </div>

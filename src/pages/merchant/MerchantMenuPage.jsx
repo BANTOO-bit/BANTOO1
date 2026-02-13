@@ -43,7 +43,7 @@ function MerchantMenuPage() {
 
                 // 2. Get Products
                 const { data: products, error: productsError } = await supabase
-                    .from('products')
+                    .from('menu_items')
                     .select('*')
                     .eq('merchant_id', merchant.id)
                     .order('created_at', { ascending: false })
@@ -125,7 +125,7 @@ function MerchantMenuPage() {
 
         try {
             const { error } = await supabase
-                .from('products')
+                .from('menu_items')
                 .update({ is_available: newStatus })
                 .eq('id', itemId)
 
@@ -152,7 +152,7 @@ function MerchantMenuPage() {
         if (itemToDelete) {
             try {
                 const { error } = await supabase
-                    .from('products')
+                    .from('menu_items')
                     .delete()
                     .eq('id', itemToDelete.id)
 

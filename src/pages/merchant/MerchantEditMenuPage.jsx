@@ -1,11 +1,29 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { supabase } from '../../services/supabaseClient'
+import { useToast } from '../../context/ToastContext'
+import { handleError, handleSuccess } from '../../utils/errorHandler'
 
 function MerchantEditMenuPage() {
     const navigate = useNavigate()
+    const { id } = useParams()
+    const toast = useToast()
+    const [isLoading, setIsLoading] = useState(true)
+    const [isSaving, setIsSaving] = useState(false)
     const [categories, setCategories] = useState([])
     const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false)
-    const [previewImage, setPreviewImage] = useState('https://lh3.googleusercontent.com/aida-public/AB6AXuBMYJL8I4BvtTmb1l7dcjg0OMDIk68I4Y6hfn-HTbtDy2NhInoSa2Re9S_4rNgGoLZjeWl3R_0SPDpW92ZYS8ml_hduZp8isUGEE6Sb_t8FkxMYullfGBRCE1kxHCs3vUG6dgTjxFBHyc-ql1A6tB1b_FOuaS82oROijbO4AYNHKKNYwWF5cACyisDcx1bPPi-a3fKxEHUFJ64hipRpr2GQBym3kkj1E5mi180q0JONAuUYDFojWcIQJ6cRjBDvF7-TzF3qQxQ47jKA')
+    const [previewImage, setPreviewImage] = useState('')
+    const [originalImage, setOriginalImage] = useState('')
+    const [imageFile, setImageFile] = useState(null)
+
+    // Form State
+    const [formData, setFormData] = useState({
+        name: '',
+        category: '',
+        price: '',
+        description: '',
+        isAvailable: true
+    })
 
     useEffect(() => {
         const stored = localStorage.getItem('merchant_categories')
@@ -31,14 +49,41 @@ function MerchantEditMenuPage() {
         }
     }, [])
 
-    // Mock initial data
-    const [formData, setFormData] = useState({
-        name: 'Bakso Urat Jumbo',
-        category: 'Makanan',
-        price: '25000',
-        description: 'Bakso urat sapi asli ukuran jumbo dengan kuah kaldu sapi yang gurih dan nikmat. Disajikan dengan mie kuning, bihun, dan sayuran segar.',
-        isAvailable: true
-    })
+    // Fetch Menu Data
+    useEffect(() => {
+        const fetchMenu = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('menu_items')
+                    .select('*')
+                    .eq('id', id)
+                    .single()
+
+                if (error) throw error
+                if (!data) throw new Error('Menu tidak ditemukan')
+
+                setFormData({
+                    name: data.name,
+                    category: data.category,
+                    price: data.price.toString(),
+                    description: data.description || '',
+                    isAvailable: data.is_available
+                })
+                setPreviewImage(data.image_url)
+                setOriginalImage(data.image_url)
+            } catch (err) {
+                console.error('Error fetching menu:', err)
+                handleError(err, toast, { context: 'Load Menu' })
+                navigate('/merchant/menu')
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        if (id) {
+            fetchMenu()
+        }
+    }, [id, navigate, toast])
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -47,6 +92,120 @@ function MerchantEditMenuPage() {
 
     const handleToggle = () => {
         setFormData(prev => ({ ...prev, isAvailable: !prev.isAvailable }))
+    }
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0]
+        if (file) {
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                toast.error('Ukuran gambar maksimal 2MB')
+                return
+            }
+
+            setImageFile(file)
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setPreviewImage(reader.result)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
+    const handleSubmit = async () => {
+        // Validation
+        if (!formData.name || !formData.category || !formData.price) {
+            toast.warning('Mohon lengkapi Nama, Kategori, dan Harga')
+            return
+        }
+
+        setIsSaving(true)
+
+        try {
+            // Prepare update data
+            let finalImage = previewImage
+
+            // If a new file is selected, upload it
+            if (imageFile) {
+                // Get merchant ID from current user context would be better, but for now we'll use a generic folder or try to extract from path if possible, 
+                // BUT since we don't have merchantId easily available in params here without extra fetch, 
+                // we can just put it in a 'uploads' folder or try to keep it organized.
+                // Best practice: organize by merchant_id. We can get it from the product data if we selected it, or auth user.
+
+                const { data: { user } } = await supabase.auth.getUser()
+                const merchantId = user?.id // Assuming user ID maps to merchant or we use it for folder
+                // Actually `products` table has `merchant_id`. We could have fetched it.
+                // Let's use a timestamp based name for uniqueness.
+
+                const fileExt = imageFile.name.split('.').pop()
+                const fileName = `${merchantId || 'uploads'}/${Date.now()}.${fileExt}`
+
+                const { error: uploadError } = await supabase.storage
+                    .from('menu-images')
+                    .upload(fileName, imageFile)
+
+                if (uploadError) throw uploadError
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('menu-images')
+                    .getPublicUrl(fileName)
+
+                finalImage = publicUrl
+            }
+
+            const updates = {
+                name: formData.name,
+                category: formData.category,
+                price: parseInt(formData.price),
+                description: formData.description,
+                is_available: formData.isAvailable,
+                image_url: finalImage,
+                updated_at: new Date()
+            }
+
+            const { error } = await supabase
+                .from('menu_items')
+                .update(updates)
+                .eq('id', id)
+
+            if (error) throw error
+
+            handleSuccess('Menu berhasil diperbarui', toast)
+            navigate('/merchant/menu')
+
+        } catch (err) {
+            console.error('Error updating menu:', err)
+            handleError(err, toast, { context: 'Update Menu' })
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        if (window.confirm('Hapus menu ini? Tindakan ini tidak dapat dibatalkan.')) {
+            try {
+                const { error } = await supabase
+                    .from('menu_items')
+                    .delete()
+                    .eq('id', id)
+
+                if (error) throw error
+
+                handleSuccess('Menu berhasil dihapus', toast)
+                navigate('/merchant/menu')
+            } catch (err) {
+                console.error('Error deleting menu:', err)
+                handleError(err, toast, { context: 'Delete Menu' })
+            }
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+                <span className="material-symbols-outlined text-4xl animate-spin text-primary">donut_large</span>
+            </div>
+        )
     }
 
     return (
@@ -62,11 +221,7 @@ function MerchantEditMenuPage() {
                     </button>
                     <h1 className="text-xl font-bold text-text-main dark:text-white leading-tight w-full text-center">Edit Menu</h1>
                     <button
-                        onClick={() => {
-                            if (window.confirm('Hapus menu ini?')) {
-                                navigate('/merchant/menu')
-                            }
-                        }}
+                        onClick={handleDelete}
                         className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-red-500 active:scale-95 transition-transform hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full"
                     >
                         <span className="material-symbols-outlined text-[24px]">delete</span>
@@ -82,26 +237,21 @@ function MerchantEditMenuPage() {
                         accept="image/*"
                         id="image-upload"
                         className="hidden"
-                        onChange={(e) => {
-                            const file = e.target.files[0]
-                            if (file) {
-                                const reader = new FileReader()
-                                reader.onloadend = () => {
-                                    setPreviewImage(reader.result)
-                                }
-                                reader.readAsDataURL(file)
-                            }
-                        }}
+                        onChange={handleImageChange}
                     />
                     <div className="relative group cursor-pointer">
                         <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-card border border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-                            {/* Placeholder for now, will connect to state in next step */}
-                            <img
-                                alt="Preview Menu"
-                                className="w-full h-full object-cover"
-                                id="menu-preview-image"
-                                src={previewImage}
-                            />
+                            {previewImage ? (
+                                <img
+                                    src={previewImage}
+                                    alt="Preview Menu"
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-gray-300 text-4xl">image</span>
+                                </div>
+                            )}
                         </div>
                         <label
                             htmlFor="image-upload"
@@ -186,17 +336,6 @@ function MerchantEditMenuPage() {
                                                     )}
                                                 </div>
                                             ))}
-
-                                            <div
-                                                onClick={() => {
-                                                    setIsCategorySheetOpen(false)
-                                                    navigate('/merchant/menu/categories')
-                                                }}
-                                                className="flex items-center justify-center gap-2 p-4 mt-2 border-t border-gray-100 dark:border-gray-800 text-primary font-semibold text-sm cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">settings</span>
-                                                <span>Kelola Kategori</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -255,10 +394,18 @@ function MerchantEditMenuPage() {
             {/* Bottom Save Button */}
             <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-card-dark border-t border-gray-200 dark:border-gray-800 px-4 pt-4 pb-8 pb-safe z-50">
                 <button
-                    onClick={() => navigate('/merchant/menu')}
-                    className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    onClick={handleSubmit}
+                    disabled={isSaving}
+                    className={`w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                    <span>Simpan Perubahan</span>
+                    {isSaving ? (
+                        <>
+                            <span className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></span>
+                            <span>Menyimpan...</span>
+                        </>
+                    ) : (
+                        <span>Simpan Perubahan</span>
+                    )}
                 </button>
             </div>
         </div>

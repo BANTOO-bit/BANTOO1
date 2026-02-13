@@ -285,35 +285,35 @@ function TrackingPage() {
         if (!order?.id) return
 
         // Subscribe to order changes via Supabase Realtime
-        const { supabase } = require('../../services/supabaseClient')
-        const channel = supabase
-            .channel(`tracking-order-${order.id}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'orders',
-                    filter: `id=eq.${order.id}`
-                },
-                async (payload) => {
-                    // Refresh full order data on status change
-                    if (payload.new) {
-                        try {
-                            const fresh = await orderService.getOrderWithLocations(order.id)
-                            setOrder(fresh)
-                        } catch {
-                            // Fallback: just update status
-                            setOrder(prev => ({ ...prev, ...payload.new }))
+        // Subscribe to order changes via Supabase Realtime
+        import('../../services/supabaseClient').then(({ supabase }) => {
+            const channel = supabase
+                .channel(`tracking-order-${order.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'orders',
+                        filter: `id=eq.${order.id}`
+                    },
+                    (payload) => {
+                        // Update local order state with new data
+                        setOrder(prev => ({ ...prev, ...payload.new }))
+
+                        // If status changed to 'picked_up' or 'delivering', fetch driver info
+                        if (['picked_up', 'delivering'].includes(payload.new.status)) {
+                            fetchOrder()
                         }
                     }
-                }
-            )
-            .subscribe()
+                )
+                .subscribe()
 
-        return () => {
-            supabase.removeChannel(channel)
-        }
+            return () => {
+                supabase.removeChannel(channel)
+            }
+        })
+
     }, [order?.id])
 
     // ============================================

@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
-
+import AdminLayout from '../../components/admin/AdminLayout'
+import AdminEmptyState from '../../components/admin/AdminEmptyState'
 export default function AdminMerchantsPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isTerminateModalOpen, setIsTerminateModalOpen] = useState(false)
     const [selectedMerchant, setSelectedMerchant] = useState(null)
     const [confirmText, setConfirmText] = useState('')
@@ -26,151 +24,144 @@ export default function AdminMerchantsPage() {
     const isConfirmValid = confirmText === expectedConfirmText
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+        <AdminLayout title="Manajemen Warung">
 
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Manajemen Warung"
-                />
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                    <span className="material-symbols-outlined text-4xl text-blue-500 mb-3">store</span>
+                    <p className="text-sm text-[#617589] dark:text-[#94a3b8] font-medium mb-1">Total Warung Aktif</p>
+                    <h3 className="text-3xl font-bold text-[#111418] dark:text-white">128</h3>
+                </div>
+                <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                    <span className="material-symbols-outlined text-4xl text-green-500 mb-3">door_open</span>
+                    <p className="text-sm text-[#617589] dark:text-[#94a3b8] font-medium mb-1">Warung Buka</p>
+                    <h3 className="text-3xl font-bold text-[#111418] dark:text-white">92</h3>
+                </div>
+                <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                    <span className="material-symbols-outlined text-4xl text-red-500 mb-3">door_front</span>
+                    <p className="text-sm text-[#617589] dark:text-[#94a3b8] font-medium mb-1">Warung Tutup</p>
+                    <h3 className="text-3xl font-bold text-[#111418] dark:text-white">36</h3>
+                </div>
+            </div>
 
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col gap-8">
-
-                        {/* Stats Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-6 flex flex-col items-center justify-center text-center">
-                                <span className="material-symbols-outlined text-4xl text-blue-500 mb-3">store</span>
-                                <p className="text-sm text-[#617589] dark:text-[#94a3b8] font-medium mb-1">Total Warung Aktif</p>
-                                <h3 className="text-3xl font-bold text-[#111418] dark:text-white">128</h3>
-                            </div>
-                            <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-6 flex flex-col items-center justify-center text-center">
-                                <span className="material-symbols-outlined text-4xl text-green-500 mb-3">door_open</span>
-                                <p className="text-sm text-[#617589] dark:text-[#94a3b8] font-medium mb-1">Warung Buka</p>
-                                <h3 className="text-3xl font-bold text-[#111418] dark:text-white">92</h3>
-                            </div>
-                            <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl p-6 flex flex-col items-center justify-center text-center">
-                                <span className="material-symbols-outlined text-4xl text-red-500 mb-3">door_front</span>
-                                <p className="text-sm text-[#617589] dark:text-[#94a3b8] font-medium mb-1">Warung Tutup</p>
-                                <h3 className="text-3xl font-bold text-[#111418] dark:text-white">36</h3>
-                            </div>
-                        </div>
-
-                        {/* Verification Queue Alert */}
-                        <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div className="flex items-center gap-6">
-                                <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center shrink-0">
-                                    <span className="material-symbols-outlined text-3xl text-blue-600 dark:text-blue-200">pending_actions</span>
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-[#111418] dark:text-white mb-2">Antrean Verifikasi Warung</h3>
-                                    <p className="text-[#617589] dark:text-[#94a3b8]">Terdapat <span className="font-bold text-blue-600 dark:text-blue-400">3 Warung Baru</span> yang menunggu peninjauan dokumen dan persetujuan.</p>
-                                </div>
-                            </div>
-                            <a href="/admin/merchants/verification" className="whitespace-nowrap flex items-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg shadow-primary/20">
-                                Tinjau Antrean
-                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                            </a>
-                        </div>
-
-                        {/* Merchant List Table */}
-                        <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl overflow-hidden">
-                            <div className="px-6 py-5 border-b border-[#e5e7eb] dark:border-[#2a3b4d] flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-[#111418] dark:text-white">Daftar Warung Aktif</h3>
-                                <div className="flex gap-2">
-                                    <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#617589] dark:text-[#94a3b8] bg-[#f0f2f4] dark:bg-[#2a3b4d] hover:bg-[#e5e7eb] dark:hover:bg-[#344658] rounded-lg transition-colors">
-                                        <span className="material-symbols-outlined text-base">filter_list</span>
-                                        Filter
-                                    </button>
-                                    <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#617589] dark:text-[#94a3b8] bg-[#f0f2f4] dark:bg-[#2a3b4d] hover:bg-[#e5e7eb] dark:hover:bg-[#344658] rounded-lg transition-colors">
-                                        <span className="material-symbols-outlined text-base">download</span>
-                                        Ekspor
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-[#f9fafb] dark:bg-[#1e2c3a] border-b border-[#e5e7eb] dark:border-[#2a3b4d]">
-                                            <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider">Nama Warung</th>
-                                            <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider">Pemilik</th>
-                                            <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider">Kategori</th>
-                                            <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3b4d]">
-                                        {merchants.map((merchant) => (
-                                            <tr key={merchant.id} className="hover:bg-[#f9fafb] dark:hover:bg-[#202e3b] transition-colors relative z-10">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 bg-center bg-cover flex items-center justify-center text-xs font-bold text-gray-500">
-                                                            IMG
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-[#111418] dark:text-white">{merchant.name}</p>
-                                                            <p className="text-xs text-[#617589] dark:text-[#94a3b8]">ID: {merchant.id}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <p className="text-sm text-[#111418] dark:text-white font-medium">{merchant.owner}</p>
-                                                    <p className="text-xs text-[#617589] dark:text-[#94a3b8]">{merchant.phone}</p>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${merchant.category === 'Kesehatan'
-                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                                        }`}>
-                                                        {merchant.category}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`w-2.5 h-2.5 rounded-full ${merchant.statusColor === 'green' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                                        <span className="text-sm text-[#111418] dark:text-white">{merchant.status}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                    <div className="relative inline-block text-left group">
-                                                        <button className="p-1 rounded-full text-[#617589] hover:text-primary dark:text-[#94a3b8] dark:hover:text-primary bg-[#f0f2f4] dark:bg-[#344658] transition-colors">
-                                                            <span className="material-symbols-outlined">more_vert</span>
-                                                        </button>
-                                                        <div className="hidden group-hover:block absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-lg z-50 overflow-hidden shadow-sm">
-                                                            <div className="flex flex-col py-1">
-                                                                <button className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors text-left">
-                                                                    <span className="material-symbols-outlined text-[20px] text-[#617589] dark:text-[#94a3b8]">store</span>
-                                                                    Lihat Profil
-                                                                </button>
-                                                                <a href={`/admin/merchants/edit/${merchant.id}`} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors text-left">
-                                                                    <span className="material-symbols-outlined text-[20px] text-[#617589] dark:text-[#94a3b8]">edit</span>
-                                                                    Edit Data
-                                                                </a>
-                                                                <div className="h-px bg-[#e5e7eb] dark:bg-[#2a3b4d] my-1 mx-0"></div>
-                                                                <button
-                                                                    onClick={() => handleTerminateClick(merchant)}
-                                                                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart_off</span>
-                                                                    Putus Kemitraan
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+            {/* Verification Queue Alert */}
+            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-3xl text-blue-600 dark:text-blue-200">pending_actions</span>
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-bold text-[#111418] dark:text-white mb-2">Antrean Verifikasi Warung</h3>
+                        <p className="text-[#617589] dark:text-[#94a3b8]">Terdapat <span className="font-bold text-blue-600 dark:text-blue-400">3 Warung Baru</span> yang menunggu peninjauan dokumen dan persetujuan.</p>
                     </div>
                 </div>
-            </main>
+                <a href="/admin/merchants/verification" className="whitespace-nowrap flex items-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg shadow-primary/20">
+                    Tinjau Antrean
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </a>
+            </div>
+
+            {/* Merchant List Table */}
+            {merchants.length > 0 ? (
+                <div className="bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-xl overflow-hidden">
+                    <div className="px-6 py-5 border-b border-[#e5e7eb] dark:border-[#2a3b4d] flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-[#111418] dark:text-white">Daftar Warung Aktif</h3>
+                        <div className="flex gap-2">
+                            <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#617589] dark:text-[#94a3b8] bg-[#f0f2f4] dark:bg-[#2a3b4d] hover:bg-[#e5e7eb] dark:hover:bg-[#344658] rounded-lg transition-colors">
+                                <span className="material-symbols-outlined text-base">filter_list</span>
+                                Filter
+                            </button>
+                            <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#617589] dark:text-[#94a3b8] bg-[#f0f2f4] dark:bg-[#2a3b4d] hover:bg-[#e5e7eb] dark:hover:bg-[#344658] rounded-lg transition-colors">
+                                <span className="material-symbols-outlined text-base">download</span>
+                                Ekspor
+                            </button>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-[#f9fafb] dark:bg-[#1e2c3a] border-b border-[#e5e7eb] dark:border-[#2a3b4d]">
+                                    <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider">Nama Warung</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider">Pemilik</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider">Kategori</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3b4d]">
+                                {merchants.map((merchant) => (
+                                    <tr key={merchant.id} className="hover:bg-[#f9fafb] dark:hover:bg-[#202e3b] transition-colors relative z-10">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 bg-center bg-cover flex items-center justify-center text-xs font-bold text-gray-500">
+                                                    IMG
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-[#111418] dark:text-white">{merchant.name}</p>
+                                                    <p className="text-xs text-[#617589] dark:text-[#94a3b8]">ID: {merchant.id}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <p className="text-sm text-[#111418] dark:text-white font-medium">{merchant.owner}</p>
+                                            <p className="text-xs text-[#617589] dark:text-[#94a3b8]">{merchant.phone}</p>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${merchant.category === 'Kesehatan'
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                                }`}>
+                                                {merchant.category}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-2.5 h-2.5 rounded-full ${merchant.statusColor === 'green' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                                <span className="text-sm text-[#111418] dark:text-white">{merchant.status}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                            <div className="relative inline-block text-left group">
+                                                <button className="p-1 rounded-full text-[#617589] hover:text-primary dark:text-[#94a3b8] dark:hover:text-primary bg-[#f0f2f4] dark:bg-[#344658] transition-colors">
+                                                    <span className="material-symbols-outlined">more_vert</span>
+                                                </button>
+                                                <div className="hidden group-hover:block absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-lg z-50 overflow-hidden shadow-sm">
+                                                    <div className="flex flex-col py-1">
+                                                        <button className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors text-left">
+                                                            <span className="material-symbols-outlined text-[20px] text-[#617589] dark:text-[#94a3b8]">store</span>
+                                                            Lihat Profil
+                                                        </button>
+                                                        <a href={`/admin/merchants/edit/${merchant.id}`} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors text-left">
+                                                            <span className="material-symbols-outlined text-[20px] text-[#617589] dark:text-[#94a3b8]">edit</span>
+                                                            Edit Data
+                                                        </a>
+                                                        <div className="h-px bg-[#e5e7eb] dark:bg-[#2a3b4d] my-1 mx-0"></div>
+                                                        <button
+                                                            onClick={() => handleTerminateClick(merchant)}
+                                                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">shopping_cart_off</span>
+                                                            Putus Kemitraan
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ) : (
+                <AdminEmptyState
+                    title="Belum Ada Warung"
+                    description="Daftar warung yang daftar dan disetujui akan muncul di halaman ini."
+                    icon="store"
+                />
+            )}
+
 
             {/* Terminate Partnership Modal */}
             {isTerminateModalOpen && (
@@ -234,6 +225,6 @@ export default function AdminMerchantsPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </AdminLayout>
     )
 }

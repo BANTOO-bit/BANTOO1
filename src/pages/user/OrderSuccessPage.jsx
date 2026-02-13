@@ -1,17 +1,53 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import orderService from '../../services/orderService'
 import { formatOrderId } from '../../utils/orderUtils'
 
 function OrderSuccessPage() {
-    const navigate = useNavigate()
+    const location = useLocation()
     const [order, setOrder] = useState(null)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const savedOrder = localStorage.getItem('bantoo_current_order')
-        if (savedOrder) {
-            setOrder(JSON.parse(savedOrder))
+        async function fetchOrder() {
+            // Priority 1: Get ID from router state (passed from Checkout)
+            const orderId = location.state?.orderId
+
+            if (orderId) {
+                try {
+                    const data = await orderService.getOrderById(orderId)
+                    setOrder({
+                        ...data,
+                        merchantName: data.merchant?.name,
+                        total: data.total_amount,
+                        paymentMethod: { name: data.payment_method === 'wallet' ? 'Saldo Bantoo' : 'Tunai' }
+                    })
+                } catch (error) {
+                    console.error('Failed to fetch order:', error)
+                } finally {
+                    setLoading(false)
+                }
+                return
+            }
+
+            // Priority 2: Fallback to localStorage (legacy/refresh case)
+            const savedOrder = localStorage.getItem('bantoo_current_order')
+            if (savedOrder) {
+                setOrder(JSON.parse(savedOrder))
+            }
+            setLoading(false)
         }
-    }, [])
+
+        fetchOrder()
+    }, [location.state])
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background-light">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen flex flex-col bg-background-light">

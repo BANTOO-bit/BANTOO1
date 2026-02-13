@@ -87,14 +87,14 @@ export default function AdminSidebar({ isOpen, onClose }) {
             {/* Mobile Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
                     onClick={onClose}
                 />
             )}
 
             {/* Sidebar */}
             <aside className={`
-                fixed lg:static inset-y-0 left-0 z-30
+                fixed lg:static inset-y-0 left-0 z-50
                 flex flex-col w-[240px] h-screen bg-white dark:bg-[#1a2632] border-r border-[#e5e7eb] dark:border-[#2a3b4d]
                 transform transition-transform duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}

@@ -1,10 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import AdminSidebar from '../../components/admin/AdminSidebar'
-import AdminHeader from '../../components/admin/AdminHeader'
-
+import AdminLayout from '../../components/admin/AdminLayout'
 export default function AdminPromoPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('all') // all, active, upcoming, history
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [selectedPromo, setSelectedPromo] = useState(null)
@@ -137,53 +134,7 @@ export default function AdminPromoPage() {
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden relative"
-            onClick={() => setOpenDropdownId(null)}>
-
-            {/* Delete Modal */}
-            {showDeleteModal && selectedPromo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-                    <div className="bg-white dark:bg-[#1a2632] rounded-xl shadow-2xl w-full max-w-md p-6 border border-[#e5e7eb] dark:border-[#2a3b4d] animate-[fadeIn_0.2s_ease-out]" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 shrink-0">
-                                <span className="material-symbols-outlined text-[24px]">warning</span>
-                            </div>
-                            <h3 className="text-lg font-bold text-[#111418] dark:text-white">Hapus Promo Ini?</h3>
-                        </div>
-                        <p className="text-[#617589] dark:text-[#94a3b8] text-sm mb-6 leading-relaxed">
-                            Tindakan ini tidak dapat dibatalkan. Promo <span className="font-semibold text-[#111418] dark:text-white">"{selectedPromo.name}"</span> akan dihapus secara permanen.
-                        </p>
-                        <div className="flex items-center justify-end gap-3">
-                            <button
-                                onClick={() => setShowDeleteModal(false)}
-                                className="px-4 py-2 text-sm font-medium text-[#617589] dark:text-[#94a3b8] bg-[#f0f2f4] dark:bg-[#2a3b4d] hover:bg-[#e5e7eb] dark:hover:bg-[#34465a] rounded-lg transition-colors"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-lg shadow-red-500/20"
-                            >
-                                Ya, Hapus
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0 relative">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title="Manajemen Promo"
-                />
-
-                <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto flex flex-col gap-6 h-full">
+        <AdminLayout title="Manajemen Promo">
 
                         {/* Header Section */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -335,9 +286,6 @@ export default function AdminPromoPage() {
                                 </div>
                             )
                         )}
-                    </div>
-                </div>
-            </main>
-        </div>
+        </AdminLayout>
     )
 }

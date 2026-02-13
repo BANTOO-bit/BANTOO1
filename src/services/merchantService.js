@@ -19,7 +19,7 @@ export const merchantService = {
                 .select(`
                     id, name, category, rating, rating_count, 
                     delivery_time, delivery_fee, distance, 
-                    is_open, has_promo, image, address, phone,
+                    is_open, has_promo, image:image_url, address, phone,
                     created_at
                 `)
                 .eq('status', 'active')
@@ -55,7 +55,7 @@ export const merchantService = {
                 .select(`
                     id, name, category, rating, rating_count,
                     delivery_time, delivery_fee, distance,
-                    is_open, has_promo, image, address, phone,
+                    is_open, has_promo, image:image_url, address, phone,
                     description, created_at
                 `)
                 .eq('id', id)
@@ -78,7 +78,7 @@ export const merchantService = {
                 .from('menu_items')
                 .select(`
                     id, name, description, price, category,
-                    is_popular, image, is_available,
+                    is_popular, image:image_url, is_available,
                     merchant_id
                 `)
                 .eq('merchant_id', merchantId)
@@ -109,12 +109,12 @@ export const merchantService = {
                 .from('menu_items')
                 .select(`
                     id, name, description, price, category,
-                    is_popular, image, is_available,
+                    is_popular, image:image_url, is_available,
                     merchant_id,
-                    merchants!inner(id, name, image, is_open)
+                    merchants!inner(id, name, image:image_url, is_open)
                 `)
                 .eq('is_available', true)
-
+            
             if (popular) {
                 query = query.eq('is_popular', true)
             }

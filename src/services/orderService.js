@@ -207,6 +207,7 @@ export const orderService = {
             .select(`
                 *,
                 customer:profiles!customer_id(id, full_name, phone, avatar_url),
+                driver:profiles!driver_id(id, full_name, phone),
                 items:order_items(*)
             `)
             .eq('merchant_id', merchantId)
@@ -329,7 +330,7 @@ export const orderService = {
 
         // Validate role-based permissions for status transitions
         const allowedTransitions = {
-            'cancelled': [isCustomer, isAdmin],
+            'cancelled': [isCustomer, isMerchant, isAdmin],
             'accepted': [isMerchant, isAdmin],
             'preparing': [isMerchant, isAdmin],
             'ready': [isMerchant, isAdmin],

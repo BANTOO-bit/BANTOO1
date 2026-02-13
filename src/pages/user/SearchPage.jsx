@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../components/user/BottomNavigation'
-import { getAllMerchants, getAllMenus, getMerchantById, getPopularMenus } from '../../data/merchantsData'
+import merchantService from '../../services/merchantService'
+import { getMerchantById } from '../../data/merchantsData'
 import { useCart } from '../../context/CartContext'
 
 // Categories for Search Page (6 main categories + Lainnya)
@@ -194,46 +195,73 @@ function SearchPage() {
     const navigate = useNavigate()
     const { cartItems } = useCart()
     const [searchQuery, setSearchQuery] = useState('')
+    const [debouncedQuery, setDebouncedQuery] = useState('')
     const [menuResults, setMenuResults] = useState([])
     const [merchantResults, setMerchantResults] = useState([])
+    const [popularMenus, setPopularMenus] = useState([])
     const [isSearching, setIsSearching] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
     const [recentSearches, setRecentSearches] = useState(() => {
         const saved = localStorage.getItem('bantoo_recent_searches')
         return saved ? JSON.parse(saved) : []
     })
 
-    // Get data from centralized source
-    const allMerchants = getAllMerchants()
-    const allMenus = getAllMenus()
-    const popularMenus = getPopularMenus().slice(0, 15) // Limit to 15 items
-
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+
+    // Debounce search query
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery)
+        }, 500) // 500ms debounce
+
+        return () => {
+            clearTimeout(handler)
+        }
+    }, [searchQuery])
+
+    // Load initial data (popular menus)
+    useEffect(() => {
+        async function loadInitialData() {
+            try {
+                const popular = await merchantService.getPopularMenus(15)
+                setPopularMenus(popular)
+            } catch (error) {
+                console.error('Failed to load popular menus:', error)
+            }
+        }
+        loadInitialData()
+    }, [])
 
     // Search effect
     useEffect(() => {
-        if (searchQuery.trim().length >= 2) {
-            setIsSearching(true)
-            const query = searchQuery.toLowerCase()
+        async function performSearch() {
+            if (debouncedQuery.trim().length >= 2) {
+                setIsSearching(true)
+                setIsLoading(true)
+                try {
+                    // Parallel search for better performance
+                    const [menus, merchants] = await Promise.all([
+                        merchantService.getAllMenus({ search: debouncedQuery }),
+                        merchantService.getMerchants({ search: debouncedQuery })
+                    ])
 
-            // Search menus
-            const menus = allMenus.filter(menu =>
-                menu.name.toLowerCase().includes(query) ||
-                menu.description?.toLowerCase().includes(query)
-            )
-            setMenuResults(menus)
-
-            // Search merchants
-            const merchants = allMerchants.filter(merchant =>
-                merchant.name.toLowerCase().includes(query) ||
-                merchant.category.toLowerCase().includes(query)
-            )
-            setMerchantResults(merchants)
-        } else {
-            setMenuResults([])
-            setMerchantResults([])
-            setIsSearching(false)
+                    setMenuResults(menus)
+                    setMerchantResults(merchants)
+                } catch (error) {
+                    console.error('Search failed:', error)
+                    // Optionally set error state here if needed
+                } finally {
+                    setIsLoading(false)
+                }
+            } else {
+                setMenuResults([])
+                setMerchantResults([])
+                setIsSearching(false)
+            }
         }
-    }, [searchQuery])
+
+        performSearch()
+    }, [debouncedQuery])
 
     const handleCategoryClick = (category) => {
         if (category.id === 'lainnya') {
@@ -311,89 +339,97 @@ function SearchPage() {
             {/* Main Content */}
             <main className="flex flex-col gap-8 px-4 pt-2 flex-grow">
                 {isSearching ? (
-                    /* Search Results */
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-sm font-bold text-text-secondary">
-                                {totalResults} hasil ditemukan
-                            </h2>
+                    isLoading ? (
+                        /* Loading State */
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <p className="text-sm text-text-secondary">Mencari...</p>
                         </div>
-
-                        {totalResults === 0 ? (
-                            <div className="flex flex-col items-center py-12">
-                                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                    <span className="material-symbols-outlined text-4xl text-gray-400">search_off</span>
-                                </div>
-                                <h3 className="font-bold text-text-main mb-1">Tidak ditemukan</h3>
-                                <p className="text-sm text-text-secondary text-center">
-                                    Coba kata kunci lain atau kategori berbeda
-                                </p>
+                    ) : (
+                        /* Search Results */
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-bold text-text-secondary">
+                                    {totalResults} hasil ditemukan
+                                </h2>
                             </div>
-                        ) : (
-                            <>
-                                {/* Menu Results */}
-                                {menuResults.length > 0 && (
-                                    <section>
-                                        <h3 className="text-xs font-bold text-text-secondary mb-2 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[14px]">restaurant_menu</span>
-                                            Menu ({menuResults.length})
-                                        </h3>
-                                        <div className="flex flex-col gap-2">
-                                            {menuResults.map(menu => (
-                                                <MenuSearchCard
-                                                    key={menu.id}
-                                                    menu={menu}
-                                                    onMerchantClick={handleMerchantClick}
-                                                />
-                                            ))}
-                                        </div>
-                                    </section>
-                                )}
 
-                                {/* Merchant Results */}
-                                {merchantResults.length > 0 && (
-                                    <section>
-                                        <h3 className="text-xs font-bold text-text-secondary mb-2 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[14px]">storefront</span>
-                                            Restoran ({merchantResults.length})
-                                        </h3>
-                                        <div className="flex flex-col gap-2">
-                                            {merchantResults.map(merchant => (
-                                                <article
-                                                    key={merchant.id}
-                                                    onClick={() => handleMerchantClick(merchant)}
-                                                    className="flex items-center p-3 gap-3 rounded-xl bg-card-light shadow-soft border border-border-color active:bg-gray-50 transition-colors cursor-pointer"
-                                                >
-                                                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                                                        <img src={merchant.image} alt={merchant.name} className="w-full h-full object-cover" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-sm text-text-main truncate">{merchant.name}</h3>
-                                                        <div className="flex items-center gap-1 mt-0.5">
-                                                            <span className="material-symbols-outlined text-[14px] text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                                                            <span className="text-xs font-medium text-text-main">{merchant.rating}</span>
-                                                            <span className="text-xs text-text-secondary mx-1">•</span>
-                                                            <span className="text-xs text-text-secondary">{merchant.category}</span>
+                            {totalResults === 0 ? (
+                                <div className="flex flex-col items-center py-12">
+                                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                        <span className="material-symbols-outlined text-4xl text-gray-400">search_off</span>
+                                    </div>
+                                    <h3 className="font-bold text-text-main mb-1">Tidak ditemukan</h3>
+                                    <p className="text-sm text-text-secondary text-center">
+                                        Coba kata kunci lain atau kategori berbeda
+                                    </p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Menu Results */}
+                                    {menuResults.length > 0 && (
+                                        <section>
+                                            <h3 className="text-xs font-bold text-text-secondary mb-2 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[14px]">restaurant_menu</span>
+                                                Menu ({menuResults.length})
+                                            </h3>
+                                            <div className="flex flex-col gap-2">
+                                                {menuResults.map(menu => (
+                                                    <MenuSearchCard
+                                                        key={menu.id}
+                                                        menu={menu}
+                                                        onMerchantClick={handleMerchantClick}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    {/* Merchant Results */}
+                                    {merchantResults.length > 0 && (
+                                        <section>
+                                            <h3 className="text-xs font-bold text-text-secondary mb-2 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[14px]">storefront</span>
+                                                Restoran ({merchantResults.length})
+                                            </h3>
+                                            <div className="flex flex-col gap-2">
+                                                {merchantResults.map(merchant => (
+                                                    <article
+                                                        key={merchant.id}
+                                                        onClick={() => handleMerchantClick(merchant)}
+                                                        className="flex items-center p-3 gap-3 rounded-xl bg-card-light shadow-soft border border-border-color active:bg-gray-50 transition-colors cursor-pointer"
+                                                    >
+                                                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                                                            <img src={merchant.image} alt={merchant.name} className="w-full h-full object-cover" />
                                                         </div>
-                                                        <div className="flex items-center gap-3 mt-1 text-text-secondary">
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="material-symbols-outlined text-[14px]">schedule</span>
-                                                                <span className="text-xs">{merchant.deliveryTime}</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3 className="font-semibold text-sm text-text-main truncate">{merchant.name}</h3>
+                                                            <div className="flex items-center gap-1 mt-0.5">
+                                                                <span className="material-symbols-outlined text-[14px] text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                                                <span className="text-xs font-medium text-text-main">{merchant.rating}</span>
+                                                                <span className="text-xs text-text-secondary mx-1">•</span>
+                                                                <span className="text-xs text-text-secondary">{merchant.category}</span>
                                                             </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="material-symbols-outlined text-[14px]">local_shipping</span>
-                                                                <span className="text-xs">{merchant.deliveryFee}</span>
+                                                            <div className="flex items-center gap-3 mt-1 text-text-secondary">
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="material-symbols-outlined text-[14px]">schedule</span>
+                                                                    <span className="text-xs">{merchant.deliveryTime || merchant.delivery_time}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="material-symbols-outlined text-[14px]">local_shipping</span>
+                                                                    <span className="text-xs">{merchant.deliveryFee || merchant.delivery_fee}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </article>
-                                            ))}
-                                        </div>
-                                    </section>
-                                )}
-                            </>
-                        )}
-                    </div>
+                                                    </article>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )
                 ) : (
                     <>
                         {/* Recent Searches */}
@@ -440,15 +476,21 @@ function SearchPage() {
                         {/* Popular Recommendations Section */}
                         <section className="flex flex-col gap-4">
                             <h2 className="text-lg font-bold text-text-main">Rekomendasi Terpopuler</h2>
-                            <div className="flex flex-col gap-3">
-                                {popularMenus.map(menu => (
-                                    <PopularMenuCard
-                                        key={menu.id}
-                                        menu={menu}
-                                        onMerchantClick={handleMerchantClick}
-                                    />
-                                ))}
-                            </div>
+                            {popularMenus.length > 0 ? (
+                                <div className="flex flex-col gap-3">
+                                    {popularMenus.map(menu => (
+                                        <PopularMenuCard
+                                            key={menu.id}
+                                            menu={menu}
+                                            onMerchantClick={handleMerchantClick}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 text-sm text-gray-500">
+                                    Belum ada menu populer saat ini.
+                                </div>
+                            )}
                         </section>
                     </>
                 )}
