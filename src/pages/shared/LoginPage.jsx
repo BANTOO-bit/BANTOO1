@@ -31,16 +31,8 @@ function LoginPage() {
             try {
                 const { user } = await login(formValues.phone, formValues.password)
 
-                // Check role from metadata or profile
-                const role = user?.user_metadata?.role || 'user'
-
-                if (role === 'merchant') {
-                    navigate('/merchant/dashboard')
-                } else if (role === 'driver') {
-                    navigate('/driver/dashboard')
-                } else {
-                    navigate('/')
-                }
+                // Always navigate to Customer Home for role selection
+                navigate('/')
             } catch (err) {
                 logger.error('Login failed', err, 'LoginPage')
                 if (err.message && err.message.includes('Invalid')) {

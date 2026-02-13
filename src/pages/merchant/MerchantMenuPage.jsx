@@ -249,10 +249,10 @@ function MerchantMenuPage() {
                             <button
                                 key={cat.id}
                                 onClick={() => setActiveCategory(cat.id)}
-                                className={`px - 4 py - 2.5 rounded - full text - sm font - medium whitespace - nowrap transition - all border ${activeCategory === cat.id
+                                className={`px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${activeCategory === cat.id
                                     ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
                                     : 'bg-white dark:bg-card-dark text-text-secondary dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-primary/50'
-                                    } `}
+                                    }`}
                             >
                                 {cat.label}
                             </button>
@@ -336,13 +336,13 @@ function MerchantMenuPage() {
 
 function MenuItemCard({ item, onToggleAvailability, onEdit, onDelete }) {
     return (
-        <article className={`bg - card - light dark: bg - card - dark rounded - 2xl shadow - soft border border - border - color dark: border - gray - 700 p - 3 flex gap - 4 ${!item.isAvailable ? 'opacity-75' : ''} `}>
+        <article className={`bg-white dark:bg-card-dark rounded-2xl shadow-soft border border-gray-100 dark:border-gray-700 p-3 flex gap-4 ${!item.isAvailable ? 'opacity-75' : ''}`}>
             {/* Image */}
             <div className="w-[80px] h-[80px] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 relative">
                 <img
                     src={item.image}
                     alt={item.name}
-                    className={`w - full h - full object - cover ${!item.isAvailable ? 'grayscale' : ''} `}
+                    className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''}`}
                 />
                 {!item.isAvailable && (
                     <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
@@ -370,7 +370,7 @@ function MenuItemCard({ item, onToggleAvailability, onEdit, onDelete }) {
                             />
                             <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
                         </label>
-                        <span className={`text - [9px] font - medium ${item.isAvailable ? 'text-primary' : 'text-text-secondary'} `}>
+                        <span className={`text-[9px] font-medium ${item.isAvailable ? 'text-primary' : 'text-text-secondary'}`}>
                             {item.isAvailable ? 'Tersedia' : 'Habis'}
                         </span>
                     </div>

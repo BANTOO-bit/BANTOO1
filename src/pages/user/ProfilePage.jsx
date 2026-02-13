@@ -151,6 +151,52 @@ function ProfilePage() {
                     </div>
                 </div>
 
+                {/* Mitra Area (Role Entry Points -> Only if Approved) */}
+                {(user?.roles?.includes('merchant') && user?.merchantStatus === 'approved') || (user?.roles?.includes('driver') && user?.driverStatus === 'approved') ? (
+                    <div className="mt-0">
+                        <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 pl-1">
+                            Akses Mitra
+                        </h3>
+                        <div className="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+
+                            {/* Merchant Entry */}
+                            {user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' ? (
+                                <button
+                                    onClick={() => navigate('/merchant/dashboard')}
+                                    className="w-full flex items-center gap-4 p-4 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors border-b border-gray-100 dark:border-gray-800 active:bg-orange-100"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-lg">store</span>
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="font-bold text-gray-900 dark:text-white leading-tight">Masuk ke Warung</p>
+                                        <p className="text-[10px] text-gray-500">Kelola menu dan pesanan</p>
+                                    </div>
+                                    <span className="material-symbols-outlined text-gray-400">login</span>
+                                </button>
+                            ) : null}
+
+                            {/* Driver Entry */}
+                            {user?.roles?.includes('driver') && user?.driverStatus === 'approved' ? (
+                                <button
+                                    onClick={() => navigate('/driver/dashboard')}
+                                    className="w-full flex items-center gap-4 p-4 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors active:bg-blue-100"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-lg">two_wheeler</span>
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="font-bold text-gray-900 dark:text-white leading-tight">Masuk ke Driver</p>
+                                        <p className="text-[10px] text-gray-500">Mulai terima orderan</p>
+                                    </div>
+                                    <span className="material-symbols-outlined text-gray-400">login</span>
+                                </button>
+                            ) : null}
+                        </div>
+                    </div>
+                ) : null}
+
+
                 {/* Mitra Bantoo - Only show if Approved */}
 
 
