@@ -5,6 +5,26 @@ import logger from '../utils/logger'
  * Merchant Service - Handle merchant and menu data from Supabase
  */
 export const merchantService = {
+    // Simple in-memory cache
+    _cache: {
+        merchants: { data: null, timestamp: 0 },
+        allMenus: { data: null, timestamp: 0 },
+        categories: { data: null, timestamp: 0 },
+        popularMenus: { data: null, timestamp: 0 }
+    },
+    CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+
+    _isValidCache(key) {
+        const item = this._cache[key]
+        return item.data && (Date.now() - item.timestamp < this.CACHE_DURATION)
+    },
+
+    _setCache(key, data) {
+        this._cache[key] = {
+            data,
+            timestamp: Date.now()
+        }
+    },
     /**
      * Get all merchants
      * @param {Object} options - Query options
@@ -13,6 +33,12 @@ export const merchantService = {
      * @param {boolean} options.isOpen - Filter by open status
      */
     async getMerchants({ category = null, search = null, isOpen = null } = {}) {
+        // Use cache only if fetching ALL merchants (common case for initial load/filtering)
+        const isDefaultQuery = !category && !search && isOpen === null
+        if (isDefaultQuery && this._isValidCache('merchants')) {
+            return this._cache.merchants.data
+        }
+
         try {
             let query = supabase
                 .from('merchants')
@@ -104,6 +130,11 @@ export const merchantService = {
      * Get all menus across all merchants (for search/popular)
      */
     async getAllMenus({ search = null, popular = false } = {}) {
+        const cacheKey = popular ? 'popularMenus' : (search ? null : 'allMenus')
+        if (cacheKey && this._isValidCache(cacheKey)) {
+            return this._cache[cacheKey].data
+        }
+
         try {
             let query = supabase
                 .from('menu_items')
@@ -125,12 +156,17 @@ export const merchantService = {
             const { data, error } = await query
 
             if (error) throw error
-            return (data || []).map(item => ({
+            const result = (data || []).map(item => ({
                 ...item,
                 merchantId: item.merchants?.id,
                 merchantName: item.merchants?.name,
                 merchantImage: item.merchants?.image
             }))
+
+            if (cacheKey) {
+                this._setCache(cacheKey, result)
+            }
+            return result
         } catch (error) {
             logger.error('Failed to fetch all menus', error, 'merchantService')
             throw error
@@ -154,6 +190,10 @@ export const merchantService = {
      * Get unique categories from merchants
      */
     async getCategories() {
+        if (this._isValidCache('categories')) {
+            return this._cache.categories.data
+        }
+
         try {
             const { data, error } = await supabase
                 .from('merchants')
@@ -161,7 +201,9 @@ export const merchantService = {
                 .eq('status', 'approved')
 
             if (error) throw error
+            if (error) throw error
             const categories = [...new Set((data || []).map(m => m.category))]
+            this._setCache('categories', categories)
             return categories
         } catch (error) {
             logger.error('Failed to fetch categories', error, 'merchantService')

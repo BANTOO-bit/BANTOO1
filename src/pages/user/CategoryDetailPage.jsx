@@ -155,21 +155,24 @@ function CategoryDetailPage() {
         // Filter by category (Dynamic matching + Mapping)
         if (categoryId !== 'all') {
             merchants = merchants.filter(m => {
-                const merchantCat = m.category?.toLowerCase() || ''
+                const merchantCat = (m.category || '').toLowerCase().trim()
                 const merchantCatSlug = merchantCat.replace(/\s+/g, '-')
                 // IMPORTANT: Normalize targetSlug to kebab-case to match categoryMapping keys (e.g. "makanan berat" -> "makanan-berat")
-                const targetSlug = categoryId.toLowerCase().replace(/\s+/g, '-')
+                const targetSlug = categoryId.toLowerCase().trim().replace(/\s+/g, '-')
 
                 // 1. Direct Match (Exact slug)
                 if (merchantCatSlug === targetSlug) return true
 
                 // 2. Mapping Match (Check if merchant category is in the mapping list)
                 const allowedCategories = categoryMapping[targetSlug]
-                if (allowedCategories && allowedCategories.includes(merchantCat)) return true
-
-                // 3. Partial Match (Fallback: if merchant category contains target keyword)
-                // e.g. "Nasi Goreng Spesial" matches "nasi goreng"
-                if (allowedCategories && allowedCategories.some(ac => merchantCat.includes(ac))) return true
+                if (allowedCategories) {
+                    // Check if merchant category is in allowed list
+                    if (allowedCategories.includes(merchantCat)) return true
+                    // Check if merchant category contains any of the allowed terms (e.g. "Warung Bakso" contains "bakso")
+                    if (allowedCategories.some(ac => merchantCat.includes(ac))) return true
+                    // Check if any allowed term contains the merchant category (reverse check, rare but possible)
+                    if (allowedCategories.some(ac => ac.includes(merchantCat))) return true
+                }
 
                 return false
             })

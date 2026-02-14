@@ -128,8 +128,10 @@ function SearchPage() {
                     popular = allMenus.slice(0, 10)
                 }
 
-                const dbCategories = await merchantService.getCategories()
+                // Render popular menus immediately
                 setPopularMenus(popular)
+
+                const dbCategories = await merchantService.getCategories()
 
                 const combinedCategories = [...searchCategories]
                 dbCategories.forEach(catName => {
