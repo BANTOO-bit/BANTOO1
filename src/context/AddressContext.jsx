@@ -1,4 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { useAuth } from './AuthContext'
+import { addressService } from '../services/addressService'
+import { useToast } from './ToastContext'
 
 const AddressContext = createContext()
 
@@ -10,47 +13,47 @@ export function useAddress() {
     return context
 }
 
-// Default addresses for demo
-const defaultAddresses = [
-    {
-        id: 1,
-        label: 'Rumah',
-        name: 'Andi Pratama',
-        phone: '+62 812 3456 7890',
-        address: 'Jl. Mangga Dua No. 45, RT 03/RW 05',
-        detail: 'Pagar hijau, dekat warung Bu Sari',
-        area: 'Kecamatan Bantoo',
-        isDefault: true
-    },
-    {
-        id: 2,
-        label: 'Kantor',
-        name: 'Andi Pratama',
-        phone: '+62 812 3456 7890',
-        address: 'Gedung Graha Mandiri Lt. 5',
-        detail: 'Lobby utama, minta ke resepsionis',
-        area: 'Kecamatan Bantoo',
-        isDefault: false
-    }
-]
-
 export function AddressProvider({ children }) {
-    const [addresses, setAddresses] = useState(() => {
-        const saved = localStorage.getItem('bantoo_addresses')
-        return saved ? JSON.parse(saved) : defaultAddresses
-    })
-
+    const { user } = useAuth()
+    const toast = useToast()
+    const [addresses, setAddresses] = useState([])
+    const [isLoading, setIsLoading] = useState(false)
     const [selectedAddressId, setSelectedAddressId] = useState(() => {
         const saved = localStorage.getItem('bantoo_selected_address')
-        if (saved) return parseInt(saved)
-        const defaultAddr = addresses.find(a => a.isDefault)
-        return defaultAddr ? defaultAddr.id : addresses[0]?.id
+        return saved ? parseInt(saved) : null
     })
 
-    // Persist to localStorage
+    const fetchAddresses = useCallback(async () => {
+        if (!user) {
+            setAddresses([])
+            return
+        }
+
+        setIsLoading(true)
+        try {
+            const data = await addressService.getAddresses()
+            setAddresses(data)
+
+            // If we have addresses but none selected (or selected one is gone), select the default one
+            if (data.length > 0) {
+                const defaultAddr = data.find(a => a.is_default)
+                const currentSelected = data.find(a => a.id === selectedAddressId)
+
+                if (!currentSelected) {
+                    setSelectedAddressId(defaultAddr ? defaultAddr.id : data[0].id)
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch addresses:', error)
+            // don't show toast on initial load to avoid spamming if just empty
+        } finally {
+            setIsLoading(false)
+        }
+    }, [user, selectedAddressId])
+
     useEffect(() => {
-        localStorage.setItem('bantoo_addresses', JSON.stringify(addresses))
-    }, [addresses])
+        fetchAddresses()
+    }, [fetchAddresses])
 
     useEffect(() => {
         if (selectedAddressId) {
@@ -58,61 +61,55 @@ export function AddressProvider({ children }) {
         }
     }, [selectedAddressId])
 
-    const selectedAddress = addresses.find(a => a.id === selectedAddressId) || addresses[0]
+    const selectedAddress = addresses.find(a => a.id === selectedAddressId) || addresses.find(a => a.is_default) || addresses[0]
 
-    const addAddress = (newAddress) => {
-        const id = Date.now()
-        const address = { ...newAddress, id }
-
-        // If this is set as default, update others
-        if (newAddress.isDefault) {
-            setAddresses(prev => [
-                ...prev.map(a => ({ ...a, isDefault: false })),
-                address
-            ])
-        } else {
-            setAddresses(prev => [...prev, address])
-        }
-
-        return id
-    }
-
-    const updateAddress = (id, updates) => {
-        setAddresses(prev => {
-            // If setting as default, update others first
-            if (updates.isDefault) {
-                return prev.map(a =>
-                    a.id === id
-                        ? { ...a, ...updates }
-                        : { ...a, isDefault: false }
-                )
-            }
-            return prev.map(a => a.id === id ? { ...a, ...updates } : a)
-        })
-    }
-
-    const deleteAddress = (id) => {
-        setAddresses(prev => {
-            const filtered = prev.filter(a => a.id !== id)
-            // If deleted address was default, set first as default
-            if (prev.find(a => a.id === id)?.isDefault && filtered.length > 0) {
-                filtered[0].isDefault = true
-            }
-            return filtered
-        })
-
-        // If deleted address was selected, select first available
-        if (selectedAddressId === id && addresses.length > 1) {
-            const remaining = addresses.filter(a => a.id !== id)
-            setSelectedAddressId(remaining[0]?.id)
+    const addAddress = async (newAddress) => {
+        try {
+            await addressService.addAddress(newAddress)
+            await fetchAddresses()
+            toast.success('Alamat berhasil ditambahkan')
+            return true
+        } catch (error) {
+            console.error('Failed to add address:', error)
+            toast.error('Gagal menambahkan alamat')
+            throw error
         }
     }
 
-    const setDefaultAddress = (id) => {
-        setAddresses(prev => prev.map(a => ({
-            ...a,
-            isDefault: a.id === id
-        })))
+    const updateAddress = async (id, updates) => {
+        try {
+            await addressService.updateAddress(id, updates)
+            await fetchAddresses()
+            toast.success('Alamat berhasil diperbarui')
+        } catch (error) {
+            console.error('Failed to update address:', error)
+            toast.error('Gagal memperbarui alamat')
+            throw error
+        }
+    }
+
+    const deleteAddress = async (id) => {
+        try {
+            await addressService.deleteAddress(id)
+            await fetchAddresses()
+            toast.success('Alamat berhasil dihapus')
+        } catch (error) {
+            console.error('Failed to delete address:', error)
+            toast.error('Gagal menghapus alamat')
+            throw error
+        }
+    }
+
+    const setDefaultAddress = async (id) => {
+        try {
+            await addressService.setDefault(id)
+            await fetchAddresses()
+            toast.success('Alamat utama diperbarui')
+        } catch (error) {
+            console.error('Failed to set default address:', error)
+            toast.error('Gagal mengatur alamat utama')
+            throw error
+        }
     }
 
     const selectAddress = (id) => {
@@ -120,14 +117,25 @@ export function AddressProvider({ children }) {
     }
 
     const value = {
-        addresses,
-        selectedAddress,
+        addresses: addresses.map(addr => ({
+            ...addr,
+            isDefault: addr.is_default, // map snake_case to camelCase for component compatibility
+            name: addr.recipient_name, // map db col to component prop
+            // Ensure other fields match component expectations if needed
+        })),
+        isLoading,
+        selectedAddress: selectedAddress ? {
+            ...selectedAddress,
+            isDefault: selectedAddress.is_default,
+            name: selectedAddress.recipient_name
+        } : null,
         selectedAddressId,
         addAddress,
         updateAddress,
         deleteAddress,
         setDefaultAddress,
         selectAddress,
+        refreshAddresses: fetchAddresses
     }
 
     return (

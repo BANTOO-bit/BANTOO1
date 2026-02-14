@@ -18,12 +18,8 @@ function RegistrationStatusPage() {
     const driverRejectionReasons = []
     const merchantRejectionReasons = []
 
-    const handleOpenDriverDashboard = () => {
-        navigate('/driver/dashboard')
-    }
-
-    const handleOpenMerchantDashboard = () => {
-        navigate('/merchant/dashboard')
+    const handleGoToProfile = () => {
+        navigate('/profile')
     }
 
     const handleFixDriverRegistration = () => {
@@ -57,12 +53,12 @@ function RegistrationStatusPage() {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 mt-4">
+            <main className="flex-1 overflow-y-auto w-full p-5 flex flex-col gap-4 mt-4">
                 {/* Driver Registration Card */}
                 <DriverRegistrationCard
                     status={driverStatus}
                     rejectionReasons={driverRejectionReasons}
-                    onOpenDashboard={handleOpenDriverDashboard}
+                    onGoToProfile={handleGoToProfile}
                     onFixRegistration={handleFixDriverRegistration}
                     onRegister={handleRegisterDriver}
                 />
@@ -71,7 +67,7 @@ function RegistrationStatusPage() {
                 <MerchantRegistrationCard
                     status={merchantStatus}
                     rejectionReasons={merchantRejectionReasons}
-                    onOpenDashboard={handleOpenMerchantDashboard}
+                    onGoToProfile={handleGoToProfile}
                     onRegister={handleRegisterMerchant}
                 />
             </main>
@@ -83,7 +79,7 @@ function RegistrationStatusPage() {
 }
 
 // Driver Registration Card Component
-function DriverRegistrationCard({ status, rejectionReasons, onOpenDashboard, onFixRegistration, onRegister }) {
+function DriverRegistrationCard({ status, rejectionReasons, onGoToProfile, onFixRegistration, onRegister }) {
     return (
         <div className="bg-white dark:bg-card-dark p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-5">
             {/* Header */}
@@ -121,20 +117,25 @@ function DriverRegistrationCard({ status, rejectionReasons, onOpenDashboard, onF
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 flex gap-3 items-start">
                         <span className="material-symbols-outlined text-green-500 text-lg mt-0.5">check_circle</span>
                         <p className="text-xs text-green-800 dark:text-green-200 leading-relaxed">
-                            Selamat! Akun Driver Anda telah aktif. Silakan buka dashboard untuk mulai bekerja.
+                            Selamat! Akun Driver Anda telah aktif.
                         </p>
                     </div>
                     <div className="w-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 font-medium py-2 rounded-xl cursor-default transition-colors text-sm flex items-center justify-center gap-2 select-none border border-green-200 dark:border-green-800/50">
                         <span className="material-symbols-outlined text-sm">check</span>
                         <span>Disetujui</span>
                     </div>
-                    <button
-                        onClick={onOpenDashboard}
-                        style={{ backgroundColor: '#22c55e', color: 'white' }}
-                        className="w-full font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
-                    >
-                        <span>Buka Dashboard Driver</span>
-                    </button>
+
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                            Akses Dashboard Driver melalui menu <strong>Profil &gt; Akses Mitra</strong>.
+                        </p>
+                        <button
+                            onClick={onGoToProfile}
+                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.98]"
+                        >
+                            <span>Kembali ke Profil</span>
+                        </button>
+                    </div>
                 </>
             )}
 
@@ -178,7 +179,7 @@ function DriverRegistrationCard({ status, rejectionReasons, onOpenDashboard, onF
 }
 
 // Merchant Registration Card Component
-function MerchantRegistrationCard({ status, rejectionReasons, onOpenDashboard, onRegister }) {
+function MerchantRegistrationCard({ status, rejectionReasons, onGoToProfile, onRegister }) {
     return (
         <div className="bg-white dark:bg-card-dark p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-5">
             {/* Header */}
@@ -216,20 +217,25 @@ function MerchantRegistrationCard({ status, rejectionReasons, onOpenDashboard, o
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 flex gap-3 items-start">
                         <span className="material-symbols-outlined text-green-500 text-lg mt-0.5">check_circle</span>
                         <p className="text-xs text-green-800 dark:text-green-200 leading-relaxed">
-                            Selamat! Akun Warung Anda telah aktif. Silakan buka dashboard untuk mulai menerima pesanan.
+                            Selamat! Akun Warung Anda telah aktif.
                         </p>
                     </div>
                     <div className="w-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 font-medium py-2 rounded-xl cursor-default transition-colors text-sm flex items-center justify-center gap-2 select-none border border-green-200 dark:border-green-800/50">
                         <span className="material-symbols-outlined text-sm">check</span>
                         <span>Disetujui</span>
                     </div>
-                    <button
-                        onClick={onOpenDashboard}
-                        style={{ backgroundColor: '#22c55e', color: 'white' }}
-                        className="w-full font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
-                    >
-                        <span>Buka Dashboard Warung</span>
-                    </button>
+
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                            Akses Dashboard Warung melalui menu <strong>Profil &gt; Akses Mitra</strong>.
+                        </p>
+                        <button
+                            onClick={onGoToProfile}
+                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.98]"
+                        >
+                            <span>Kembali ke Profil</span>
+                        </button>
+                    </div>
                 </>
             )}
 

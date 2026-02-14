@@ -153,22 +153,22 @@ function MerchantOperatingHoursPage() {
 }
 
 function OperatingDayCard({ label, data, onToggle }) {
+    const dayId = label.toLowerCase();
+
     return (
-        <article className={`bg - card - light dark: bg - card - dark p - 4 rounded - 2xl shadow - soft border border - border - color dark: border - gray - 700 transition - colors ${!data.isOpen ? 'opacity-75' : ''} `}>
+        <article className="bg-card-light dark:bg-card-dark p-4 rounded-2xl shadow-soft border border-border-color dark:border-gray-700 transition-colors">
             <div className="flex items-center justify-between mb-4">
                 <span className="font-bold text-text-main dark:text-white">{label}</span>
                 <div className="relative inline-block w-11 h-6 align-middle select-none transition duration-200 ease-in">
-                    <label className="flex items-center cursor-pointer">
-                        <div className="relative">
-                            <input
-                                type="checkbox"
-                                className="sr-only"
-                                checked={data.isOpen}
-                                onChange={onToggle}
-                            />
-                            <div className={`block w - 11 h - 6 rounded - full transition - colors ${data.isOpen ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'} `}></div>
-                            <div className={`dot absolute left - 1 top - 1 bg - white w - 4 h - 4 rounded - full transition - transform ${data.isOpen ? 'translate-x-5' : ''} `}></div>
-                        </div>
+                    <label className="flex items-center cursor-pointer relative">
+                        <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={data.isOpen}
+                            onChange={onToggle}
+                        />
+                        <div className="w-11 h-6 bg-gray-300 peer-checked:bg-primary rounded-full transition-colors duration-300 ease-in-out"></div>
+                        <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 ease-in-out peer-checked:translate-x-5 shadow-sm"></div>
                     </label>
                 </div>
             </div>

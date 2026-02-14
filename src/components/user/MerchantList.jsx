@@ -11,16 +11,10 @@ function MerchantList() {
     useEffect(() => {
         async function fetchMerchants() {
             try {
-                // Fetch all merchants to populate the list, even if closed
-                const data = await merchantService.getMerchants({ isOpen: null })
+                // Fetch top 5 merchants (sorted by open status & rating in backend)
+                const data = await merchantService.getMerchants({ isOpen: null, limit: 5 })
 
-                // Sort: Open first, then Closed
-                const sortedData = data.sort((a, b) => {
-                    if (a.is_open === b.is_open) return 0
-                    return a.is_open ? -1 : 1
-                })
-
-                setMerchants(sortedData.slice(0, 5)) // Show top 5
+                setMerchants(data)
             } catch (error) {
                 console.error('Failed to fetch homepage merchants:', error)
             } finally {

@@ -124,7 +124,7 @@ function SearchPage() {
                 // Fallback: If no popular menus, fetch latest menus (limit 10)
                 // This synchronizes detailed behavior with Home and PopularMenu pages
                 if (popular.length === 0) {
-                    const allMenus = await merchantService.getAllMenus()
+                    const allMenus = await merchantService.getAllMenus({ limit: 20 })
                     popular = allMenus.slice(0, 10)
                 }
 
@@ -134,17 +134,20 @@ function SearchPage() {
                 const dbCategories = await merchantService.getCategories()
 
                 const combinedCategories = [...searchCategories]
-                dbCategories.forEach(catName => {
-                    const id = catName.toLowerCase().replace(/\s+/g, '-')
-                    const isKnown = searchCategories.some(sc => sc.id === id)
-                    if (!isKnown) {
-                        combinedCategories.push({
-                            id: id,
-                            name: catName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-                            icon: 'restaurant'
-                        })
-                    }
-                })
+                if (Array.isArray(dbCategories)) {
+                    dbCategories.forEach(catName => {
+                        if (!catName) return // Skip null/undefined categories
+                        const id = catName.toLowerCase().replace(/\s+/g, '-')
+                        const isKnown = searchCategories.some(sc => sc.id === id)
+                        if (!isKnown) {
+                            combinedCategories.push({
+                                id: id,
+                                name: catName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+                                icon: 'restaurant'
+                            })
+                        }
+                    })
+                }
                 // Limit to 9 to fill 3 rows nicely
                 setDisplayCategories(combinedCategories.slice(0, 9))
 
@@ -167,7 +170,7 @@ function SearchPage() {
             setIsSearching(true)
             setIsLoading(true)
             try {
-                const menus = await merchantService.getAllMenus({ search: debouncedQuery })
+                const menus = await merchantService.getAllMenus({ search: debouncedQuery, limit: 50 })
                 setMerchantResults(menus)
             } catch (error) {
                 console.error(error)

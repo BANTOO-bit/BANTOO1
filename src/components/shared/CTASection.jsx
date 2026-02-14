@@ -73,45 +73,55 @@ function CTASection() {
     const merchantConfig = getButtonConfig('merchant')
     const driverConfig = getButtonConfig('driver')
 
+    // Filter out approved cards to enforcing single entry point in Profile
+    const showMerchant = merchantStatus !== 'approved'
+    const showDriver = driverStatus !== 'approved'
+
+    if (!showMerchant && !showDriver) return null
+
     return (
         <section className="grid grid-cols-2 gap-3 mt-2">
             {/* Merchant CTA */}
-            <div
-                onClick={merchantConfig.onClick}
-                className={`relative overflow-hidden rounded-xl ${merchantConfig.bgColor} border ${merchantConfig.borderColor} p-4 active:scale-95 transition-transform cursor-pointer group ${merchantConfig.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-            >
-                <div className="flex flex-col h-full justify-between gap-3 relative z-10">
-                    <div className={`w-10 h-10 rounded-full ${merchantConfig.iconBgColor} shadow-sm flex items-center justify-center ${merchantConfig.iconColor} group-hover:scale-110 transition-transform`}>
-                        <span className="material-symbols-outlined">{merchantConfig.icon}</span>
+            {showMerchant && (
+                <div
+                    onClick={merchantConfig.onClick}
+                    className={`relative overflow-hidden rounded-xl ${merchantConfig.bgColor} border ${merchantConfig.borderColor} p-4 active:scale-95 transition-transform cursor-pointer group ${merchantConfig.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                    <div className="flex flex-col h-full justify-between gap-3 relative z-10">
+                        <div className={`w-10 h-10 rounded-full ${merchantConfig.iconBgColor} shadow-sm flex items-center justify-center ${merchantConfig.iconColor} group-hover:scale-110 transition-transform`}>
+                            <span className="material-symbols-outlined">{merchantConfig.icon}</span>
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-text-main text-sm leading-tight">{merchantConfig.text}</h3>
+                            <p className={`text-[10px] ${merchantConfig.textColor} font-medium mt-1 flex items-center gap-0.5`}>
+                                {merchantConfig.subtext} <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-bold text-text-main text-sm leading-tight">{merchantConfig.text}</h3>
-                        <p className={`text-[10px] ${merchantConfig.textColor} font-medium mt-1 flex items-center gap-0.5`}>
-                            {merchantConfig.subtext} <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
-                        </p>
-                    </div>
+                    <div className={`absolute -right-6 -bottom-6 w-24 h-24 ${merchantConfig.bgColor.replace('50', '200/30')} rounded-full blur-xl`}></div>
                 </div>
-                <div className={`absolute -right-6 -bottom-6 w-24 h-24 ${merchantConfig.bgColor.replace('50', '200/30')} rounded-full blur-xl`}></div>
-            </div>
+            )}
 
             {/* Driver CTA */}
-            <div
-                onClick={driverConfig.onClick}
-                className={`relative overflow-hidden rounded-xl ${driverConfig.bgColor} border ${driverConfig.borderColor} p-4 active:scale-95 transition-transform cursor-pointer group ${driverConfig.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-            >
-                <div className="flex flex-col h-full justify-between gap-3 relative z-10">
-                    <div className={`w-10 h-10 rounded-full ${driverConfig.iconBgColor} shadow-sm flex items-center justify-center ${driverConfig.iconColor} group-hover:scale-110 transition-transform`}>
-                        <span className="material-symbols-outlined">{driverConfig.icon}</span>
+            {showDriver && (
+                <div
+                    onClick={driverConfig.onClick}
+                    className={`relative overflow-hidden rounded-xl ${driverConfig.bgColor} border ${driverConfig.borderColor} p-4 active:scale-95 transition-transform cursor-pointer group ${driverConfig.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                    <div className="flex flex-col h-full justify-between gap-3 relative z-10">
+                        <div className={`w-10 h-10 rounded-full ${driverConfig.iconBgColor} shadow-sm flex items-center justify-center ${driverConfig.iconColor} group-hover:scale-110 transition-transform`}>
+                            <span className="material-symbols-outlined">{driverConfig.icon}</span>
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-text-main text-sm leading-tight">{driverConfig.text}</h3>
+                            <p className={`text-[10px] ${driverConfig.textColor} font-medium mt-1 flex items-center gap-0.5`}>
+                                {driverConfig.subtext} <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-bold text-text-main text-sm leading-tight">{driverConfig.text}</h3>
-                        <p className={`text-[10px] ${driverConfig.textColor} font-medium mt-1 flex items-center gap-0.5`}>
-                            {driverConfig.subtext} <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
-                        </p>
-                    </div>
+                    <div className={`absolute -right-6 -bottom-6 w-24 h-24 ${driverConfig.bgColor.replace('50', '200/30')} rounded-full blur-xl`}></div>
                 </div>
-                <div className={`absolute -right-6 -bottom-6 w-24 h-24 ${driverConfig.bgColor.replace('50', '200/30')} rounded-full blur-xl`}></div>
-            </div>
+            )}
         </section>
     )
 }

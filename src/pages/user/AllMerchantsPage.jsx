@@ -31,7 +31,7 @@ function AllMerchantsPage() {
         setLoading(true)
         setError(null)
         try {
-            const data = await merchantService.getMerchants()
+            const data = await merchantService.getMerchants({ limit: 50 })
             setAllMerchants(data)
             setMerchants(data)
         } catch (err) {

@@ -36,15 +36,37 @@ function MerchantOrderDetail({ order, onBack }) {
 
             <main className="flex flex-col gap-4 px-4 pt-4 pb-40">
                 {/* Status Banner */}
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/30 rounded-2xl p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white shrink-0">
-                        <span className="material-symbols-outlined fill text-[28px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 400" }}>check_circle</span>
+                {order.status === 'cancelled' ? (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 rounded-2xl p-4 flex items-center gap-4">
+                        <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white shrink-0">
+                            <span className="material-symbols-outlined fill text-[28px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 400" }}>cancel</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <h2 className="text-red-800 dark:text-red-300 font-bold text-lg">Pesanan Dibatalkan</h2>
+                            <p className="text-red-700/70 dark:text-red-400/70 text-sm">
+                                {timeline.cancelled ? `Dibatalkan pada ${timeline.cancelled} WIB` : 'Pesanan telah dibatalkan'}
+                            </p>
+                        </div>
                     </div>
-                    <div className="flex flex-col">
-                        <h2 className="text-green-800 dark:text-green-300 font-bold text-lg">Pesanan Selesai</h2>
-                        <p className="text-green-700/70 dark:text-green-400/70 text-sm">Selesai pada {timeline.completed} WIB</p>
+                ) : (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/30 rounded-2xl p-4 flex items-center gap-4">
+                        <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white shrink-0">
+                            <span className="material-symbols-outlined fill text-[28px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 400" }}>check_circle</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <h2 className="text-green-800 dark:text-green-300 font-bold text-lg">Pesanan Selesai</h2>
+                            <p className="text-green-700/70 dark:text-green-400/70 text-sm">Selesai pada {timeline.completed} WIB</p>
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {/* Cancellation Reason */}
+                {order.status === 'cancelled' && order.cancellation_reason && (
+                    <section className="bg-card-light dark:bg-card-dark rounded-2xl shadow-soft border border-border-color dark:border-gray-800 p-4">
+                        <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Alasan Pembatalan</h3>
+                        <p className="text-sm font-medium text-text-main dark:text-white">"{order.cancellation_reason}"</p>
+                    </section>
+                )}
 
                 {/* Customer Info (Optional/If available) */}
                 {/* <section className="bg-card-light dark:bg-card-dark rounded-2xl shadow-soft border border-border-color dark:border-gray-800 p-4">
@@ -90,31 +112,38 @@ function MerchantOrderDetail({ order, onBack }) {
                         <div className="h-px bg-dashed border-t border-dashed border-gray-200 dark:border-gray-700 my-1"></div>
                         <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-text-main dark:text-gray-300">Total Pendapatan Bersih</span>
-                            <span className="text-lg font-bold text-primary">Rp {order.total.toLocaleString('id-ID')}</span>
+                            <span className={`text-lg font-bold ${order.status === 'cancelled' ? 'text-text-secondary decoration-line-through' : 'text-primary'}`}>
+                                Rp {order.total.toLocaleString('id-ID')}
+                            </span>
                         </div>
+                        {order.status === 'cancelled' && (
+                            <p className="text-[10px] text-red-500 text-right mt-1">*Pendapatan dibatalkan</p>
+                        )}
                     </div>
                 </section>
 
-                {/* Delivery Timeline */}
-                <section className="bg-card-light dark:bg-card-dark rounded-2xl shadow-soft border border-border-color dark:border-gray-800 p-4">
-                    <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Detail Pengiriman</h3>
-                    <div className="relative flex flex-col gap-6 pl-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100 dark:before:bg-gray-800">
-                        <div className="relative">
-                            <div className="absolute -left-[20px] top-1.5 w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 border-2 border-white dark:border-card-dark z-10"></div>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-text-secondary uppercase font-bold tracking-tight">Diserahkan ke Driver</span>
-                                <p className="text-sm font-medium text-text-main dark:text-white mt-0.5">{timeline.handover} WIB</p>
+                {/* Delivery Timeline - Hide if cancelled */}
+                {order.status !== 'cancelled' && (
+                    <section className="bg-card-light dark:bg-card-dark rounded-2xl shadow-soft border border-border-color dark:border-gray-800 p-4">
+                        <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Detail Pengiriman</h3>
+                        <div className="relative flex flex-col gap-6 pl-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100 dark:before:bg-gray-800">
+                            <div className="relative">
+                                <div className="absolute -left-[20px] top-1.5 w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 border-2 border-white dark:border-card-dark z-10"></div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-text-secondary uppercase font-bold tracking-tight">Diserahkan ke Driver</span>
+                                    <p className="text-sm font-medium text-text-main dark:text-white mt-0.5">{timeline.handover || '-'} WIB</p>
+                                </div>
+                            </div>
+                            <div className="relative">
+                                <div className="absolute -left-[20px] top-1.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-card-dark z-10"></div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-green-600 dark:text-green-400 uppercase font-bold tracking-tight">Diterima Pelanggan</span>
+                                    <p className="text-sm font-medium text-text-main dark:text-white mt-0.5">{timeline.completed || '-'} WIB</p>
+                                </div>
                             </div>
                         </div>
-                        <div className="relative">
-                            <div className="absolute -left-[20px] top-1.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-card-dark z-10"></div>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-green-600 dark:text-green-400 uppercase font-bold tracking-tight">Diterima Pelanggan</span>
-                                <p className="text-sm font-medium text-text-main dark:text-white mt-0.5">{timeline.completed} WIB</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                    </section>
+                )}
 
                 {/* Payment Method */}
                 <div className="flex items-center justify-between px-1">

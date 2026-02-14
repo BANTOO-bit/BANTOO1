@@ -66,7 +66,7 @@ function MerchantOrdersPage() {
                 id: generateOrderId(order.id),
                 dbId: order.id, // Keep database ID for updates
                 time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-                payment: order.payment_method === 'cod' ? 'Tunai' : order.payment_method,
+                payment: (order.payment_method === 'cod' || order.payment_method === 'cash') ? 'Tunai (COD)' : order.payment_method,
                 status: order.status, // Pass raw status for logic, component handles display text
                 total: order.total_amount,
                 items: order.items?.map(item => ({
@@ -87,8 +87,10 @@ function MerchantOrdersPage() {
                     created: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     processed: order.accepted_at ? new Date(order.accepted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
                     handover: order.picked_up_at ? new Date(order.picked_up_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
-                    completed: order.delivered_at ? new Date(order.delivered_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
-                }
+                    completed: order.delivered_at ? new Date(order.delivered_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
+                    cancelled: order.cancelled_at ? new Date(order.cancelled_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
+                },
+                cancellation_reason: order.cancellation_reason
             }))
 
             setOrders(transformedOrders)
