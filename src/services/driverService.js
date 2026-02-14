@@ -8,17 +8,72 @@ export const driverService = {
      */
     async getAvailableOrders({ lat, lng }, radius = 10) {
         try {
+            // Try RCP first (Optimized for Radius)
             const { data, error } = await supabase.rpc('get_available_orders', {
                 p_lat: lat,
                 p_lng: lng,
                 p_radius_km: radius
             })
 
-            if (error) throw error
-            return data
+            if (!error) return data
+
+            console.warn('RPC "get_available_orders" failed, falling back to standard query:', error.message)
+
+            // Fallback: Standard Query (No Radius Filter, just status)
+            // This ensures drivers see orders even if GIS functions are missing
+            const { data: fallbackData, error: fallbackError } = await supabase
+                .from('orders')
+                .select(`
+                    id, 
+                    total_amount, 
+                    payment_method, 
+                    created_at,
+                    merchants (
+                        name, 
+                        address, 
+                        latitude, 
+                        longitude
+                    ),
+                    delivery_address
+                `)
+                .eq('status', 'ready')
+                .is('driver_id', null)
+                .order('created_at', { ascending: false })
+
+            if (fallbackError) throw fallbackError
+
+            // Map standard query result to match RPC output format
+            return fallbackData.map(o => {
+                // approximate distance calc (Haversine)
+                let distance = null
+                if (lat && lng && o.merchants?.latitude && o.merchants?.longitude) {
+                    const R = 6371 // km
+                    const dLat = (o.merchants.latitude - lat) * Math.PI / 180
+                    const dLon = (o.merchants.longitude - lng) * Math.PI / 180
+                    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                        Math.cos(lat * Math.PI / 180) * Math.cos(o.merchants.latitude * Math.PI / 180) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2)
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+                    distance = R * c
+                }
+
+                return {
+                    id: o.id,
+                    merchant_name: o.merchants?.name,
+                    merchant_address: o.merchants?.address,
+                    customer_address: o.delivery_address,
+                    distance_to_merchant: distance,
+                    total_amount: o.total_amount,
+                    payment_method: o.payment_method,
+                    created_at: o.created_at,
+                    merchant_lat: o.merchants?.latitude,
+                    merchant_lng: o.merchants?.longitude
+                }
+            })
+
         } catch (error) {
             console.error('Error fetching available orders:', error)
-            throw error
+            return [] // Return empty array instead of throwing to prevent UI crash
         }
     },
 
@@ -106,17 +161,45 @@ export const driverService = {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return null
 
+            // First try to get from drivers table
             const { data, error } = await supabase
                 .from('drivers')
                 .select(`
                     *,
-                    profile:user_id (full_name, avatar_url, phone)
+                    profile:user_id (full_name, avatar_url, phone, email)
                 `)
                 .eq('user_id', user.id)
                 .single()
 
-            if (error) throw error
-            return data
+            if (error || !data) {
+                // Fallback: If not in drivers table yet, get basic profile
+                const { data: basicProfile } = await supabase
+                    .from('profiles')
+                    .select('full_name, avatar_url, phone, email')
+                    .eq('id', user.id)
+                    .single()
+
+                if (basicProfile) {
+                    return {
+                        id: 'guest-driver',
+                        user_id: user.id,
+                        status: 'pending',
+                        is_active: false,
+                        full_name: basicProfile.full_name, // Map for easier access
+                        avatar_url: basicProfile.avatar_url,
+                        profile: basicProfile
+                    }
+                }
+                return null
+            }
+
+            // Flatten handy properties
+            return {
+                ...data,
+                full_name: data.profile?.full_name,
+                avatar_url: data.profile?.avatar_url,
+                email: data.profile?.email
+            }
         } catch (error) {
             console.error('Error fetching driver profile:', error)
             return null
@@ -125,10 +208,79 @@ export const driverService = {
 
     async getActiveOrder() {
         try {
-            const { data, error } = await supabase.rpc('get_driver_active_order')
-            if (error) throw error
-            // RPC returns an array (table), we expect 0 or 1
-            return data && data.length > 0 ? data[0] : null
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return null
+
+            // Use standard query instead of RPC 'get_driver_active_order' which is missing
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    id,
+                    merchant_id,
+                    total_amount,
+                    payment_method,
+                    status,
+                    created_at,
+                    delivery_address,
+                    latitude,
+                    longitude,
+                    notes,
+                    merchants (
+                        name,
+                        address,
+                        latitude,
+                        longitude
+                    ),
+                    profiles!orders_customer_id_fkey (
+                        full_name,
+                        phone
+                    ),
+                    order_items (
+                        product_name,
+                        quantity,
+                        notes
+                    )
+                `)
+                .eq('driver_id', user.id)
+                .in('status', ['pickup', 'picked_up', 'delivering'])
+                .single()
+
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    // No rows found - this is expected if no active order
+                    return null
+                }
+                throw error
+            }
+
+            // Transform to flat structure expected by UI (if needed) or keep as is
+            // The UI expects flattened properties like merchant_name.
+            // Let's flatten it here to match the component's expectation if it was using RPC return format
+            if (data) {
+                return {
+                    id: data.id,
+                    merchant_name: data.merchants?.name,
+                    merchant_address: data.merchants?.address,
+                    customer_address: data.delivery_address,
+                    total_amount: data.total_amount,
+                    payment_method: data.payment_method,
+                    status: data.status,
+                    created_at: data.created_at,
+                    merchant_lat: data.merchants?.latitude,
+                    merchant_lng: data.merchants?.longitude,
+                    customer_lat: data.latitude,
+                    customer_lng: data.longitude,
+                    customer_name: data.profiles?.full_name || 'Customer',
+                    customer_note: data.notes,
+                    items: data.order_items?.map(i => ({
+                        name: i.product_name,
+                        quantity: i.quantity,
+                        notes: i.notes
+                    }))
+                }
+            }
+
+            return null
         } catch (error) {
             console.error('Error getting active order:', error)
             return null

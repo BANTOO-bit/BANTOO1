@@ -65,6 +65,13 @@ export function OrderProvider({ children }) {
         }
     }, [user, activeRole])
 
+    // Load orders on mount or when user changes
+    useEffect(() => {
+        if (user) {
+            fetchOrders()
+        }
+    }, [user, fetchOrders])
+
     // ============================================
     // CREATE ORDER
     // ============================================

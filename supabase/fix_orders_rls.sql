@@ -11,7 +11,7 @@ CREATE POLICY "Users view own orders" ON orders FOR SELECT USING (
     OR 
     EXISTS ( -- For Drivers
       SELECT 1 FROM drivers 
-      WHERE drivers.id = orders.driver_id 
+      WHERE drivers.user_id = orders.driver_id 
       AND drivers.user_id = auth.uid()
     )
     OR 
@@ -29,7 +29,7 @@ DROP POLICY IF EXISTS "Drivers update own orders" ON orders;
 CREATE POLICY "Drivers update own orders" ON orders FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM drivers 
-      WHERE drivers.id = orders.driver_id 
+      WHERE drivers.user_id = orders.driver_id 
       AND drivers.user_id = auth.uid()
     )
 );

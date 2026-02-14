@@ -20,6 +20,13 @@ function MerchantOrdersPage() {
     const toast = useToast()
     const { addNotification } = useNotification()
     const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'baru')
+
+    // Update activeTab when location state changes (e.g. from Dashboard)
+    useEffect(() => {
+        if (location.state?.activeTab) {
+            setActiveTab(location.state.activeTab)
+        }
+    }, [location.state])
     const [selectedOrder, setSelectedOrder] = useState(null)
     const [viewMode, setViewMode] = useState('list') // 'list' | 'detail'
     const [activeModal, setActiveModal] = useState(null) // 'accept' | 'reject' | 'handover' | 'search' | null
@@ -345,6 +352,7 @@ function MerchantOrdersPage() {
 
             <main className="flex flex-col gap-5 px-4 pt-4">
                 {/* Tabs */}
+                {/* Tabs */}
                 <div className="flex p-1 bg-gray-200/50 dark:bg-card-dark rounded-xl">
                     <button
                         onClick={() => setActiveTab('baru')}
@@ -353,7 +361,7 @@ function MerchantOrdersPage() {
                             : 'text-text-secondary hover:bg-white/50 dark:hover:bg-gray-800'
                             }`}
                     >
-                        Baru ({orders.baru.length})
+                        Baru {activeTab === 'baru' ? `(${orders.length})` : ''}
                     </button>
                     <button
                         onClick={() => setActiveTab('diproses')}
@@ -362,7 +370,7 @@ function MerchantOrdersPage() {
                             : 'text-text-secondary hover:bg-white/50 dark:hover:bg-gray-800'
                             }`}
                     >
-                        Diproses ({orders.diproses.length})
+                        Diproses {activeTab === 'diproses' ? `(${orders.length})` : ''}
                     </button>
                     <button
                         onClick={() => setActiveTab('selesai')}
@@ -371,7 +379,7 @@ function MerchantOrdersPage() {
                             : 'text-text-secondary hover:bg-white/50 dark:hover:bg-gray-800'
                             }`}
                     >
-                        Selesai ({orders.selesai.length})
+                        Selesai {activeTab === 'selesai' ? `(${orders.length})` : ''}
                     </button>
                 </div>
 

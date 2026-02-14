@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import dashboardService from '../../services/dashboardService'
+import orderService from '../../services/orderService'
 import MerchantHeader from '../../components/merchant/MerchantHeader'
 import MerchantBottomNavigation from '../../components/merchant/MerchantBottomNavigation'
+import { generateOrderId } from '../../utils/orderUtils'
 
 function MerchantDashboard() {
     const navigate = useNavigate()
@@ -15,26 +17,50 @@ function MerchantDashboard() {
         newOrders: 0,
         loading: true
     })
+    const [recentOrders, setRecentOrders] = useState([])
 
     useEffect(() => {
-        async function fetchStats() {
+        async function fetchData() {
             if (!user?.merchantId) return
 
             try {
-                const data = await dashboardService.getMerchantStats(user.merchantId)
+                // Fetch Stats
+                const statsData = await dashboardService.getMerchantStats(user.merchantId)
                 setStats({
-                    ...data,
+                    ...statsData,
                     loading: false
                 })
+
+                // Fetch Pending Orders for 'Baru' tab
+                const ordersData = await orderService.getMerchantOrders(user.merchantId, ['pending'])
+
+                // Transform data for OrderCard
+                const transformedOrders = ordersData.map(order => ({
+                    id: generateOrderId(order.id),
+                    // dbId: order.id, // Not strictly needed for display-only here, but good practice
+                    time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                    payment: order.payment_method === 'cod' ? 'Tunai' : order.payment_method,
+                    status: 'Baru', // Since we only fetch pending
+                    total: `Rp ${order.total_amount.toLocaleString('id-ID')}`,
+                    items: order.items?.map(item => ({
+                        qty: item.quantity,
+                        name: item.product_name,
+                        price: `Rp ${item.price_at_time.toLocaleString('id-ID')}`,
+                        note: item.notes
+                    })) || []
+                }))
+
+                setRecentOrders(transformedOrders)
+
             } catch (error) {
-                console.error('Error fetching merchant stats:', error)
+                console.error('Error fetching merchant dashboard data:', error)
                 setStats(prev => ({ ...prev, loading: false }))
             }
         }
 
-        fetchStats()
+        fetchData()
         // Refresh every 30 seconds
-        const interval = setInterval(fetchStats, 30000)
+        const interval = setInterval(fetchData, 30000)
         return () => clearInterval(interval)
     }, [user?.merchantId])
 
@@ -104,16 +130,22 @@ function MerchantDashboard() {
                         <TabButton
                             active={activeTab === 'baru'}
                             onClick={() => setActiveTab('baru')}
-                            label="Baru (2)"
+                            label={`Baru (${recentOrders.length})`}
                         />
                         <TabButton
                             active={activeTab === 'diproses'}
-                            onClick={() => setActiveTab('diproses')}
+                            onClick={() => {
+                                setActiveTab('diproses')
+                                navigate('/merchant/orders', { state: { activeTab: 'diproses' } })
+                            }}
                             label="Diproses"
                         />
                         <TabButton
                             active={activeTab === 'selesai'}
-                            onClick={() => setActiveTab('selesai')}
+                            onClick={() => {
+                                setActiveTab('selesai')
+                                navigate('/merchant/orders', { state: { activeTab: 'selesai' } })
+                            }}
                             label="Selesai"
                         />
                     </div>
@@ -122,33 +154,24 @@ function MerchantDashboard() {
                     <div className="flex flex-col gap-4">
                         {activeTab === 'baru' && (
                             <>
-                                <OrderCard
-                                    id="JKT-8821"
-                                    time="14:32"
-                                    payment="Pembayaran Tunai"
-                                    status="Baru"
-                                    total="Rp 35.000"
-                                    items={[
-                                        { qty: 1, name: 'Bakso Urat Jumbo', price: 'Rp 25.000' },
-                                        { qty: 2, name: 'Es Teh Manis', price: 'Rp 10.000' }
-                                    ]}
-                                    note="Sambalnya dipisah ya mas, jangan dicampur. Makasih."
-                                />
-                                <OrderCard
-                                    id="JKT-8825"
-                                    time="14:45"
-                                    payment="GoPay"
-                                    status="Baru"
-                                    total="Rp 18.000"
-                                    items={[
-                                        { qty: 1, name: 'Mie Ayam Spesial', price: 'Rp 18.000' }
-                                    ]}
-                                />
+                                {recentOrders.length > 0 ? (
+                                    recentOrders.map(order => (
+                                        <OrderCard
+                                            key={order.id}
+                                            {...order}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className="py-8 text-center text-text-secondary text-sm">
+                                        Tidak ada pesanan baru saat ini.
+                                    </div>
+                                )}
                             </>
                         )}
+                        {/* We redirect for other tabs, so this might not be reached, but good fallback */}
                         {activeTab !== 'baru' && (
                             <div className="py-8 text-center text-text-secondary text-sm">
-                                Tidak ada pesanan di tab ini.
+                                Memuat...
                             </div>
                         )}
                     </div>

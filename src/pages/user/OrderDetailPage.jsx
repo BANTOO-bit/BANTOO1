@@ -217,8 +217,8 @@ function OrderDetailPage() {
     const isCompleted = order.status === 'delivered' || order.status === 'completed'
     const subtotal = order.items?.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0) || order.total || 0
     const deliveryFee = order.deliveryFee || 10000
-    const serviceFee = order.serviceFee || 2000
-    const total = order.total || (subtotal + deliveryFee + serviceFee)
+    const serviceFee = 0
+    const total = order.total || (subtotal + deliveryFee)
     const itemCount = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0
 
     return (
@@ -348,10 +348,7 @@ function OrderDetailPage() {
                             <span>Ongkos Kirim</span>
                             <span className="font-medium text-text-main dark:text-white">Rp {deliveryFee.toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs text-text-secondary dark:text-gray-400">
-                            <span>Biaya Layanan</span>
-                            <span className="font-medium text-text-main dark:text-white">Rp {serviceFee.toLocaleString()}</span>
-                        </div>
+
                     </div>
                     <div className="border-t border-dashed border-gray-200 dark:border-gray-700 my-4"></div>
                     <div className="flex justify-between items-center mb-5">

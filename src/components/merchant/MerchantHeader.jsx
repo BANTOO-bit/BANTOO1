@@ -1,7 +1,7 @@
 import { useAuth } from '../../context/AuthContext'
 
 function MerchantHeader() {
-    const { isShopOpen, toggleShopStatus } = useAuth()
+    const { user, isShopOpen, toggleShopStatus } = useAuth()
 
     return (
         <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-start justify-between border-b border-transparent dark:border-gray-800 transition-colors">
@@ -16,7 +16,7 @@ function MerchantHeader() {
                 </div>
                 <div className="flex flex-col mt-2">
                     <span className="text-xs text-text-secondary font-medium">Halo,</span>
-                    <h1 className="text-xl font-bold text-text-main dark:text-white leading-tight">Bakso Pak Kumis</h1>
+                    <h1 className="text-xl font-bold text-text-main dark:text-white leading-tight">{user?.merchantName || 'Nama Warung'}</h1>
                 </div>
             </div>
 

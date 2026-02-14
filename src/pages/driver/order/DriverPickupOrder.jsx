@@ -12,17 +12,28 @@ function DriverPickupOrder() {
     const navigate = useNavigate()
     const { orderId } = useParams()
     const { user } = useAuth()
-    const { activeOrder, setActiveOrder } = useOrder()
+    const { activeOrder, setActiveOrder, loading } = useOrder()
     const toast = useToast()
     const [checkedItems, setCheckedItems] = useState({})
     const [isConfirming, setIsConfirming] = useState(false)
 
     // Protected route: redirect if no active order
     useEffect(() => {
-        if (!activeOrder) {
+        if (!activeOrder && !loading) {
             navigate('/driver/dashboard')
         }
-    }, [activeOrder, navigate])
+    }, [activeOrder, loading, navigate])
+
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-white">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+                    <p className="text-sm font-medium text-slate-500">Memuat pesanan...</p>
+                </div>
+            </div>
+        )
+    }
 
     if (!activeOrder) return null
 
@@ -33,7 +44,24 @@ function DriverPickupOrder() {
         }))
     }
 
-    const allItemsChecked = activeOrder.items.every((_, index) => checkedItems[index])
+    // Handle both flat and nested data structures
+    const orderItems = activeOrder.items || []
+    const allItemsChecked = orderItems.every((_, index) => checkedItems[index])
+
+    // Data Access Helpers
+    const merchantName = activeOrder.merchant?.name || activeOrder.merchantName || 'Merchant'
+    const merchantAddress = activeOrder.merchant?.address || activeOrder.merchantAddress || ''
+    const merchantCoords = activeOrder.merchant?.latitude && activeOrder.merchant?.longitude
+        ? [activeOrder.merchant.latitude, activeOrder.merchant.longitude]
+        : (activeOrder.merchantCoords || [-7.0747, 110.8767])
+
+    const customerCoords = activeOrder.customer_lat && activeOrder.customer_lng
+        ? [activeOrder.customer_lat, activeOrder.customer_lng]
+        : (activeOrder.customerCoords || [-6.2250, 106.8500])
+
+    const paymentMethod = activeOrder.payment_method || activeOrder.paymentMethod
+    const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
+    const customerNote = activeOrder.notes || activeOrder.customerNote
 
     const handleConfirmPickup = async () => {
         if (!allItemsChecked) {
@@ -46,14 +74,16 @@ function DriverPickupOrder() {
 
             // Update order status to picked_up via Driver Service
             const { driverService } = await import('../../../services/driverService')
-            await driverService.updateOrderStatus(activeOrder.dbId, 'picked_up')
+            // Support both id and dbId
+            const orderId = activeOrder.id
+            await driverService.updateOrderStatus(orderId, 'picked_up')
 
             // Update context
             setActiveOrder({ ...activeOrder, status: 'picked_up' })
 
             toast.success('Status diupdate: Menuju Customer')
             // Navigate to delivery page
-            navigate('/driver/order/delivery')
+            navigate(`/driver/order/delivery/${orderId}`)
         } catch (error) {
             console.error('Error confirming pickup:', error)
             handleError(error, toast, { context: 'Confirm Pickup' })
@@ -73,7 +103,7 @@ function DriverPickupOrder() {
                         </button>
                         <div>
                             <h1 className="text-lg font-bold text-slate-900 leading-tight">Ambil Pesanan</h1>
-                            <p className="text-xs font-medium text-slate-500">Order ID #{activeOrder.id.split('-')[2]}</p>
+                            <p className="text-xs font-medium text-slate-500">Order ID #{activeOrder.id?.slice(0, 8)}</p>
                         </div>
                     </div>
                     <div className="flex gap-3">
@@ -91,8 +121,8 @@ function DriverPickupOrder() {
                 {/* Map: Route to Merchant */}
                 <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: '200px' }}>
                     <TrackingMap
-                        merchantLocation={activeOrder.merchantCoords || [-7.0747, 110.8767]}
-                        userLocation={activeOrder.customerCoords || [-6.2250, 106.8500]}
+                        merchantLocation={merchantCoords}
+                        userLocation={customerCoords}
                         driverLocation={activeOrder.driverCoords || null}
                         height="200px"
                     />
@@ -105,15 +135,15 @@ function DriverPickupOrder() {
                             <span className="material-symbols-outlined text-[28px]">storefront</span>
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-slate-900 leading-tight mb-1">{activeOrder.merchantName}</h2>
+                            <h2 className="text-lg font-bold text-slate-900 leading-tight mb-1">{merchantName}</h2>
                             <div className="flex items-start gap-1 text-slate-500 text-sm">
                                 <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">location_on</span>
-                                <p className="leading-snug">{activeOrder.merchantAddress}</p>
+                                <p className="leading-snug">{merchantAddress}</p>
                             </div>
                         </div>
                     </div>
                     <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${(activeOrder.merchantCoords || [-7.0747, 110.8767]).join(',')}`}
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${merchantCoords.join(',')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-4 w-full py-2.5 px-4 bg-blue-50 text-blue-600 font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
@@ -124,19 +154,19 @@ function DriverPickupOrder() {
                 </div>
 
                 {/* COD Warning (Conditional) */}
-                {activeOrder.paymentMethod === 'COD' && (
+                {paymentMethod === 'COD' && (
                     <div className="bg-red-50 rounded-xl p-5 border border-red-100 text-center animate-in fade-in slide-in-from-bottom-2">
                         <div className="flex items-center justify-center gap-2 text-red-600 font-bold text-sm mb-1">
                             <span className="material-symbols-outlined text-[20px]">payments</span>
                             TOTAL COD
                         </div>
-                        <div className="text-3xl font-bold text-red-600 mb-1">Rp {activeOrder.totalAmount?.toLocaleString('id-ID')}</div>
+                        <div className="text-3xl font-bold text-red-600 mb-1">Rp {totalAmount?.toLocaleString('id-ID')}</div>
                         <p className="text-xs text-red-500 opacity-90">Bayar tunai ke Merchant saat ambil pesanan</p>
                     </div>
                 )}
 
                 {/* Service/Payment Info (Non-COD fallback/additional info) */}
-                {activeOrder.paymentMethod !== 'COD' && (
+                {paymentMethod !== 'COD' && (
                     <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex items-center gap-3">
                         <span className="material-symbols-outlined text-green-600 text-[24px]">verified</span>
                         <div>
@@ -152,7 +182,7 @@ function DriverPickupOrder() {
                     <span className="material-symbols-outlined text-yellow-600 shrink-0 text-[24px]">sticky_note_2</span>
                     <div>
                         <h3 className="text-sm font-bold text-yellow-700 mb-1 sm:mb-0">CATATAN PELANGGAN</h3>
-                        <p className="text-sm text-slate-800 leading-relaxed italic">"{activeOrder.customerNote}"</p>
+                        <p className="text-sm text-slate-800 leading-relaxed italic">"{customerNote || '-'}"</p>
                     </div>
                 </div>
 
@@ -160,10 +190,10 @@ function DriverPickupOrder() {
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="p-4 bg-slate-50 flex justify-between items-center border-b border-slate-200">
                         <h3 className="font-bold text-slate-800">Daftar Item</h3>
-                        <span className="bg-slate-200 text-xs font-semibold px-2 py-1 rounded text-slate-600">{activeOrder.items.length} Item</span>
+                        <span className="bg-slate-200 text-xs font-semibold px-2 py-1 rounded text-slate-600">{orderItems.length} Item</span>
                     </div>
                     <div className="divide-y divide-slate-100">
-                        {activeOrder.items.map((item, index) => (
+                        {orderItems.map((item, index) => (
                             <div key={index} className="p-4 flex items-start gap-3 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => handleCheckItem(index)}>
                                 <div className="pt-1">
                                     <input

@@ -6,6 +6,9 @@ import { useOrder } from '../../context/OrderContext'
 import orderService from '../../services/orderService'
 import { subscribeToDriverLocation, calculateDistance, estimateDeliveryTime } from '../../services/driverLocationService'
 import { formatOrderId } from '../../utils/orderUtils'
+import { useToast } from '../../context/ToastContext'
+import { handleError } from '../../utils/errorHandler'
+import ConfirmationModal from '../../components/shared/ConfirmationModal'
 
 const TrackingMap = lazy(() => import('../../components/user/TrackingMap'))
 
@@ -155,18 +158,12 @@ function OrderDetailModal({ isOpen, onClose, order }) {
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-text-secondary">Subtotal ({order.items?.length || 0} item)</span>
-                                <span>Rp {subtotal?.toLocaleString()}</span>
+                                <span className="text-text-secondary">Rp {subtotal?.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-text-secondary">Ongkos Kirim</span>
                                 <span>Rp {deliveryFee?.toLocaleString()}</span>
                             </div>
-                            {order.service_fee > 0 && (
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-text-secondary">Biaya Layanan</span>
-                                    <span>Rp {order.service_fee?.toLocaleString()}</span>
-                                </div>
-                            )}
                             {order.discount > 0 && (
                                 <div className="flex justify-between text-sm text-green-600">
                                     <span>Diskon</span>
@@ -211,6 +208,7 @@ function TrackingPage() {
     const navigate = useNavigate()
     const { orderId: paramOrderId } = useParams()
     const { activeOrder } = useOrder()
+    const toast = useToast()
 
     const [order, setOrder] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -218,6 +216,10 @@ function TrackingPage() {
     const [showDetailModal, setShowDetailModal] = useState(false)
     const [driverLocation, setDriverLocation] = useState(null)
     const [estimatedTime, setEstimatedTime] = useState(null)
+
+    // Cancel Modal State
+    const [cancelModalOpen, setCancelModalOpen] = useState(false)
+    const [isCancelling, setIsCancelling] = useState(false)
 
     // Derived data
     const merchantLocation = order?.merchant
@@ -235,10 +237,10 @@ function TrackingPage() {
         name: order.driver.full_name || 'Driver',
         phone: order.driver.phone || '-',
         photo: order.driver.avatar_url,
-        vehicle: order.driver_detail?.vehicle_brand
-            ? `${order.driver_detail.vehicle_brand} ${order.driver_detail.vehicle_type || ''}`.trim()
+        vehicle: order.driver.driver_detail?.[0]
+            ? `${order.driver.driver_detail[0].vehicle_brand || ''} ${order.driver.driver_detail[0].vehicle_type || ''}`.trim()
             : 'Motor',
-        plate: order.driver_detail?.vehicle_plate || '-',
+        plate: order.driver.driver_detail?.[0]?.vehicle_plate || '-',
     } : null
 
     // ============================================
@@ -268,7 +270,7 @@ function TrackingPage() {
             setOrder(data)
         } catch (err) {
             console.error('Failed to fetch order:', err)
-            setError('Gagal memuat pesanan')
+            setError(err.message || 'Gagal memuat pesanan')
         } finally {
             setLoading(false)
         }
@@ -362,6 +364,27 @@ function TrackingPage() {
     }, [order?.status, merchantLocation, userLocation])
 
     // ============================================
+    // HANDLE CANCEL
+    // ============================================
+    const handleConfirmCancel = async () => {
+        if (!order) return
+
+        try {
+            setIsCancelling(true)
+            await orderService.cancelOrder(order.id, 'Dibatalkan oleh pelanggan via Tracking')
+
+            toast.success('Pesanan berhasil dibatalkan')
+            setCancelModalOpen(false)
+            navigate('/orders')
+        } catch (err) {
+            console.error('Error cancelling order:', err)
+            handleError(err, toast, { context: 'Cancel Order' })
+        } finally {
+            setIsCancelling(false)
+        }
+    }
+
+    // ============================================
     // LOADING & ERROR STATES
     // ============================================
     if (loading) {
@@ -425,66 +448,101 @@ function TrackingPage() {
                 </div>
             </header>
 
-            {/* Map Section */}
-            <div className="relative w-full h-[280px] bg-gray-100">
-                <ErrorBoundary
-                    fallback={({ error: mapError }) => (
-                        <div className="h-full w-full bg-gray-50 rounded-2xl flex items-center justify-center p-6">
-                            <div className="text-center max-w-sm">
-                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <span className="material-symbols-outlined text-red-500 text-3xl">map</span>
-                                </div>
-                                <h3 className="font-bold text-text-main mb-2">Peta Tidak Dapat Dimuat</h3>
-                                <p className="text-sm text-text-secondary mb-4">
-                                    Terjadi kesalahan saat memuat peta. Silakan coba lagi.
-                                </p>
-                                <button
-                                    onClick={() => window.location.reload()}
-                                    className="py-2 px-4 bg-primary text-white rounded-lg font-medium"
-                                >
-                                    Muat Ulang Peta
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                >
-                    {merchantLocation && userLocation ? (
-                        <Suspense fallback={
-                            <div className="h-full w-full flex items-center justify-center bg-gray-50">
-                                <div className="size-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                        }>
-                            <TrackingMap
-                                merchantLocation={merchantLocation}
-                                userLocation={userLocation}
-                                driverLocation={driverLocation}
-                                height="280px"
-                            />
-                        </Suspense>
-                    ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-gray-50">
-                            <div className="text-center">
-                                <span className="material-symbols-outlined text-3xl text-gray-300 mb-2 block">map</span>
-                                <p className="text-sm text-text-secondary">Lokasi belum tersedia</p>
-                            </div>
-                        </div>
-                    )}
-                </ErrorBoundary>
+            {/* Map Section or Waiting State */}
+            {order.status === 'pending' ? (
+                <div className="w-full h-[320px] bg-white flex flex-col items-center justify-center p-6 text-center border-b border-gray-100 relative overflow-hidden text-slate-800">
+                    {/* Soft Glow Background */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-50/80 rounded-full blur-3xl -z-10"></div>
 
-                {/* Floating Status Card Overlay */}
-                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-white z-30 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs text-text-secondary font-medium">Estimasi Tiba</p>
-                        <p className="text-lg font-bold text-text-main flex items-center gap-1">
-                            {isDelivered ? 'Tiba!' : estimatedTime !== null ? `${estimatedTime} Menit` : 'Menghitung...'}
-                        </p>
+                    {/* Icon Group */}
+                    <div className="relative mb-6">
+                        <div className="absolute inset-0 bg-orange-400 rounded-full animate-ping opacity-20"></div>
+                        <div className="relative w-24 h-24 bg-gradient-to-tr from-orange-500 to-orange-400 rounded-full flex items-center justify-center shadow-lg shadow-orange-200">
+                            <span className="material-symbols-outlined text-4xl text-white animate-pulse">storefront</span>
+                        </div>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${isDelivered ? 'bg-green-100 text-green-600' : 'bg-primary/10 text-primary'
-                        }`}>
-                        {currentStatus.label}
+
+                    <h3 className="font-bold text-xl text-gray-900 mb-2">Menunggu Konfirmasi</h3>
+
+                    <div className="space-y-1 max-w-[280px] mx-auto">
+                        <p className="text-gray-500 text-sm leading-relaxed">
+                            Pesananmu sedang diteruskan ke
+                        </p>
+                        <p className="font-bold text-gray-800 text-lg">{merchantName}</p>
+                        <p className="text-gray-400 text-xs italic mt-2">Mohon tunggu sebentar ya...</p>
+                    </div>
+
+                    {/* Loading Dots */}
+                    <div className="mt-8 flex gap-2 justify-center">
+                        <div className="w-2 h-2 bg-orange-300 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-orange-300 rounded-full animate-bounce delay-75"></div>
+                        <div className="w-2 h-2 bg-orange-300 rounded-full animate-bounce delay-150"></div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="relative w-full h-[280px] bg-gray-100">
+                    <ErrorBoundary
+                        fallback={({ error: mapError }) => (
+                            <div className="h-full w-full bg-gray-50 rounded-2xl flex items-center justify-center p-6">
+                                <div className="text-center max-w-sm">
+                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span className="material-symbols-outlined text-red-500 text-3xl">map</span>
+                                    </div>
+                                    <h3 className="font-bold text-text-main mb-2">Peta Tidak Dapat Dimuat</h3>
+                                    <p className="text-sm text-text-secondary mb-4">
+                                        Terjadi kesalahan saat memuat peta. Silakan coba lagi.
+                                    </p>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="py-2 px-4 bg-primary text-white rounded-lg font-medium"
+                                    >
+                                        Muat Ulang Peta
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    >
+                        {merchantLocation && userLocation ? (
+                            <Suspense fallback={
+                                <div className="h-full w-full flex items-center justify-center bg-gray-50">
+                                    <div className="size-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            }>
+                                <TrackingMap
+                                    merchantLocation={merchantLocation}
+                                    userLocation={userLocation}
+                                    driverLocation={driverLocation}
+                                    height="280px"
+                                />
+                            </Suspense>
+                        ) : (
+                            <div className="h-full w-full flex items-center justify-center bg-gray-50 p-6">
+                                <div className="text-center">
+                                    <span className="material-symbols-outlined text-3xl text-gray-300 mb-2 block">location_off</span>
+                                    <p className="font-bold text-gray-600 mb-1 text-sm">Peta Tidak Tersedia</p>
+                                    <p className="text-xs text-text-secondary max-w-[200px] mx-auto">
+                                        Alamat ini tidak memiliki titik koordinat GPS. Driver akan mengacu pada detail alamat tertulis.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </ErrorBoundary>
+
+                    {/* Floating Status Card Overlay */}
+                    <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-white z-30 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs text-text-secondary font-medium">Estimasi Tiba</p>
+                            <p className="text-lg font-bold text-text-main flex items-center gap-1">
+                                {isDelivered ? 'Tiba!' : estimatedTime !== null ? `${estimatedTime} Menit` : 'Menghitung...'}
+                            </p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${isDelivered ? 'bg-green-100 text-green-600' : 'bg-primary/10 text-primary'
+                            }`}>
+                            {currentStatus.label}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Status Timeline */}
             <div className="mx-4 mt-6">
@@ -578,7 +636,7 @@ function TrackingPage() {
             )}
 
             {/* Order Info Summary */}
-            <div className="mx-4 mt-4 bg-white rounded-2xl border border-border-color p-4 shadow-sm">
+            <div className="mx-4 mt-4 bg-white rounded-2xl border border-border-color p-4 shadow-sm mb-20">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 flex items-center justify-center bg-orange-50 rounded-lg">
@@ -611,11 +669,38 @@ function TrackingPage() {
                 </div>
             )}
 
+            {/* Bottom Action - Cancel (Only if Pending) */}
+            {order.status === 'pending' && (
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-border-color z-30 animate-slide-up">
+                    <button
+                        onClick={() => setCancelModalOpen(true)}
+                        className="w-full py-3.5 bg-red-50 text-red-600 font-bold rounded-xl border border-red-200 active:scale-[0.99] transition-transform flex items-center justify-center gap-2 hover:bg-red-100"
+                    >
+                        <span className="material-symbols-outlined">cancel</span>
+                        Batalkan Pesanan
+                    </button>
+                </div>
+            )}
+
             {/* Order Detail Modal */}
             <OrderDetailModal
                 isOpen={showDetailModal}
                 onClose={() => setShowDetailModal(false)}
                 order={order}
+            />
+
+            {/* Cancel Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={cancelModalOpen}
+                onClose={() => !isCancelling && setCancelModalOpen(false)}
+                onConfirm={handleConfirmCancel}
+                title="Batalkan Pesanan?"
+                message="Apakah Anda yakin ingin membatalkan pesanan ini? Pesanan yang dibatalkan tidak dapat dikembalikan."
+                confirmLabel="Batalkan"
+                cancelLabel="Kembali"
+                confirmColor="red"
+                icon="cancel"
+                loading={isCancelling}
             />
         </div>
     )

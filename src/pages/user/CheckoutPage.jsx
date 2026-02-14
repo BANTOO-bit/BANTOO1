@@ -10,13 +10,6 @@ import MerchantShopOpenWarning from '../../components/shared/MerchantShopOpenWar
 import { useToast } from '../../context/ToastContext'
 import { handleError, handleSuccess } from '../../utils/errorHandler'
 
-
-
-const deliveryOptions = [
-    { id: 'now', name: 'Kirim Sekarang', time: '15-25 mnt' },
-    { id: 'scheduled', name: 'Jadwalkan', time: 'Pilih waktu' },
-]
-
 function CheckoutPage() {
     const navigate = useNavigate()
     const { user, isShopOpen } = useAuth()
@@ -24,7 +17,6 @@ function CheckoutPage() {
     const { selectedAddress, addresses, selectAddress } = useAddress()
     const toast = useToast()
     const [selectedPayment, setSelectedPayment] = useState('cash')
-    const [selectedDelivery, setSelectedDelivery] = useState('now')
     const [isProcessing, setIsProcessing] = useState(false)
     const [showPaymentModal, setShowPaymentModal] = useState(false)
     const [showAddressModal, setShowAddressModal] = useState(false)
@@ -32,10 +24,12 @@ function CheckoutPage() {
     const [loadingPayments, setLoadingPayments] = useState(true)
 
     useEffect(() => {
-        if (merchantInfo?.id && selectedAddress?.lat && selectedAddress?.lng) {
-            calculateDeliveryFee(merchantInfo.id, selectedAddress.lat, selectedAddress.lng)
+        const effectiveMerchantId = merchantInfo?.id || (cartItems.length > 0 ? cartItems[0].merchantId : null)
+
+        if (effectiveMerchantId && selectedAddress?.lat && selectedAddress?.lng) {
+            calculateDeliveryFee(effectiveMerchantId, selectedAddress.lat, selectedAddress.lng)
         }
-    }, [merchantInfo, selectedAddress, calculateDeliveryFee])
+    }, [merchantInfo, cartItems, selectedAddress, calculateDeliveryFee])
 
     useEffect(() => {
         async function fetchPaymentMethods() {
@@ -70,7 +64,9 @@ function CheckoutPage() {
             return
         }
 
-        if (!merchantInfo?.id) {
+        const effectiveMerchantId = merchantInfo?.id || (cartItems.length > 0 ? cartItems[0].merchantId : null)
+
+        if (!effectiveMerchantId) {
             toast.error('Informasi merchant tidak ditemukan')
             return
         }
@@ -80,7 +76,7 @@ function CheckoutPage() {
         try {
             // Prepare order data
             const orderData = {
-                merchantId: merchantInfo.id,
+                merchantId: effectiveMerchantId,
                 items: cartItems.map(item => ({
                     productId: item.id,
                     quantity: item.quantity,
@@ -95,6 +91,7 @@ function CheckoutPage() {
                 customerLat: selectedAddress.lat || null,
                 customerLng: selectedAddress.lng || null,
                 paymentMethod: selectedPayment,
+                deliveryFee: deliveryFee || 8000,
                 notes: null
             }
 
@@ -176,22 +173,12 @@ function CheckoutPage() {
                         <span className="material-symbols-outlined text-primary">schedule</span>
                         <span className="font-bold text-sm">Waktu Pengiriman</span>
                     </div>
-                    <div className="flex gap-2 ml-7">
-                        {deliveryOptions.map(option => (
-                            <button
-                                key={option.id}
-                                onClick={() => setSelectedDelivery(option.id)}
-                                className={`flex-1 py-2 px-3 rounded-xl text-center transition-all ${selectedDelivery === option.id
-                                    ? 'bg-primary text-white'
-                                    : 'bg-gray-100 text-text-main'
-                                    }`}
-                            >
-                                <p className="text-sm font-medium">{option.name}</p>
-                                <p className={`text-[10px] ${selectedDelivery === option.id ? 'text-white/80' : 'text-text-secondary'}`}>
-                                    {option.time}
-                                </p>
-                            </button>
-                        ))}
+                    <div className="ml-7 bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center justify-between">
+                        <div>
+                            <p className="font-bold text-sm text-primary">Kirim Sekarang</p>
+                            <p className="text-xs text-text-secondary mt-0.5">Estimasi tiba 15-25 menit</p>
+                        </div>
+                        <span className="material-symbols-outlined text-primary">two_wheeler</span>
                     </div>
                 </div>
 
@@ -199,7 +186,7 @@ function CheckoutPage() {
                 <div className="bg-white rounded-2xl border border-border-color p-4">
                     <div className="flex items-center gap-2 mb-3">
                         <span className="material-symbols-outlined text-primary">receipt_long</span>
-                        <span className="font-bold text-sm">Ringkasan Pesanan</span>
+                        <span className="font-bold text-sm">Rincian Pesanan</span>
                     </div>
 
                     {merchantInfo && (

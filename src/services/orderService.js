@@ -56,8 +56,9 @@ export const orderService = {
 
         if (rpcError) {
             // If RPC function doesn't exist yet, fall back to client-side
-            // (temporary: remove this fallback once RPC is deployed)
-            if (rpcError.code === '42883' || rpcError.message?.includes('function') || rpcError.message?.includes('does not exist')) {
+            // Also, fallback if RPC fails with specific codes like 23502 (not_null_violation)
+            if (rpcError.code === '42883' || rpcError.code === '23502' || rpcError.message?.includes('function') || rpcError.message?.includes('does not exist')) {
+                console.warn('RPC create_order failed, falling back to client-side:', rpcError)
                 return this._createOrderFallback(user, orderData)
             }
             throw rpcError
@@ -74,7 +75,8 @@ export const orderService = {
         const {
             merchantId, items, deliveryAddress, deliveryDetail,
             customerName, customerPhone, customerLat, customerLng,
-            paymentMethod = 'cod', promoCode = null, notes = null
+            paymentMethod = 'cod', promoCode = null, notes = null,
+            deliveryFee: propDeliveryFee
         } = orderData
 
         // Fetch real prices from database to prevent manipulation
@@ -98,8 +100,8 @@ export const orderService = {
         }, 0)
 
         // Fetch delivery fee from DB or use calculated value
-        let deliveryFee = 8000
-        if (customerLat && customerLng) {
+        let deliveryFee = propDeliveryFee || 8000 // Use passed fee first, then default
+        if (!propDeliveryFee && customerLat && customerLng) {
             try {
                 const { data: fee } = await supabase.rpc('calculate_delivery_fee', {
                     p_merchant_id: merchantId,
@@ -112,7 +114,7 @@ export const orderService = {
             }
         }
 
-        const serviceFee = 1000
+        const serviceFee = 0
         let discount = 0
         let promoId = null
 
@@ -124,7 +126,7 @@ export const orderService = {
             }
         }
 
-        const totalAmount = subtotal + deliveryFee + serviceFee - discount
+        const totalAmount = subtotal + deliveryFee - discount
 
         const { data: order, error: orderError } = await supabase
             .from('orders')
@@ -133,7 +135,7 @@ export const orderService = {
                 merchant_id: merchantId,
                 subtotal,
                 delivery_fee: deliveryFee,
-                service_fee: serviceFee,
+                service_fee: 0,
                 discount,
                 total_amount: totalAmount,
                 payment_method: paymentMethod,
@@ -214,7 +216,11 @@ export const orderService = {
             .order('created_at', { ascending: false })
 
         if (status) {
-            query = query.eq('status', status)
+            if (Array.isArray(status)) {
+                query = query.in('status', status)
+            } else {
+                query = query.eq('status', status)
+            }
         }
 
         const { data, error } = await query
@@ -467,8 +473,10 @@ export const orderService = {
                 *,
                 merchant:merchants(id, name, image_url, address, phone, latitude, longitude),
                 customer:profiles!customer_id(id, full_name, phone, avatar_url),
-                driver:profiles!driver_id(id, full_name, phone, avatar_url),
-                driver_detail:drivers!driver_id(vehicle_type, vehicle_plate, vehicle_brand),
+                driver:profiles!driver_id(
+                    id, full_name, phone, avatar_url,
+                    driver_detail:drivers!user_id(vehicle_type, vehicle_plate, vehicle_brand)
+                ),
                 items:order_items(*)
             `)
             .eq('id', orderId)

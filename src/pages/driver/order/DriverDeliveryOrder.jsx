@@ -13,29 +13,57 @@ function DriverDeliveryOrder() {
     const navigate = useNavigate()
     const { orderId } = useParams()
     const { user } = useAuth()
-    const { activeOrder, setActiveOrder } = useOrder()
+    const { activeOrder, setActiveOrder, loading } = useOrder()
     const { orders } = useOrder()
     const toast = useToast()
     const [isConfirming, setIsConfirming] = useState(false)
 
     // Protected route: redirect if no active order
     useEffect(() => {
-        if (!activeOrder) {
+        if (!activeOrder && !loading) {
             navigate('/driver/dashboard')
         }
-    }, [activeOrder, navigate])
+    }, [activeOrder, loading, navigate])
+
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-white">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+                    <p className="text-sm font-medium text-slate-500">Memuat pesanan...</p>
+                </div>
+            </div>
+        )
+    }
 
     if (!activeOrder) return null
 
+    // Data Access Helpers
+    const customerName = activeOrder.customer?.full_name || activeOrder.customerName || 'Pelanggan'
+    const customerAddress = activeOrder.delivery_address || activeOrder.customerAddress || ''
+    const merchantCoords = activeOrder.merchant?.latitude && activeOrder.merchant?.longitude
+        ? [activeOrder.merchant.latitude, activeOrder.merchant.longitude]
+        : (activeOrder.merchantCoords || [-7.0747, 110.8767])
+
+    // Attempt to parse lat/lng from order if available directly, or fallback
+    const customerCoords = activeOrder.latitude && activeOrder.longitude
+        ? [activeOrder.latitude, activeOrder.longitude]
+        : (activeOrder.customerCoords || [-6.2250, 106.8500])
+
+    const paymentMethod = activeOrder.payment_method || activeOrder.paymentMethod
+    const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
+    const isCOD = paymentMethod === 'COD' || paymentMethod === 'cod'
+
     // Start broadcasting GPS location for live tracking
     useEffect(() => {
-        if (activeOrder?.dbId) {
-            const handle = startBroadcastingLocation(activeOrder.dbId)
+        const orderId = activeOrder.id || activeOrder.dbId
+        if (orderId) {
+            const handle = startBroadcastingLocation(orderId)
             return () => {
                 handle.stop()
             }
         }
-    }, [activeOrder?.dbId])
+    }, [activeOrder])
 
     const handleConfirmDelivery = async () => {
         try {
@@ -47,18 +75,21 @@ function DriverDeliveryOrder() {
             // Update context
             setActiveOrder({ ...activeOrder, status: 'delivered' })
 
+            // Support both id and dbId
+            const orderId = activeOrder.id
+
             // Navigate based on payment method
-            if (activeOrder.paymentMethod === 'COD') {
+            if (isCOD) {
                 // COD: Go to payment confirmation (cash verification) -> RPC called there
-                navigate('/driver/order/payment')
+                navigate(`/driver/order/payment/${orderId}`)
             } else {
                 // Wallet: Update status to delivered/completed via Driver Service
                 // This marks it as paid and done
                 const { driverService } = await import('../../../services/driverService')
-                await driverService.updateOrderStatus(activeOrder.dbId, 'delivered')
+                await driverService.updateOrderStatus(orderId, 'delivered')
 
                 // Wallet: Skip cash verification, go directly to completion
-                navigate('/driver/order/complete')
+                navigate(`/driver/order/complete/${orderId}`)
             }
         } catch (error) {
             console.error('Error confirming delivery:', error)
@@ -67,8 +98,6 @@ function DriverDeliveryOrder() {
             setIsConfirming(false)
         }
     }
-
-    const isCOD = activeOrder.paymentMethod === 'COD'
 
     return (
         <div className="font-display bg-gray-100 text-slate-900 antialiased min-h-screen relative flex flex-col overflow-hidden max-w-md mx-auto bg-gray-100">
@@ -80,7 +109,7 @@ function DriverDeliveryOrder() {
                     </button>
                     <div>
                         <h1 className="text-lg font-bold leading-tight">Antar Pesanan</h1>
-                        <p className="text-xs font-medium text-slate-500">Order ID #{activeOrder.id.split('-')[2]}</p>
+                        <p className="text-xs font-medium text-slate-500">Order ID #{activeOrder.id?.slice(0, 8)}</p>
                     </div>
                 </div>
                 <div className="flex gap-3">
@@ -94,8 +123,8 @@ function DriverDeliveryOrder() {
             <div className="absolute inset-x-0 top-[72px] bottom-0 z-0 bg-gray-200 w-full">
                 <div className="w-full h-[55%] relative overflow-hidden">
                     <TrackingMap
-                        merchantLocation={activeOrder.merchantCoords || [-7.0747, 110.8767]}
-                        userLocation={activeOrder.customerCoords || [-6.2250, 106.8500]}
+                        merchantLocation={merchantCoords}
+                        userLocation={customerCoords}
                         driverLocation={activeOrder.driverCoords || null}
                         height="100%"
                     />
@@ -117,10 +146,10 @@ function DriverDeliveryOrder() {
                                 <span className="material-symbols-outlined text-blue-600 text-[24px]">person</span>
                             </div>
                             <div>
-                                <h2 className="font-bold text-lg leading-tight mb-1">{activeOrder.customerName}</h2>
+                                <h2 className="font-bold text-lg leading-tight mb-1">{customerName}</h2>
                                 <div className="flex items-start gap-1 text-slate-500 text-sm">
                                     <span className="material-symbols-outlined text-[18px] mt-0.5 text-red-500">location_on</span>
-                                    <span className="leading-snug">{activeOrder.customerAddress}</span>
+                                    <span className="leading-snug">{customerAddress}</span>
                                 </div>
                             </div>
                         </div>
@@ -143,7 +172,7 @@ function DriverDeliveryOrder() {
                                     <span className="material-symbols-outlined text-red-600">payments</span>
                                     <span className="font-bold text-sm text-red-700">TOTAL COD</span>
                                 </div>
-                                <div className="text-xl font-bold text-red-600">Rp {activeOrder.totalAmount?.toLocaleString('id-ID')}</div>
+                                <div className="text-xl font-bold text-red-600">Rp {totalAmount?.toLocaleString('id-ID')}</div>
                             </div>
                         ) : (
                             <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex items-center justify-between">

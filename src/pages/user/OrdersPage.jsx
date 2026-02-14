@@ -16,6 +16,8 @@ import EmptyState from '../../components/shared/EmptyState'
 import { useToast } from '../../context/ToastContext'
 import { handleError } from '../../utils/errorHandler'
 
+import ConfirmationModal from '../../components/shared/ConfirmationModal'
+
 function OrdersPage() {
     const navigate = useNavigate()
     const { user } = useAuth()
@@ -27,6 +29,11 @@ function OrdersPage() {
     const [showReorderToast, setShowReorderToast] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
+
+    // Modal State
+    const [cancelModalOpen, setCancelModalOpen] = useState(false)
+    const [selectedOrderToCancel, setSelectedOrderToCancel] = useState(null)
+    const [isCancelling, setIsCancelling] = useState(false)
 
     // Load orders from Supabase
     useEffect(() => {
@@ -91,21 +98,32 @@ function OrdersPage() {
     }
 
     const handleTrack = (order) => {
-        navigate(`/ order - detail / ${order.dbId} `)
+        navigate(`/tracking/${order.dbId}`)
     }
 
-    const handleCancel = async (order) => {
-        if (window.confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')) {
-            try {
-                // Cancel order via API
-                await orderService.cancelOrder(order.dbId, 'Dibatalkan oleh pelanggan')
+    const handleCancelClick = (order) => {
+        setSelectedOrderToCancel(order)
+        setCancelModalOpen(true)
+    }
 
-                // Reload orders
-                await loadOrders()
-            } catch (err) {
-                console.error('Error cancelling order:', err)
-                handleError(err, toast, { context: 'Cancel Order' })
-            }
+    const handleConfirmCancel = async () => {
+        if (!selectedOrderToCancel) return
+
+        try {
+            setIsCancelling(true)
+            // Cancel order via API
+            await orderService.cancelOrder(selectedOrderToCancel.dbId, 'Dibatalkan oleh pelanggan')
+
+            // Reload orders
+            await loadOrders()
+            toast.success('Pesanan berhasil dibatalkan')
+            setCancelModalOpen(false)
+            setSelectedOrderToCancel(null)
+        } catch (err) {
+            console.error('Error cancelling order:', err)
+            handleError(err, toast, { context: 'Cancel Order' })
+        } finally {
+            setIsCancelling(false)
         }
     }
 
@@ -253,7 +271,7 @@ function OrdersPage() {
                                     key={order.id}
                                     order={order}
                                     onTrack={handleTrack}
-                                    onCancel={handleCancel}
+                                    onCancel={handleCancelClick}
                                 />
                             ))
                         )}
@@ -293,6 +311,20 @@ function OrdersPage() {
                     </div>
                 </div>
             )}
+
+            {/* Cancel Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={cancelModalOpen}
+                onClose={() => !isCancelling && setCancelModalOpen(false)}
+                onConfirm={handleConfirmCancel}
+                title="Batalkan Pesanan?"
+                message="Apakah Anda yakin ingin membatalkan pesanan ini? Pesanan yang dibatalkan tidak dapat dikembalikan."
+                confirmLabel="Batalkan"
+                cancelLabel="Kembali"
+                confirmColor="red"
+                icon="cancel"
+                loading={isCancelling}
+            />
 
             {/* Bottom Navigation */}
             <BottomNavigation activeTab="orders" />

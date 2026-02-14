@@ -160,7 +160,7 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
                     )}
                     {!statusInfo.showCancel && (
                         <button
-                            onClick={() => onTrack?.(order)}
+                            onClick={() => onTrack(order)}
                             className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-full shadow-md active:scale-95 transition-all hover:bg-orange-600"
                         >
                             Lacak Pesanan

@@ -4,6 +4,7 @@ import orderService from '../../services/orderService'
 import { formatOrderId } from '../../utils/orderUtils'
 
 function OrderSuccessPage() {
+    const navigate = useNavigate()
     const location = useLocation()
     const [order, setOrder] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -15,12 +16,12 @@ function OrderSuccessPage() {
 
             if (orderId) {
                 try {
-                    const data = await orderService.getOrderById(orderId)
+                    const data = await orderService.getOrder(orderId)
                     setOrder({
                         ...data,
                         merchantName: data.merchant?.name,
                         total: data.total_amount,
-                        paymentMethod: { name: data.payment_method === 'wallet' ? 'Saldo Bantoo' : 'Tunai' }
+                        paymentMethod: { name: data.payment_method === 'wallet' ? 'Saldo Bantoo' : 'Tunai (COD)' }
                     })
                 } catch (error) {
                     console.error('Failed to fetch order:', error)
@@ -33,7 +34,12 @@ function OrderSuccessPage() {
             // Priority 2: Fallback to localStorage (legacy/refresh case)
             const savedOrder = localStorage.getItem('bantoo_current_order')
             if (savedOrder) {
-                setOrder(JSON.parse(savedOrder))
+                const parsed = JSON.parse(savedOrder)
+                // Ensure payment method name is consistent
+                if (parsed.payment_method !== 'wallet' && parsed.paymentMethod?.name === 'Tunai') {
+                    parsed.paymentMethod.name = 'Tunai (COD)'
+                }
+                setOrder(parsed)
             }
             setLoading(false)
         }
@@ -88,7 +94,7 @@ function OrderSuccessPage() {
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-text-secondary">Metode Pembayaran</span>
-                                <span className="font-medium">{order.paymentMethod?.name || 'Tunai'}</span>
+                                <span className="font-medium">{order.paymentMethod?.name || 'Tunai (COD)'}</span>
                             </div>
                         </div>
 
@@ -105,7 +111,7 @@ function OrderSuccessPage() {
             {/* Bottom Actions */}
             <div className="p-5 space-y-3">
                 <button
-                    onClick={() => navigate('/tracking')}
+                    onClick={() => navigate(order?.id ? `/tracking/${order.id}` : '/tracking')}
                     className="w-full py-4 bg-primary text-white font-bold rounded-2xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
                 >
                     <span className="material-symbols-outlined">location_on</span>

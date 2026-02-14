@@ -57,6 +57,7 @@ export function AuthProvider({ children }) {
                 }
             }
 
+            // Start fetching all data in parallel
             const [profile, userRoles, merchant, driver, wallet] = await Promise.all([
                 safeFetch(supabase.from('profiles').select('full_name, phone, avatar_url, active_role').eq('id', userId).maybeSingle(), 'profile'),
                 safeFetch(supabase.from('user_roles').select('role').eq('user_id', userId), 'user_roles'),
@@ -65,9 +66,51 @@ export function AuthProvider({ children }) {
                 safeFetch(supabase.from('wallets').select('balance').eq('user_id', userId).maybeSingle(), 'wallet')
             ])
 
-            // Extract roles array from user_roles
-            const roles = userRoles.data?.map(r => r.role) || ['customer']
-            const activeRole = profile.data?.active_role || 'customer'
+            // Provide fallback if user_roles fails but prevent critical errors
+            if (userRoles.error) {
+                // Only warn if it's not a 404 (table missing is a known issue in some envs)
+                if (userRoles.error.code !== '404' && !userRoles.error.message?.includes('404')) {
+                    console.warn('Warning: Error fetching user roles.', userRoles.error)
+                }
+            }
+
+            // Extract roles array from user_roles or derive from partner tables
+            let roles = userRoles.data?.map(r => r.role) || []
+
+            // If user_roles table is missing or empty, try to derive from direct tables
+            if (roles.length === 0) {
+                roles.push('customer') // Everyone is a customer
+                if (driver.data) roles.push('driver')
+                if (merchant.data) roles.push('merchant')
+            }
+
+            // Deduplicate just in case
+            roles = [...new Set(roles)]
+
+            // Critical check: if profile fetch failed but roles exist, try to use existing profile or default
+            // Priority:
+            // 1. Valid Active Role from DB (if user has permission for it)
+            // 2. Saved Active Role from LocalStorage (if valid)
+            // 3. Fallback based on available roles (Merchant > Driver > Customer)
+
+            let determinedRole = profile.data?.active_role
+            const savedRole = localStorage.getItem('user_last_active_role')
+
+            // Validate DB role against actual permissions
+            if (determinedRole && !roles.includes(determinedRole)) {
+                determinedRole = null // DB role is invalid (e.g. role revoked)
+            }
+
+            // If DB role is empty/invalid, try localStorage
+            if (!determinedRole && savedRole && roles.includes(savedRole)) {
+                determinedRole = savedRole
+            }
+
+            // Fallback logic
+            const activeRole = determinedRole || (roles.includes('merchant') ? 'merchant' : (roles.includes('driver') ? 'driver' : 'customer'))
+
+            // Persist the final determined role to localStorage to keep it fresh
+            localStorage.setItem('user_last_active_role', activeRole)
 
             const userWithRole = {
                 ...authUser,
@@ -114,6 +157,10 @@ export function AuthProvider({ children }) {
             throw new Error(`User does not have role: ${newRole}`)
         }
 
+        // 1. Optimistic update (Fast UX)
+        localStorage.setItem('user_last_active_role', newRole)
+
+        // 2. Update DB
         const { error } = await supabase
             .from('profiles')
             .update({ active_role: newRole })
@@ -121,7 +168,7 @@ export function AuthProvider({ children }) {
 
         if (error) throw error
 
-        // Refresh to get updated state
+        // 3. Refresh to get updated state (and sync Context)
         await refreshProfile()
     }
 

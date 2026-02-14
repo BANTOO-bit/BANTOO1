@@ -23,6 +23,9 @@ function DriverDashboard() {
         loading: true
     })
 
+    const [driverProfile, setDriverProfile] = useState(null)
+    const [availableOrders, setAvailableOrders] = useState([])
+
     useEffect(() => {
         async function fetchEarnings() {
             if (!user?.id) return
@@ -34,6 +37,15 @@ function DriverDashboard() {
                 setEarnings(prev => ({ ...prev, loading: false }))
             }
         }
+        async function fetchProfile() {
+            if (!user?.id) return
+            try {
+                const profile = await driverService.getProfile()
+                if (profile) setDriverProfile(profile)
+            } catch (error) {
+                console.error('Error fetching driver profile:', error)
+            }
+        }
 
         // Check for active order on mount (Session Resume)
         async function checkActiveOrder() {
@@ -41,54 +53,77 @@ function DriverDashboard() {
             const activeOrder = await driverService.getActiveOrder()
             if (activeOrder) {
                 console.log('Found active order, resuming...', activeOrder)
-                // Normalize data structure to match what UI expects
-                const normalizedOrder = {
-                    id: `ORD-${new Date(activeOrder.created_at).getTime()}-${activeOrder.id.substring(0, 8)}`, // activeOrder.id is UUID, UI expects generated format sometimes or we adapt
-                    dbId: activeOrder.id,
-                    merchantName: activeOrder.merchant_name,
-                    merchantAddress: activeOrder.merchant_address,
-                    customerName: activeOrder.customer_name || 'Customer',
-                    customerAddress: activeOrder.customer_address,
-                    totalAmount: activeOrder.total_amount,
-                    paymentMethod: activeOrder.payment_method === 'cod' ? 'COD' : activeOrder.payment_method?.toUpperCase(),
-                    status: activeOrder.status,
-                    items: activeOrder.items,
-                    customerNote: activeOrder.customer_note || '',
-                    // Coordinates for map
-                    merchantCoords: [activeOrder.merchant_lat, activeOrder.merchant_lng],
-                    customerCoords: [activeOrder.customer_lat, activeOrder.customer_lng],
+                // Normalize data structure...
+                // ... (omitted normalization code for brevity, assume handled elsewhere or user navigates)
+                // Navigation logic:
+                if (activeOrder.status === 'pickup') {
+                    navigate(`/driver/order/pickup/${activeOrder.id}`, { replace: true })
+                } else if (['picked_up', 'delivering'].includes(activeOrder.status)) {
+                    navigate(`/driver/order/delivery/${activeOrder.id}`, { replace: true })
                 }
-
-                // We need to set this in OrderContext, but we can't access setActiveOrder here easily without importing useOrder
-                // So we'll navigate to a "resume" handler or just navigate and let the pages re-fetch?
-                // The pages (Pickup/Delivery) use `useOrder` context which might be empty on refresh.
-                // We need to populate the context or make the pages capable of fetching by themselves.
-                // Current implementation of Pickup/Delivery checks `if (!activeOrder) navigate('/dashboard')`.
-                // This creates a loop if we just navigate.
-
-                // SOLUTION: We should store the active order ID in localStorage or allow the pages to fetch by ID.
-                // But for now, let's navigate to a special route or just pass state?
-                // Better: Navigate with state, and modify the pages to accept state or fetch if context is missing.
-                // Actually, the best way in this codebase is to likely use the OrderContext's setActiveOrder.
-                // I need to import useOrder hook.
             }
         }
+
         fetchEarnings()
+        fetchProfile()
+        checkActiveOrder()
+
         // Refresh every 30 seconds
-        const interval = setInterval(fetchEarnings, 30000)
+        const interval = setInterval(() => {
+            fetchEarnings()
+            checkActiveOrder()
+        }, 30000)
+
         return () => clearInterval(interval)
+    }, [user?.id, navigate])
+
+    // Specific function to check orders and update local state
+    // Defined outside to be accessible if needed, but primarily used in Location effect
+    const checkAvailableOrders = async (lat, lng) => {
+        try {
+            const orders = await driverService.getAvailableOrders({ lat, lng })
+            setAvailableOrders(orders || []) // Update state for list view
+
+            if (orders && orders.length > 0) {
+                const order = orders[0]
+                // Only notify if new/unseen (simple check)
+                addNotification({
+                    type: 'order',
+                    title: 'Pesanan Baru Masuk!',
+                    message: `Jarak: ${order.distance_to_merchant?.toFixed(1) || '?'}km - ${order.merchant_name}`,
+                    actionLabel: 'Ambil Order',
+                    actionUrl: `/driver/order/incoming/${order.id}`,
+                    sticky: true
+                })
+            }
+        } catch (error) {
+            console.error('Error checking orders:', error)
+        }
+    }
+
+    // Location Tracking & Availability Status
+    useEffect(() => {
+        let locationWatchId = null
+        let isMounted = true
+
         const updateDriverStatus = async () => {
             if (!user?.id) return
 
             try {
                 // Update online status in DB
-                await driverService.toggleStatus(isOnline)
+                // Only if mounted
+                if (isMounted) {
+                    await driverService.toggleStatus(isOnline)
+                }
+
+                if (!isMounted) return
 
                 if (isOnline) {
                     // Start watching location
                     if ('geolocation' in navigator) {
                         locationWatchId = navigator.geolocation.watchPosition(
                             (position) => {
+                                if (!isMounted) return
                                 const { latitude, longitude } = position.coords
                                 driverService.updateLocation(latitude, longitude)
 
@@ -98,9 +133,14 @@ function DriverDashboard() {
                             (error) => console.error('Location error:', error),
                             { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
                         )
+                    } else {
+                        console.warn('Geolocation not supported, checking orders with default Jakarta location')
+                        // Fallback: Check orders with default Jakarta location for testing
+                        checkAvailableOrders(-6.200000, 106.816666)
                     }
                 }
             } catch (error) {
+                if (!isMounted) return
                 console.error('Error updating driver status:', error)
                 addNotification({
                     type: 'error',
@@ -114,36 +154,12 @@ function DriverDashboard() {
         updateDriverStatus()
 
         return () => {
-            if (locationWatchId) navigator.geolocation.clearWatch(locationWatchId)
-        }
-    }, [isOnline, user?.id])
-
-    // Specific function to check orders
-    const checkAvailableOrders = async (lat, lng) => {
-        try {
-            const orders = await driverService.getAvailableOrders({ lat, lng })
-
-            if (orders && orders.length > 0) {
-                // Determine layout for incoming order
-                // Ideally prompt user or show list. For MVP, we'll notify and navigate to incoming page
-                // We'll pick the first one for now
-                const order = orders[0]
-
-                // Avoid spamming notifications
-                // Only notify if we haven't seen this order recently (could use ref/state)
-                addNotification({
-                    type: 'order',
-                    title: 'Pesanan Baru Masuk!',
-                    message: `Jarak: ${order.distance_to_merchant.toFixed(1)}km - ${order.merchant_name}`,
-                    actionLabel: 'Ambil Order',
-                    actionUrl: `/driver/order/incoming/${order.id}`, // Pass ID
-                    sticky: true
-                })
+            isMounted = false
+            if (locationWatchId !== null) {
+                navigator.geolocation.clearWatch(locationWatchId)
             }
-        } catch (error) {
-            console.error('Error checking orders:', error)
         }
-    }
+    }, [isOnline, user?.id, navigate])
 
     // Realtime subscription for NEW ready orders (Push)
     useEffect(() => {
@@ -190,12 +206,14 @@ function DriverDashboard() {
                             <div className="relative">
                                 <div
                                     className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-[#0d59f2]/20"
-                                    style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBbrWfUKf0v3ygsHK1Gd08zoduoiOHyK-AzHdSjbcrg-uJJcqfeBou-uEGP9nsqoEjQe_HeTGeRfUq3tMA0xDsdoeQbX_WQr9RZDIlAbT4u29ITJuCJAq8hXRZmjfPm4Vh2VJP7RZ0urGXOPUvNj1H_ggdF-JS0OBQ0Cf6ld73t9kKCtRoecNq0qHmHIJNL9AyMPKeZhZMzVlWfQ6NbVlkNe7LPVQjnVKIpSMVCeRGY_zCv2G4v9EDM6KFZq-jHgctmifnVATzUlQ")' }}
+                                    style={{ backgroundImage: `url("${driverProfile?.avatar_url || 'https://ui-avatars.com/api/?name=' + (driverProfile?.full_name || 'Driver') + '&background=0D8ABC&color=fff'}")` }}
                                 />
                                 <span className={`absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'} ring-2 ring-white`} />
                             </div>
                             <div className="flex flex-col">
-                                <h2 className="text-slate-900 text-base font-bold leading-tight tracking-tight">Distrik Pusat Kota</h2>
+                                <h2 className="text-slate-900 text-base font-bold leading-tight tracking-tight">
+                                    {driverProfile?.full_name || 'Memuat...'}
+                                </h2>
                                 <span className={`text-xs font-bold ${driverStatus === 'suspended'
                                     ? 'text-red-500'
                                     : isOnline ? 'text-green-600' : 'text-gray-500'
@@ -280,7 +298,7 @@ function DriverDashboard() {
                                                 <span className="material-symbols-outlined text-[18px]">
                                                     {isOnline ? 'hourglass_top' : 'cloud_off'}
                                                 </span>
-                                                {isOnline ? 'Menunggu pesanan baru...' : 'Tidak menerima pesanan'}
+                                                {isOnline ? `Menunggu pesanan baru...` : 'Tidak menerima pesanan'}
                                             </p>
                                         </div>
                                         <label className={`relative flex h-8 w-14 cursor-pointer items-center rounded-full border-none ${isOnline ? 'bg-green-500' : 'bg-slate-200'} p-1 transition-all`}>
@@ -295,115 +313,151 @@ function DriverDashboard() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Stats Cards */}
+                            <div className="px-4 pb-2">
+                                <div className="grid grid-cols-2 gap-3">
+                                    {/* COD Fee Card */}
+                                    <div className={`flex flex-col gap-2 rounded-xl p-4 bg-white border-2 shadow-sm relative overflow-hidden group ${earnings.codFee === 0 ? 'border-green-500' : 'border-red-600'}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`flex items-center justify-center size-8 rounded-full shrink-0 ${earnings.codFee === 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                                <span className="material-symbols-outlined text-[20px]">payments</span>
+                                            </span>
+                                            <p className={`text-[10px] font-bold tracking-wider leading-tight ${earnings.codFee === 0 ? 'text-green-700' : 'text-red-700'}`}>POTONGAN ONGKIR COD (Fee Admin)</p>
+                                        </div>
+                                        <p className={`tracking-tight text-2xl font-black leading-tight ${earnings.codFee === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {earnings.codFee === 0 ? 'Rp 0' : formatCurrency(earnings.codFee)}
+                                        </p>
+                                        <p className={`text-xs font-bold px-2 py-1 rounded w-fit mt-1 ${earnings.codFee === 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+                                            {earnings.codFee === 0 ? 'Tidak ada tagihan' : 'Wajib setor segera'}
+                                        </p>
+                                    </div>
+
+                                    {/* Earnings Card */}
+                                    <div
+                                        onClick={() => navigate('/driver/earnings')}
+                                        className="flex flex-col gap-2 rounded-xl p-4 bg-white border border-slate-200 shadow-sm relative overflow-hidden cursor-pointer hover:border-blue-300 transition-colors group"
+                                    >
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="flex items-center justify-center size-8 rounded-full bg-blue-100 text-blue-600 transition-transform group-hover:scale-110">
+                                                <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                                            </span>
+                                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Pendapatan Driver</p>
+                                        </div>
+                                        <p className="text-slate-900 tracking-tight text-xl font-bold leading-tight">{formatCurrency(earnings.todayIncome)}</p>
+                                        <p className="text-xs text-slate-400 font-medium">Hari ini</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Orders Today */}
+                            <div className="px-4 pb-6">
+                                <div className="flex items-center justify-between rounded-lg bg-white border border-slate-200 px-4 py-3 shadow-sm">
+                                    <span className="text-sm font-medium text-slate-600">Order Selesai Hari Ini</span>
+                                    <span className="text-base font-bold text-slate-900">0</span>
+                                </div>
+                            </div>
+
+                            {/* Searching Animation (Online) */}
+                            {isOnline && (
+                                <div className="flex flex-col items-center justify-center py-8 px-6 mt-2">
+                                    {/* AVAILABLE ORDERS LIST */}
+                                    {availableOrders.length > 0 ? (
+                                        <div className="w-full space-y-4">
+                                            <h3 className="text-slate-900 text-lg font-bold leading-tight text-center mb-2">
+                                                {availableOrders.length} Order Tersedia!
+                                            </h3>
+                                            {availableOrders.map(order => (
+                                                <div key={order.id} className="bg-white rounded-xl border border-blue-200 shadow-md p-4 animate-in fade-in slide-in-from-bottom-4">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <h4 className="font-bold text-slate-900">{order.merchant_name}</h4>
+                                                            <p className="text-xs text-slate-500 line-clamp-1">{order.merchant_address}</p>
+                                                        </div>
+                                                        <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">
+                                                            {order.distance_to_merchant ? `${order.distance_to_merchant.toFixed(1)} km` : '? km'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center mt-3">
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-slate-400">Total Harga</p>
+                                                            <p className="text-sm font-bold text-slate-900">{formatCurrency(order.total_amount)}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => navigate(`/driver/order/incoming/${order.id}`)}
+                                                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition"
+                                                        >
+                                                            Ambil Order
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="relative flex items-center justify-center size-36 mb-6">
+                                                <div className="absolute inset-0 rounded-full bg-[#0d59f2]/20 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                                                <div className="absolute inset-4 rounded-full border border-[#0d59f2]/30" />
+                                                <div className="absolute inset-8 rounded-full bg-blue-50 flex items-center justify-center ring-4 ring-blue-100 shadow-lg z-10">
+                                                    <span className="material-symbols-outlined text-[40px] text-[#0d59f2] animate-pulse">radar</span>
+                                                </div>
+                                            </div>
+                                            <h3 className="text-slate-900 text-xl font-bold leading-tight mb-2 text-center">Mencari Orderan...</h3>
+                                            <p className="text-slate-500 text-center max-w-[280px] leading-relaxed text-sm mb-6">
+                                                Tetap buka aplikasi agar tidak melewatkan pesanan di area Pusat Makanan
+                                            </p>
+                                        </>
+                                    )}
+
+                                    {/* Dev Only: Simulate Order */}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                addNotification({
+                                                    type: 'order',
+                                                    title: 'Pesanan Baru Masuk!',
+                                                    message: 'Order #OD-99282 - Nasi Goreng Spesial (COD) - 2.5km',
+                                                    actionLabel: 'Lihat Order',
+                                                    actionUrl: '/driver/order/incoming',
+                                                    sticky: true
+                                                })
+                                            }}
+                                            className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-100 transition-colors"
+                                        >
+                                            🔍 Simulasi (COD)
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                addNotification({
+                                                    type: 'order',
+                                                    title: 'Pesanan Baru Masuk!',
+                                                    message: 'Order #OD-99283 - Sate Ayam Madura (Wallet) - 1.2km',
+                                                    actionLabel: 'Lihat Order',
+                                                    actionUrl: '/driver/order/incoming-wallet',
+                                                    sticky: true
+                                                })
+                                            }}
+                                            className="bg-sky-50 text-sky-600 px-4 py-2 rounded-lg text-xs font-bold border border-sky-100 hover:bg-sky-100 transition-colors"
+                                        >
+                                            💳 Simulasi (Wallet)
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                addNotification({
+                                                    type: 'success',
+                                                    title: 'Setoran Berhasil',
+                                                    message: 'Setoran harian sebesar Rp 50.000 telah berhasil dikonfirmasi.',
+                                                    duration: 5000
+                                                })
+                                            }}
+                                            className="bg-green-50 text-green-600 px-4 py-2 rounded-lg text-xs font-bold border border-green-100 hover:bg-green-100 transition-colors"
+                                        >
+                                            ✅ Test Alert
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </>
-                    )}
-
-                    {/* Stats Cards */}
-                    <div className="px-4 pb-2">
-                        <div className="grid grid-cols-2 gap-3">
-                            {/* COD Fee Card */}
-                            <div className={`flex flex-col gap-2 rounded-xl p-4 bg-white border-2 shadow-sm relative overflow-hidden group ${earnings.codFee === 0 ? 'border-green-500' : 'border-red-600'}`}>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className={`flex items-center justify-center size-8 rounded-full shrink-0 ${earnings.codFee === 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                        <span className="material-symbols-outlined text-[20px]">payments</span>
-                                    </span>
-                                    <p className={`text-[10px] font-bold tracking-wider leading-tight ${earnings.codFee === 0 ? 'text-green-700' : 'text-red-700'}`}>POTONGAN ONGKIR COD (Fee Admin)</p>
-                                </div>
-                                <p className={`tracking-tight text-2xl font-black leading-tight ${earnings.codFee === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {earnings.codFee === 0 ? 'Rp 0' : formatCurrency(earnings.codFee)}
-                                </p>
-                                <p className={`text-xs font-bold px-2 py-1 rounded w-fit mt-1 ${earnings.codFee === 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-                                    {earnings.codFee === 0 ? 'Tidak ada tagihan' : 'Wajib setor segera'}
-                                </p>
-                            </div>
-
-                            {/* Earnings Card */}
-                            <div
-                                onClick={() => navigate('/driver/earnings')}
-                                className="flex flex-col gap-2 rounded-xl p-4 bg-white border border-slate-200 shadow-sm relative overflow-hidden cursor-pointer hover:border-blue-300 transition-colors group"
-                            >
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="flex items-center justify-center size-8 rounded-full bg-blue-100 text-blue-600 transition-transform group-hover:scale-110">
-                                        <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
-                                    </span>
-                                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Pendapatan Driver</p>
-                                </div>
-                                <p className="text-slate-900 tracking-tight text-xl font-bold leading-tight">{formatCurrency(earnings.todayIncome)}</p>
-                                <p className="text-xs text-slate-400 font-medium">Hari ini</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Orders Today */}
-                    <div className="px-4 pb-6">
-                        <div className="flex items-center justify-between rounded-lg bg-white border border-slate-200 px-4 py-3 shadow-sm">
-                            <span className="text-sm font-medium text-slate-600">Order Selesai Hari Ini</span>
-                            <span className="text-base font-bold text-slate-900">0</span>
-                        </div>
-                    </div>
-
-                    {/* Searching Animation (Online) */}
-                    {isOnline && (
-                        <div className="flex flex-col items-center justify-center py-8 px-6 mt-2">
-                            <div className="relative flex items-center justify-center size-36 mb-6">
-                                <div className="absolute inset-0 rounded-full bg-[#0d59f2]/20 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
-                                <div className="absolute inset-4 rounded-full border border-[#0d59f2]/30" />
-                                <div className="absolute inset-8 rounded-full bg-blue-50 flex items-center justify-center ring-4 ring-blue-100 shadow-lg z-10">
-                                    <span className="material-symbols-outlined text-[40px] text-[#0d59f2] animate-pulse">radar</span>
-                                </div>
-                            </div>
-                            <h3 className="text-slate-900 text-xl font-bold leading-tight mb-2 text-center">Mencari Orderan...</h3>
-                            <p className="text-slate-500 text-center max-w-[280px] leading-relaxed text-sm mb-6">
-                                Tetap buka aplikasi agar tidak melewatkan pesanan di area Pusat Makanan
-                            </p>
-
-                            {/* Dev Only: Simulate Order */}
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => {
-                                        addNotification({
-                                            type: 'order',
-                                            title: 'Pesanan Baru Masuk!',
-                                            message: 'Order #OD-99282 - Nasi Goreng Spesial (COD) - 2.5km',
-                                            actionLabel: 'Lihat Order',
-                                            actionUrl: '/driver/order/incoming',
-                                            sticky: true
-                                        })
-                                    }}
-                                    className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-100 transition-colors"
-                                >
-                                    🔍 Simulasi (COD)
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        addNotification({
-                                            type: 'order',
-                                            title: 'Pesanan Baru Masuk!',
-                                            message: 'Order #OD-99283 - Sate Ayam Madura (Wallet) - 1.2km',
-                                            actionLabel: 'Lihat Order',
-                                            actionUrl: '/driver/order/incoming-wallet',
-                                            sticky: true
-                                        })
-                                    }}
-                                    className="bg-sky-50 text-sky-600 px-4 py-2 rounded-lg text-xs font-bold border border-sky-100 hover:bg-sky-100 transition-colors"
-                                >
-                                    💳 Simulasi (Wallet)
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        addNotification({
-                                            type: 'success',
-                                            title: 'Setoran Berhasil',
-                                            message: 'Setoran harian sebesar Rp 50.000 telah berhasil dikonfirmasi.',
-                                            duration: 5000
-                                        })
-                                    }}
-                                    className="bg-green-50 text-green-600 px-4 py-2 rounded-lg text-xs font-bold border border-green-100 hover:bg-green-100 transition-colors"
-                                >
-                                    ✅ Test Alert
-                                </button>
-                            </div>
-                        </div>
                     )}
 
                     {/* Offline State (Updated) */}

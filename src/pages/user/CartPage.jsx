@@ -25,12 +25,11 @@ function CartPage() {
     const [showAddressModal, setShowAddressModal] = useState(false)
 
     // Service fee and total calculation
-    const serviceFee = 2000
     // Calculate per-merchant delivery fee (multiple merchants)
     const merchantGroups = groupByMerchant(cartItems)
     const totalMerchants = Object.keys(merchantGroups).length
-    const totalDeliveryFee = totalMerchants * 10000 // Rp 10k per merchant
-    const totalPayment = cartTotal + totalDeliveryFee + serviceFee
+    const totalDeliveryFee = totalMerchants * 8000 // Rp 8k per merchant (base)
+    const totalPayment = cartTotal + totalDeliveryFee
 
     // Group items by merchant
     function groupByMerchant(items) {
@@ -284,14 +283,13 @@ function CartPage() {
                             {/* Merchant Subtotal */}
                             <div className="px-4 py-3 bg-gray-50 border-t border-border-color flex justify-between">
                                 <div className="flex items-center gap-2 text-text-secondary text-xs">
-                                    <span className="material-symbols-outlined text-[14px]">local_shipping</span>
                                     <span>Ongkir</span>
                                 </div>
-                                <span className="text-xs font-semibold text-text-main">Rp 10.000</span>
+                                <span className="text-xs font-semibold text-text-main">Rp 8.000</span>
                             </div>
                             <div className="px-4 py-3 bg-gray-50 flex justify-between border-t border-border-color">
                                 <span className="text-sm text-text-secondary">Subtotal Toko</span>
-                                <span className="font-bold text-sm text-text-main">Rp {(getMerchantSubtotal(items) + 10000).toLocaleString()}</span>
+                                <span className="font-bold text-sm text-text-main">Rp {(getMerchantSubtotal(items) + 8000).toLocaleString()}</span>
                             </div>
                         </section>
                     )
@@ -308,10 +306,6 @@ function CartPage() {
                         <div className="flex justify-between text-sm">
                             <span className="text-text-secondary">Total Ongkos Kirim ({totalMerchants} Merchant)</span>
                             <span className="font-semibold text-text-main">Rp {totalDeliveryFee.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-text-secondary">Biaya Layanan</span>
-                            <span className="font-semibold text-text-main">Rp {serviceFee.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-base pt-2 border-t border-border-color">
                             <span className="font-bold text-text-main">Total Pembayaran</span>
