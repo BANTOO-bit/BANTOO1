@@ -35,10 +35,10 @@ function CategoryItem({ category, onClick }) {
             className="flex flex-col items-center gap-2 cursor-pointer group"
             onClick={() => onClick?.(category)}
         >
-            <div className="w-14 h-14 rounded-full bg-white shadow-soft flex items-center justify-center text-primary border border-border-color group-active:scale-95 transition-transform hover:shadow-md">
+            <div className="w-14 h-14 rounded-full bg-white dark:bg-card-dark shadow-soft flex items-center justify-center text-primary border border-border-color dark:border-gray-700 group-active:scale-95 transition-transform hover:shadow-md">
                 <span className="material-symbols-outlined text-[28px]">{category.icon}</span>
             </div>
-            <span className="text-[11px] font-medium text-text-main text-center leading-tight">
+            <span className="text-[11px] font-medium text-text-main dark:text-gray-300 text-center leading-tight">
                 {displayName}
             </span>
         </div>
@@ -57,31 +57,33 @@ function AllCategoriesPage() {
     useEffect(() => {
         async function fetchCategories() {
             try {
-                // Get unique category names from DB
+                // 1. Get unique category names from DB (active categories)
                 const dbCategories = await merchantService.getCategories()
 
-                // Map to metadata to get icons and IDs
-                const mappedCategories = dbCategories.map(catName => {
-                    // Try to find matching metadata
-                    const meta = categoryMetadata.find(
+                // 2. Start with standard categories (from Metadata)
+                // We want to show these even if no merchants are active yet (to match UI design)
+                const combinedCategories = [...categoryMetadata]
+
+                // 3. Add any NEW categories from DB that aren't in metadata
+                dbCategories.forEach(catName => {
+                    const isKnown = categoryMetadata.some(
                         m => m.name.toLowerCase() === catName.toLowerCase()
                     )
 
-                    if (meta) {
-                        return meta
-                    } else {
-                        // Fallback for new categories not in metadata
-                        return {
+                    if (!isKnown) {
+                        combinedCategories.push({
                             id: catName.toLowerCase().replace(/\s+/g, '-'),
-                            name: catName,
-                            icon: 'restaurant' // Default icon
-                        }
+                            name: catName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+                            icon: 'restaurant' // Default icon for unknown categories
+                        })
                     }
                 })
 
-                setActiveCategories(mappedCategories)
+                setActiveCategories(combinedCategories)
             } catch (error) {
                 console.error('Failed to fetch categories:', error)
+                // Fallback: still show standard categories even if DB fails
+                setActiveCategories(categoryMetadata)
             } finally {
                 setIsLoading(false)
             }
@@ -142,7 +144,9 @@ function AllCategoriesPage() {
                     />
                     {searchQuery && (
                         <button onClick={() => setSearchQuery('')} className="p-2">
-                            <span className="material-symbols-outlined text-text-secondary text-[18px]">close</span>
+                            <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                                <span className="material-symbols-outlined text-[14px] text-text-secondary">close</span>
+                            </div>
                         </button>
                     )}
                 </div>

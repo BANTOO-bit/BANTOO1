@@ -1,20 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MerchantBottomNavigation from '../../components/merchant/MerchantBottomNavigation'
 import { useAuth } from '../../context/AuthContext'
+import merchantService from '../../services/merchantService'
 
 function MerchantProfilePage() {
     const navigate = useNavigate()
-    const { logout, isShopOpen, toggleShopStatus } = useAuth()
+    const { user, logout, isShopOpen, toggleShopStatus } = useAuth()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
+    const [merchantInfo, setMerchantInfo] = useState(null)
+    const [isLoading, setIsLoading] = useState(true)
 
-    // Mock data - akan diganti dengan data dari context/API
-    const merchantInfo = {
-        name: 'Warung Bu Ningsih',
-        category: 'Masakan Rumah',
-        location: 'Jakarta Selatan',
-        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC7hxpBaH3PW9k4meB4l_w970WCunVUJyyahFItoMoUniZOj2HpwhNIzfhBJ45oyHQd2FxE9VMPu4LOahfyK3_JN2Wwd43hwMsxcqMSAWGcxobebayIrl6c4doyuinpPpfAl3deecLmSd91J8R1cUF5vCPhqQYGJsWqvGtIQP27c3ngyxTK3wHcgXwLLwOsxwzcTtQAolLbzdEEA_9laBXC_bxRzT10T7D2q8zxaAiRXetsrv5b_9Au5mObPfi3MHFJyoA53njWnw',
-    }
+    useEffect(() => {
+        async function fetchMerchantProfile() {
+            if (user?.merchantId) {
+                try {
+                    const data = await merchantService.getMerchantById(user.merchantId)
+                    setMerchantInfo(data)
+                } catch (error) {
+                    console.error('Failed to load merchant profile', error)
+                } finally {
+                    setIsLoading(false)
+                }
+            } else {
+                setIsLoading(false)
+            }
+        }
+        fetchMerchantProfile()
+    }, [user?.merchantId])
 
     const handleEditProfile = () => {
         navigate('/merchant/profile/edit')
@@ -29,6 +42,10 @@ function MerchantProfilePage() {
         }
     }
 
+    if (isLoading) {
+        return <div className="min-h-screen bg-background-light dark:bg-background-dark"></div>
+    }
+
     return (
         <div className="bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark transition-colors duration-200 relative min-h-screen max-w-md mx-auto overflow-hidden">
 
@@ -38,15 +55,23 @@ function MerchantProfilePage() {
                 </header>
 
                 <div className="flex flex-col items-center px-4">
-                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-card-dark shadow-sm mb-4">
-                        <img
-                            alt="Foto Profil Warung"
-                            className="w-full h-full object-cover"
-                            src={merchantInfo.image}
-                        />
+                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-card-dark shadow-sm mb-4 bg-gray-200 dark:bg-gray-700">
+                        {merchantInfo?.image ? (
+                            <img
+                                alt="Foto Profil Warung"
+                                className="w-full h-full object-cover"
+                                src={merchantInfo.image}
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <span className="material-symbols-outlined text-4xl">store</span>
+                            </div>
+                        )}
                     </div>
-                    <h2 className="text-xl font-bold mb-1">{merchantInfo.name}</h2>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-6">{merchantInfo.category} • {merchantInfo.location}</p>
+                    <h2 className="text-xl font-bold mb-1">{merchantInfo?.name || user?.merchantName || 'Nama Warung'}</h2>
+                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-6">
+                        {merchantInfo?.category || 'Kategori'} • {merchantInfo?.address || 'Lokasi'}
+                    </p>
                     <button
                         onClick={handleEditProfile}
                         className="px-8 py-2.5 rounded-full border border-primary text-primary font-medium text-sm bg-transparent hover:bg-orange-50 transition-colors"

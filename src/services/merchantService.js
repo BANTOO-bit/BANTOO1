@@ -22,7 +22,7 @@ export const merchantService = {
                     is_open, has_promo, image:image_url, address, phone,
                     created_at
                 `)
-                .eq('status', 'active')
+                .eq('status', 'approved')
                 .order('rating', { ascending: false })
 
             if (category) {
@@ -31,7 +31,7 @@ export const merchantService = {
             if (search) {
                 query = query.ilike('name', `%${search}%`)
             }
-            if (isOpen !== null) {
+            if (isOpen !== undefined && isOpen !== null) {
                 query = query.eq('is_open', isOpen)
             }
 
@@ -114,7 +114,7 @@ export const merchantService = {
                     merchants!inner(id, name, image:image_url, is_open)
                 `)
                 .eq('is_available', true)
-            
+
             if (popular) {
                 query = query.eq('is_popular', true)
             }
@@ -158,7 +158,7 @@ export const merchantService = {
             const { data, error } = await supabase
                 .from('merchants')
                 .select('category')
-                .eq('status', 'active')
+                .eq('status', 'approved')
 
             if (error) throw error
             const categories = [...new Set((data || []).map(m => m.category))]

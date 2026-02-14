@@ -26,40 +26,9 @@ const subCategoriesMap = {
     'sembako': ['Semua', 'Beras', 'Minyak', 'Bumbu'],
 }
 
-// Category to merchant mapping (based on existing merchant data)
-const categoryMerchantMap = {
-    'makanan-berat': ['Fast Food', 'Asian', 'Italian'],
-    'jajanan': ['Fast Food', 'Asian'],
-    'kue': ['Italian'],
-    'makanan-ringan': ['Fast Food'],
-    'seafood': ['Japanese', 'Asian'],
-    'frozenfood': [],
-    'minuman': ['Fast Food', 'Italian', 'Japanese', 'Asian'],
-    'kopi-teh': ['Italian'],
-    'dessert': ['Italian'],
-    'makanan-sehat': [],
-    'makanan-bayi': [],
-    'sarapan': ['Asian'],
-    'buah-sayur': [],
-    'sembako': [],
-}
-
-// Map IDs back to Display Names if needed for title
-const categoryNames = {
-    'makanan-berat': 'Makanan Berat',
-    'jajanan': 'Jajanan',
-    'kue': 'Kue',
-    'makanan-ringan': 'Makanan Ringan',
-    'seafood': 'Seafood',
-    'frozenfood': 'Frozen Food',
-    'minuman': 'Minuman',
-    'kopi-teh': 'Kopi & Teh',
-    'dessert': 'Dessert',
-    'makanan-sehat': 'Makanan Sehat',
-    'makanan-bayi': 'Makanan Bayi',
-    'sarapan': 'Sarapan',
-    'buah-sayur': 'Buah & Sayur',
-    'sembako': 'Sembako',
+// Helper to format category name
+const formatCategoryName = (slug) => {
+    return slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
 }
 
 // Merchant Card Component
@@ -133,7 +102,7 @@ function CategoryDetailPage() {
 
     // Safety check just in case
     const categoryId = id || 'makanan-berat'
-    const categoryName = categoryNames[categoryId] || 'Kategori'
+    const categoryName = formatCategoryName(categoryId)
 
     const { cartItems } = useCart()
     const [activeFilter, setActiveFilter] = useState('Semua')
@@ -173,10 +142,37 @@ function CategoryDetailPage() {
     const filteredMerchants = useMemo(() => {
         let merchants = allMerchants
 
-        // Filter by category
-        const categoryTypes = categoryMerchantMap[categoryId] || []
-        if (categoryTypes.length > 0) {
-            merchants = merchants.filter(m => categoryTypes.includes(m.category))
+        // Category Mapping for broader categories
+        const categoryMapping = {
+            'makanan-berat': ['makanan berat', 'bakso', 'mie', 'nasi', 'sate', 'soto', 'bebek', 'ayam', 'seblak', 'steak', 'pizza', 'burger', 'pasta', 'chinese', 'japanese', 'korea', 'padang', 'warteg', 'rice bowl', 'gudeg', 'rawon'],
+            'jajanan': ['jajanan', 'martabak', 'gorengan', 'roti bakar', 'pisang', 'cimol', 'cilok', 'minuman', 'kopi', 'teh', 'boba', 'es', 'jus', 'thai tea'],
+            'kue': ['kue', 'bolu', 'brownies', 'donat', 'bread', 'pudding', 'tart'],
+            'makanan-ringan': ['makanan ringan', 'keripik', 'snack', 'kerupuk', 'makaroni', 'basreng'],
+            'seafood': ['seafood', 'ikan', 'kepiting', 'udang', 'cumi', 'kerang', 'lobster'],
+            'lainnya': []
+        }
+
+        // Filter by category (Dynamic matching + Mapping)
+        if (categoryId !== 'all') {
+            merchants = merchants.filter(m => {
+                const merchantCat = m.category?.toLowerCase() || ''
+                const merchantCatSlug = merchantCat.replace(/\s+/g, '-')
+                // IMPORTANT: Normalize targetSlug to kebab-case to match categoryMapping keys (e.g. "makanan berat" -> "makanan-berat")
+                const targetSlug = categoryId.toLowerCase().replace(/\s+/g, '-')
+
+                // 1. Direct Match (Exact slug)
+                if (merchantCatSlug === targetSlug) return true
+
+                // 2. Mapping Match (Check if merchant category is in the mapping list)
+                const allowedCategories = categoryMapping[targetSlug]
+                if (allowedCategories && allowedCategories.includes(merchantCat)) return true
+
+                // 3. Partial Match (Fallback: if merchant category contains target keyword)
+                // e.g. "Nasi Goreng Spesial" matches "nasi goreng"
+                if (allowedCategories && allowedCategories.some(ac => merchantCat.includes(ac))) return true
+
+                return false
+            })
         }
 
         // Filter by Promo

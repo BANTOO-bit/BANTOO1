@@ -81,7 +81,15 @@ function MenuPopuler() {
     useEffect(() => {
         async function fetchPopularMenus() {
             try {
-                const data = await merchantService.getPopularMenus(10)
+                // Try fetching popular menus first
+                let data = await merchantService.getPopularMenus(10)
+
+                // Fallback: If no popular menus, fetch latest menus
+                if (data.length === 0) {
+                    data = await merchantService.getAllMenus()
+                    data = data.slice(0, 10)
+                }
+
                 setPopularMenus(data)
             } catch (error) {
                 console.error('Failed to fetch popular menus:', error)
@@ -118,9 +126,9 @@ function MenuPopuler() {
     }
 
     return (
-        <section>
+        <section className="mt-2">
             <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-bold text-text-main">Menu Populer</h2>
+                <h2 className="text-lg font-bold text-text-main">Rekomendasi Untukmu</h2>
                 <button
                     onClick={() => navigate('/popular-menu')}
                     className="text-sm text-primary font-medium hover:text-primary/80"
@@ -128,7 +136,7 @@ function MenuPopuler() {
                     Lihat Semua
                 </button>
             </div>
-            <div className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 no-scrollbar">
+            <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
                 {popularMenus.map(item => (
                     <MenuCard key={item.id} item={item} />
                 ))}

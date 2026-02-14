@@ -183,7 +183,7 @@ function MerchantAddMenuPage() {
                         htmlFor="image-upload"
                         className="relative group cursor-pointer"
                     >
-                        <div className={`w - 32 h - 32 rounded - 2xl overflow - hidden shadow - card border border - gray - 100 dark: border - gray - 700 ${!imageUrl ? 'bg-gray-100 dark:bg-gray-800 flex items-center justify-center' : ''} `}>
+                        <div className={`w-32 h-32 rounded-2xl overflow-hidden shadow-card border border-gray-100 dark:border-gray-700 ${!imageUrl ? 'bg-gray-100 dark:bg-gray-800 flex items-center justify-center' : ''} `}>
                             {imageUrl ? (
                                 <img
                                     src={imageUrl}
@@ -226,7 +226,7 @@ function MerchantAddMenuPage() {
                                 onClick={() => setIsCategorySheetOpen(true)}
                                 className="w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 flex items-center justify-between cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
                             >
-                                <span className={`text - sm ${formData.category ? 'text-text-main dark:text-white' : 'text-gray-400'} `}>
+                                <span className={`text-sm ${formData.category ? 'text-text-main dark:text-white' : 'text-gray-400'} `}>
                                     {formData.category
                                         ? categories.find(c => c.id === formData.category)?.label || 'Pilih Kategori'
                                         : 'Pilih Kategori'}
@@ -266,12 +266,12 @@ function MerchantAddMenuPage() {
                                                     setFormData({ ...formData, category: cat.id })
                                                     setIsCategorySheetOpen(false)
                                                 }}
-                                                className={`flex items - center justify - between p - 4 rounded - xl cursor - pointer transition - colors ${formData.category === cat.id
+                                                className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${formData.category === cat.id
                                                     ? 'bg-primary/10 border border-primary/20'
                                                     : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
                                                     } `}
                                             >
-                                                <span className={`font - medium text - sm ${formData.category === cat.id
+                                                <span className={`font-medium text-sm ${formData.category === cat.id
                                                     ? 'text-primary'
                                                     : 'text-text-main dark:text-white'
                                                     } `}>
@@ -329,7 +329,7 @@ function MerchantAddMenuPage() {
                     <button
                         onClick={handleSubmit}
                         disabled={isLoading}
-                        className={`w - full bg - primary hover: bg - primary - dark text - white font - semibold py - 3.5 rounded - xl shadow - md active: scale - [0.98] transition - all flex items - center justify - center gap - 2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''} `}
+                        className={`w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''} `}
                     >
                         {isLoading ? (
                             <>

@@ -11,9 +11,16 @@ function MerchantList() {
     useEffect(() => {
         async function fetchMerchants() {
             try {
-                // Fetch only 3 merchants for the homepage, similar to original mock behavior
-                const data = await merchantService.getMerchants({ isOpen: true })
-                setMerchants(data.slice(0, 3))
+                // Fetch all merchants to populate the list, even if closed
+                const data = await merchantService.getMerchants({ isOpen: null })
+
+                // Sort: Open first, then Closed
+                const sortedData = data.sort((a, b) => {
+                    if (a.is_open === b.is_open) return 0
+                    return a.is_open ? -1 : 1
+                })
+
+                setMerchants(sortedData.slice(0, 5)) // Show top 5
             } catch (error) {
                 console.error('Failed to fetch homepage merchants:', error)
             } finally {
@@ -31,7 +38,7 @@ function MerchantList() {
     if (merchants.length === 0) {
         return (
             <div className="py-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <p className="text-sm text-gray-500">Belum ada merchant yang buka saat ini.</p>
+                <p className="text-sm text-gray-500">Belum ada merchant yang tersedia.</p>
             </div>
         )
     }

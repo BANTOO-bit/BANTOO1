@@ -159,7 +159,7 @@ function MerchantDetailPage() {
                             : 'bg-white text-text-secondary border border-border-color'
                             }`}
                     >
-                        {cat}
+                        {cat.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                     </button>
                 ))}
             </div>

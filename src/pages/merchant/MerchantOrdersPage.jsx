@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useNotification } from '../../context/NotificationsContext'
@@ -34,67 +34,68 @@ function MerchantOrdersPage() {
     const [error, setError] = useState(null)
 
     // Fetch orders from Supabase
-    useEffect(() => {
-        async function fetchOrders() {
-            if (!user?.merchantId) {
-                setIsLoading(false)
-                return
-            }
-
-            try {
-                setIsLoading(true)
-                setError(null)
-
-                // Map tab to database status
-                const statusMap = {
-                    'baru': ['pending'],
-                    'diproses': ['accepted', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'],
-                    'selesai': ['completed', 'cancelled']
-                }
-
-                const data = await orderService.getMerchantOrders(user.merchantId, statusMap[activeTab])
-
-                // Transform data to match component format
-                const transformedOrders = data.map(order => ({
-                    id: generateOrderId(order.id),
-                    dbId: order.id, // Keep database ID for updates
-                    time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-                    payment: order.payment_method === 'cod' ? 'Tunai' : order.payment_method,
-                    status: order.status, // Pass raw status for logic, component handles display text
-                    total: order.total_amount,
-                    items: order.items?.map(item => ({
-                        qty: item.quantity,
-                        name: item.product_name,
-                        price: item.price_at_time,
-                        note: item.notes
-                    })) || [],
-                    customer: order.customer ? {
-                        name: order.customer.full_name,
-                        initials: order.customer.full_name?.split(' ').map(n => n[0]).join('').toUpperCase()
-                    } : null,
-                    driver: order.driver ? {
-                        name: order.driver.full_name,
-                        phone: order.driver.phone
-                    } : null,
-                    timeline: {
-                        created: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-                        processed: order.accepted_at ? new Date(order.accepted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
-                        handover: order.picked_up_at ? new Date(order.picked_up_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
-                        completed: order.delivered_at ? new Date(order.delivered_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
-                    }
-                }))
-
-                setOrders(transformedOrders)
-            } catch (err) {
-                console.error('Error fetching merchant orders:', err)
-                setError(err.message || 'Gagal memuat pesanan')
-            } finally {
-                setIsLoading(false)
-            }
+    // Fetch orders from Supabase
+    const fetchOrders = useCallback(async () => {
+        if (!user?.merchantId) {
+            setIsLoading(false)
+            return
         }
 
-        fetchOrders()
+        try {
+            setIsLoading(true)
+            setError(null)
+
+            // Map tab to database status
+            const statusMap = {
+                'baru': ['pending'],
+                'diproses': ['accepted', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'],
+                'selesai': ['completed', 'cancelled']
+            }
+
+            const data = await orderService.getMerchantOrders(user.merchantId, statusMap[activeTab])
+
+            // Transform data to match component format
+            const transformedOrders = data.map(order => ({
+                id: generateOrderId(order.id),
+                dbId: order.id, // Keep database ID for updates
+                time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                payment: order.payment_method === 'cod' ? 'Tunai' : order.payment_method,
+                status: order.status, // Pass raw status for logic, component handles display text
+                total: order.total_amount,
+                items: order.items?.map(item => ({
+                    qty: item.quantity,
+                    name: item.product_name,
+                    price: item.price_at_time,
+                    note: item.notes
+                })) || [],
+                customer: order.customer ? {
+                    name: order.customer.full_name,
+                    initials: order.customer.full_name?.split(' ').map(n => n[0]).join('').toUpperCase()
+                } : null,
+                driver: order.driver ? {
+                    name: order.driver.full_name,
+                    phone: order.driver.phone
+                } : null,
+                timeline: {
+                    created: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                    processed: order.accepted_at ? new Date(order.accepted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
+                    handover: order.picked_up_at ? new Date(order.picked_up_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
+                    completed: order.delivered_at ? new Date(order.delivered_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
+                }
+            }))
+
+            setOrders(transformedOrders)
+        } catch (err) {
+            console.error('Error fetching merchant orders:', err)
+            setError(err.message || 'Gagal memuat pesanan')
+        } finally {
+            setIsLoading(false)
+        }
     }, [activeTab, user?.merchantId])
+
+    useEffect(() => {
+        fetchOrders()
+    }, [fetchOrders])
 
     // Realtime subscription for new orders and status changes
     useEffect(() => {

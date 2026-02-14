@@ -13,7 +13,7 @@ function NotFoundPage() {
                     </div>
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                            <span className="material-symbols-rounded text-5xl text-primary">
+                            <span className="material-symbols-outlined text-5xl text-primary">
                                 explore_off
                             </span>
                         </div>
@@ -36,14 +36,14 @@ function NotFoundPage() {
                         onClick={() => navigate('/')}
                         className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
-                        <span className="material-symbols-rounded text-xl">home</span>
+                        <span className="material-symbols-outlined text-xl">home</span>
                         Kembali ke Beranda
                     </button>
                     <button
                         onClick={() => navigate(-1)}
                         className="w-full bg-white border border-gray-200 text-text-secondary font-semibold py-3 rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
-                        <span className="material-symbols-rounded text-xl">arrow_back</span>
+                        <span className="material-symbols-outlined text-xl">arrow_back</span>
                         Halaman Sebelumnya
                     </button>
                 </div>

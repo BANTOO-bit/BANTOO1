@@ -140,7 +140,7 @@ function MerchantMenuPage() {
     }
 
     const handleEdit = (itemId) => {
-        navigate(`/ merchant / menu / edit / ${itemId} `)
+        navigate(`/merchant/menu/edit/${itemId}`)
     }
 
     const handleDeleteClick = (item) => {

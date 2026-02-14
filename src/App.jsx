@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { CartProvider } from './context/CartContext'
 import { AddressProvider } from './context/AddressContext'
 import { FavoritesProvider } from './context/FavoritesContext'
@@ -251,6 +251,10 @@ function AppContent() {
             <Suspense fallback={<PageLoader />}>
                 <Routes>
                     <Route path="/" element={<HomePage />} />
+
+                    {/* Redirect auth pages if already logged in */}
+                    <Route path="/login" element={<Navigate to="/" replace />} />
+                    <Route path="/register" element={<Navigate to="/" replace />} />
 
                     {/* Account Suspended */}
                     <Route path="/account-suspended" element={<SuspendedAccountPage />} />

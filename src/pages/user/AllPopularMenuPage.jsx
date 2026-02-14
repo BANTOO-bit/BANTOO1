@@ -20,7 +20,13 @@ function AllPopularMenuPage() {
         setLoading(true)
         setError(null)
         try {
-            const data = await merchantService.getAllMenus({ popular: true })
+            let data = await merchantService.getAllMenus({ popular: true })
+
+            // Fallback: If no popular menus, fetch all menus (newest first)
+            if (data.length === 0) {
+                data = await merchantService.getAllMenus()
+            }
+
             setAllMenus(data)
         } catch (err) {
             setError(err.message || 'Gagal memuat menu populer')
@@ -110,7 +116,9 @@ function AllPopularMenuPage() {
                             onClick={() => setSearchQuery('')}
                             className="w-10 h-full flex items-center justify-center text-text-secondary"
                         >
-                            <span className="material-symbols-outlined text-xl">close</span>
+                            <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                                <span className="material-symbols-outlined text-[14px]">close</span>
+                            </div>
                         </button>
                     )}
                 </div>
