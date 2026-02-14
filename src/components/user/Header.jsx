@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useNotifications } from '../../context/NotificationsContext'
+import logo from '../../assets/logo.png'
 
 function Header() {
     const navigate = useNavigate()
@@ -9,7 +10,7 @@ function Header() {
 
     return (
         <header className="sticky top-0 z-20 bg-background-light/95 backdrop-blur-md px-4 pt-12 pb-2 flex items-center justify-between border-b border-transparent transition-colors">
-            <h1 className="text-text-main text-2xl font-semibold tracking-tight">Bantoo!</h1>
+            <img src={logo} alt="Bantoo!" className="h-8 w-auto object-contain" />
             <div className="flex items-center gap-2">
                 {/* Notifications */}
                 <button

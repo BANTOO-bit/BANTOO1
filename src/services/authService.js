@@ -78,5 +78,13 @@ export const authService = {
     async getCurrentUser() {
         const { data: { user } } = await supabase.auth.getUser()
         return user
+    },
+
+    // Update Profile
+    async updateProfile(updates) {
+        const { data, error } = await supabase.auth.updateUser({
+            data: updates
+        })
+        return { data, error }
     }
 }

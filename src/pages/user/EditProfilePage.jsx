@@ -1,260 +1,178 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { supabase } from '../../services/supabaseClient'
+import { useToast } from '../../context/ToastContext'
+import { authService } from '../../services/authService'
+import BackButton from '../../components/shared/BackButton'
 import BottomNavigation from '../../components/user/BottomNavigation'
-import PhotoPickerModal from '../../components/shared/PhotoPickerModal'
-import Toast from '../../components/shared/Toast'
-import PageLoader from '../../components/shared/PageLoader'
 
-function EditProfilePage({ onNavigate }) {
+function EditProfilePage() {
     const navigate = useNavigate()
-    const { user, refreshProfile } = useAuth()
-
-    // Refs for file inputs
-    const cameraInputRef = useRef(null)
-    const galleryInputRef = useRef(null)
-
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        avatar: ''
-    })
+    const { user } = useAuth()
+    const toast = useToast()
 
     const [isLoading, setIsLoading] = useState(false)
-    const [showPhotoPicker, setShowPhotoPicker] = useState(false)
-    const [toast, setToast] = useState({ message: '', type: 'success', visible: false })
-    const [hasPhoto, setHasPhoto] = useState(false)
+    const [formData, setFormData] = useState({
+        full_name: '',
+        phone: '',
+        email: ''
+    })
 
-    // Load user data
     useEffect(() => {
         if (user) {
-            const avatar = user.user_metadata?.avatar_url || ''
             setFormData({
-                name: user.user_metadata?.full_name || '',
-                email: user.email || '',
-                phone: user.phone || user.user_metadata?.phone || '',
-                avatar: avatar
+                full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+                phone: user.user_metadata?.phone_number || user.phone || '',
+                email: user.email || ''
             })
-            setHasPhoto(!!avatar)
         }
     }, [user])
 
-    const handleInputChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }))
+    const handleChange = (e) => {
+        const { name, value } = e.target
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }))
     }
 
-    const handleFileChange = (e) => {
-        const file = e.target.files[0]
-        if (file) {
-            // Compress/Resize logic could go here
-            const reader = new FileReader()
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, avatar: reader.result }))
-                setHasPhoto(true)
-                setShowPhotoPicker(false)
-            }
-            reader.readAsDataURL(file)
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+
+        if (!formData.full_name.trim()) {
+            toast.error('Nama lengkap tidak boleh kosong')
+            return
         }
-    }
-
-    const handleSave = async () => {
-        if (!user) return
 
         setIsLoading(true)
         try {
-            const updates = {
-                data: {
-                    full_name: formData.name,
-                    phone: formData.phone,
-                    avatar_url: formData.avatar
-                }
-            }
-
-            const { error } = await supabase.auth.updateUser(updates)
+            const { error } = await authService.updateProfile({
+                full_name: formData.full_name,
+                // We keep phone and email read-only for now to avoid auth complexity
+                // If needed, we can add separate flows for changing them
+            })
 
             if (error) throw error
 
-            await refreshProfile()
-
-            setToast({ message: 'Profil berhasil disimpan', type: 'success', visible: true })
-            setTimeout(() => navigate(-1), 1500)
+            toast.success('Profil berhasil diperbarui')
+            navigate('/profile')
         } catch (error) {
             console.error('Error updating profile:', error)
-            setToast({ message: 'Gagal menyimpan profil', type: 'error', visible: true })
+            toast.error(error.message || 'Gagal memperbarui profil')
         } finally {
             setIsLoading(false)
         }
     }
 
-    const handleTakePhoto = () => {
-        if (cameraInputRef.current) {
-            cameraInputRef.current.click()
-        }
-    }
-
-    const handleChooseGallery = () => {
-        if (galleryInputRef.current) {
-            galleryInputRef.current.click()
-        }
-    }
-
-    const handleDeletePhoto = () => {
-        setFormData(prev => ({ ...prev, avatar: '' }))
-        setHasPhoto(false)
-        setShowPhotoPicker(false)
-        setToast({ message: 'Foto Profil Dihapus (Simpan untuk menerapkan)', type: 'info', visible: true })
-    }
-
-    if (!user) return <PageLoader />
+    // Generate Avatar URL based on name
+    const avatarUrl = user?.user_metadata?.avatar_url ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.full_name || 'User')}&background=random&color=fff`
 
     return (
-        <div className="relative min-h-screen flex flex-col bg-background-light">
-            {/* Hidden Input for Camera */}
-            <input
-                type="file"
-                accept="image/*"
-                capture="user"
-                ref={cameraInputRef}
-                className="hidden"
-                onChange={handleFileChange}
-            />
-
-            {/* Hidden Input for Gallery */}
-            <input
-                type="file"
-                accept="image/*"
-                ref={galleryInputRef}
-                className="hidden"
-                onChange={handleFileChange}
-            />
-
+        <div className="min-h-screen flex flex-col bg-background-light pb-[100px]">
             {/* Header */}
-            <header className="sticky top-0 z-50 flex items-center justify-between bg-background-light p-4 pb-2">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="flex w-10 h-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 transition-colors"
-                >
-                    <span className="material-symbols-outlined text-text-main text-[24px]">arrow_back_ios_new</span>
-                </button>
-                <h1 className="flex-1 text-center text-lg font-bold leading-tight tracking-tight text-text-main">
-                    Ubah Profil
-                </h1>
-                <div className="w-10 h-10"></div>
+            <header className="sticky top-0 z-50 bg-card-light px-4 pt-12 pb-4 border-b border-border-color shadow-sm">
+                <div className="relative flex items-center justify-center min-h-[44px]">
+                    <BackButton fallback="/profile" />
+                    <h1 className="text-lg font-bold">Ubah Profil</h1>
+                </div>
             </header>
 
-            {/* Main Content */}
-            <main className="flex-1 overflow-y-auto no-scrollbar pb-24">
-                {/* Avatar Section */}
-                <div className="flex flex-col items-center pt-8 pb-8">
-                    <div
-                        className="relative group cursor-pointer"
-                        onClick={() => setShowPhotoPicker(true)}
-                    >
-                        {hasPhoto ? (
-                            <img
-                                src={formData.avatar}
-                                alt="Profile"
-                                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-sm"
-                            />
-                        ) : (
-                            <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-sm flex items-center justify-center">
-                                <span className="material-symbols-outlined text-gray-400 text-[48px]">person</span>
+            <main className="flex-1 p-4">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                    {/* Avatar Section */}
+                    <div className="flex flex-col items-center gap-4 py-4">
+                        <div className="relative group">
+                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                                <img
+                                    src={avatarUrl}
+                                    alt="Profile"
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
-                        )}
-                        <div className="absolute bottom-0 right-1 flex w-9 h-9 items-center justify-center rounded-full bg-primary text-white border-[3px] border-background-light shadow-md transition-transform transform group-hover:scale-105">
-                            <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                            <button
+                                type="button"
+                                className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform"
+                                onClick={() => toast.info('Fitur ubah foto akan segera hadir!')}
+                            >
+                                <span className="material-symbols-outlined text-sm">camera_alt</span>
+                            </button>
+                        </div>
+                        <p className="text-xs text-text-secondary">Ketuk ikon kamera untuk mengubah foto</p>
+                    </div>
+
+                    {/* Form Fields */}
+                    <div className="flex flex-col gap-5">
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-bold text-text-main ml-1">Nama Lengkap</label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary">person</span>
+                                <input
+                                    type="text"
+                                    name="full_name"
+                                    value={formData.full_name}
+                                    onChange={handleChange}
+                                    placeholder="Masukkan nama lengkap"
+                                    className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-medium"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5 opacity-60">
+                            <label className="text-sm font-bold text-text-main ml-1">Nomor Telepon</label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary">phone</span>
+                                <input
+                                    type="text"
+                                    value={formData.phone}
+                                    disabled
+                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-text-secondary cursor-not-allowed font-medium"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                                    Verified
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-text-secondary ml-1">Nomor telepon tidak dapat diubah sementara ini.</p>
+                        </div>
+
+                        <div className="space-y-1.5 opacity-60">
+                            <label className="text-sm font-bold text-text-main ml-1">Email</label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary">mail</span>
+                                <input
+                                    type="text"
+                                    value={formData.email}
+                                    disabled
+                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-text-secondary cursor-not-allowed font-medium"
+                                />
+                            </div>
                         </div>
                     </div>
-                    <p
-                        className="mt-4 text-sm font-medium text-primary cursor-pointer"
-                        onClick={() => setShowPhotoPicker(true)}
-                    >
-                        Ganti Foto Profil
-                    </p>
-                </div>
-
-                {/* Form Fields */}
-                <div className="flex flex-col gap-5 px-4">
-                    {/* Nama Lengkap */}
-                    <div className="flex flex-col gap-2">
-                        <label className="text-text-main text-sm font-semibold pl-1">Nama Lengkap</label>
-                        <input
-                            className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-base font-normal text-text-main placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                            placeholder="Contoh: Sarah Wijaya"
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => handleInputChange('name', e.target.value)}
-                        />
-                    </div>
-
-                    {/* Email (Read Only usually, but let's keep editable or read-only based on logic) */}
-                    <div className="flex flex-col gap-2">
-                        <label className="text-text-main text-sm font-semibold pl-1">Email</label>
-                        <input
-                            className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 text-base font-normal text-gray-500 cursor-not-allowed"
-                            placeholder="Contoh: sarah.wijaya@example.com"
-                            type="email"
-                            value={formData.email}
-                            readOnly
-                        // Email usually shouldn't be changed easily in profile edit without re-verification
-                        />
-                    </div>
-
-                    {/* Nomor Telepon */}
-                    <div className="flex flex-col gap-2">
-                        <label className="text-text-main text-sm font-semibold pl-1">Nomor Telepon</label>
-                        <input
-                            className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-base font-normal text-text-main placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                            placeholder="Contoh: +62 812 3456 7890"
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => handleInputChange('phone', e.target.value)}
-                        />
-                    </div>
-                </div>
-
-                <div className="h-8"></div>
-
-                {/* Save Button */}
-                <div className="px-4 pb-6">
-                    <button
-                        onClick={handleSave}
-                        disabled={isLoading}
-                        className={`flex w-full items-center justify-center rounded-2xl px-4 py-4 text-base font-bold text-white shadow-lg transition-all ${isLoading
-                            ? 'bg-gray-300 shadow-none cursor-not-allowed'
-                            : 'bg-primary shadow-orange-500/20 active:scale-[0.98] hover:bg-orange-600'
-                            }`}
-                    >
-                        {isLoading ? (
-                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                            'Simpan Perubahan'
-                        )}
-                    </button>
-                </div>
+                </form>
             </main>
 
-            {/* Bottom Navigation */}
-            <BottomNavigation activeTab="profile" onNavigate={onNavigate} />
+            {/* Bottom Action */}
+            <div className="p-4 bg-white border-t border-border-color">
+                <button
+                    onClick={handleSubmit}
+                    disabled={isLoading}
+                    className="w-full py-4 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
+                >
+                    {isLoading ? (
+                        <>
+                            <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                            <span>Menyimpan...</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="material-symbols-outlined text-xl">save</span>
+                            <span>Simpan Perubahan</span>
+                        </>
+                    )}
+                </button>
+            </div>
 
-            {/* Photo Picker Modal */}
-            <PhotoPickerModal
-                isOpen={showPhotoPicker}
-                onClose={() => setShowPhotoPicker(false)}
-                onTakePhoto={handleTakePhoto}
-                onChooseGallery={handleChooseGallery}
-                onDeletePhoto={handleDeletePhoto}
-            />
-
-            {/* Toast Notification */}
-            <Toast
-                message={toast.message}
-                type={toast.type}
-                isVisible={toast.visible}
-                onClose={() => setToast(prev => ({ ...prev, visible: false }))}
-            />
+            <BottomNavigation activeTab="profile" />
         </div>
     )
 }

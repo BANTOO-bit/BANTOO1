@@ -197,12 +197,7 @@ function SearchPage() {
         <div className="bg-background-light text-text-main relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
             {/* Header - Updated Layout */}
             <header className="sticky top-0 z-20 bg-background-light/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center gap-3 border-b border-transparent transition-colors">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center text-text-main active:scale-95 transition-transform hover:bg-gray-50 border border-gray-100"
-                >
-                    <span className="material-symbols-outlined">arrow_back</span>
-                </button>
+
 
                 <div className="relative flex items-center flex-1 h-11 rounded-full focus-within:ring-2 focus-within:ring-primary/50 transition-shadow bg-white shadow-soft overflow-hidden border border-gray-100">
                     <div className="grid place-items-center h-full w-10 text-text-secondary pl-1">
