@@ -329,7 +329,7 @@ function MerchantOrdersPage() {
                             setSelectedOrder(null)
                             setActiveTab('selesai')
                         }}
-                        className="w-full py-4 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-base shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                        className="w-full py-4 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-base active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
                     >
                         <span>Kembali ke Beranda</span>
                     </button>
@@ -476,7 +476,7 @@ function MerchantOrdersPage() {
                         <button
                             onClick={confirmAcceptOrder}
                             disabled={!prepTime}
-                            className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-md shadow-orange-500/20 transition-all flex items-center justify-center ${prepTime
+                            className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center ${prepTime
                                 ? 'bg-primary hover:bg-primary-dark active:scale-[0.99] text-white'
                                 : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
                                 }`}
@@ -524,7 +524,7 @@ function MerchantOrdersPage() {
                             <button
                                 onClick={confirmRejectOrder}
                                 disabled={!rejectReason}
-                                className={`flex-1 py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 active:scale-95 transition-all ${rejectReason
+                                className={`flex-1 py-3.5 rounded-xl font-bold text-sm active:scale-95 transition-all ${rejectReason
                                     ? 'bg-primary hover:bg-primary-dark text-white'
                                     : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
                                     }`}
@@ -567,7 +567,7 @@ function MerchantOrdersPage() {
                         <div className="flex flex-col gap-3 mt-1">
                             <button
                                 onClick={confirmHandover}
-                                className="w-full py-3.5 rounded-xl bg-[#FF6B00] hover:bg-[#e65100] text-white font-bold text-sm shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                className="w-full py-3.5 rounded-xl bg-[#FF6B00] hover:bg-[#e65100] text-white font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                             >
                                 <span>Konfirmasi Penyerahan</span>
                             </button>
@@ -784,7 +784,7 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                         </button>
                         <button
                             onClick={onAccept}
-                            className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-transform"
+                            className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs active:scale-95 transition-transform"
                         >
                             Terima
                         </button>
@@ -795,7 +795,7 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                         {['accepted', 'processing'].includes(order.status) && (
                             <button
                                 onClick={onHandover}
-                                className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                                className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
                             >
                                 <span>Siap Antar</span>
                             </button>

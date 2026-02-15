@@ -166,6 +166,7 @@ const DriverWithdrawalConfirm = lazy(() => import('./pages/driver/financial/Driv
 const DriverWithdrawalStatus = lazy(() => import('./pages/driver/financial/DriverWithdrawalStatus'))
 const DriverDepositPage = lazy(() => import('./pages/driver/financial/DriverDepositPage'))
 const DriverDepositVerification = lazy(() => import('./pages/driver/financial/DriverDepositVerification'))
+const DriverReviewsPage = lazy(() => import('./pages/driver/DriverReviewsPage'))
 
 // ... inside App component ...
 
@@ -303,6 +304,7 @@ function AppContent() {
                     <Route path="/driver/withdrawal/status" element={<ProtectedRoute allowedRoles={['driver']}><DriverWithdrawalStatus /></ProtectedRoute>} />
                     <Route path="/driver/deposit" element={<ProtectedRoute allowedRoles={['driver']}><DriverDepositPage /></ProtectedRoute>} />
                     <Route path="/driver/deposit/verification" element={<ProtectedRoute allowedRoles={['driver']}><DriverDepositVerification /></ProtectedRoute>} />
+                    <Route path="/driver/reviews" element={<ProtectedRoute allowedRoles={['driver']}><DriverReviewsPage /></ProtectedRoute>} />
 
                     {/* Driver Order Flow (COD) */}
                     <Route path="/driver/order/incoming/:orderId" element={<ProtectedRoute allowedRoles={['driver']}><DriverIncomingOrder /></ProtectedRoute>} />

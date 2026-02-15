@@ -111,6 +111,79 @@ export const reviewService = {
             .single()
 
         return !error && !!data
+    },
+    /**
+     * Get driver's average rating and count
+     */
+    async getDriverRating(driverId) {
+        const { data, error } = await supabase
+            .from('reviews')
+            .select('driver_rating')
+            .eq('driver_id', driverId)
+            .not('driver_rating', 'is', null)
+
+        if (error) throw error
+
+        if (!data || data.length === 0) {
+            return {
+                averageRating: 0,
+                totalReviews: 0,
+                distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+            }
+        }
+
+        const totalReviews = data.length
+        const sumRating = data.reduce((sum, review) => sum + review.driver_rating, 0)
+        const averageRating = Number((sumRating / totalReviews).toFixed(1))
+
+        const distribution = data.reduce((dist, review) => {
+            const rating = Math.round(review.driver_rating)
+            dist[rating] = (dist[rating] || 0) + 1
+            return dist
+        }, { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 })
+
+        return {
+            averageRating,
+            totalReviews,
+            distribution
+        }
+    },
+
+    /**
+     * Get merchant's average rating and count
+     */
+    async getMerchantRating(merchantId) {
+        const { data, error } = await supabase
+            .from('reviews')
+            .select('merchant_rating')
+            .eq('merchant_id', merchantId)
+            .not('merchant_rating', 'is', null)
+
+        if (error) throw error
+
+        if (!data || data.length === 0) {
+            return {
+                averageRating: 0,
+                totalReviews: 0,
+                distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+            }
+        }
+
+        const totalReviews = data.length
+        const sumRating = data.reduce((sum, review) => sum + review.merchant_rating, 0)
+        const averageRating = Number((sumRating / totalReviews).toFixed(1))
+
+        const distribution = data.reduce((dist, review) => {
+            const rating = Math.round(review.merchant_rating)
+            dist[rating] = (dist[rating] || 0) + 1
+            return dist
+        }, { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 })
+
+        return {
+            averageRating,
+            totalReviews,
+            distribution
+        }
     }
 }
 

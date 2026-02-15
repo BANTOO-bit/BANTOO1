@@ -20,27 +20,47 @@ function AdminDashboard() {
     })
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        async function fetchStats() {
-            try {
-                const { data, error } = await supabase.rpc('get_admin_dashboard_stats')
+    const fetchStats = async () => {
+        try {
+            const { data, error } = await supabase.rpc('get_admin_dashboard_stats')
 
-                if (error) {
-                    console.error('Error fetching admin stats:', error)
-                    return
-                }
-
-                if (data) {
-                    setStats(data)
-                }
-            } catch (err) {
-                console.error('Unexpected error:', err)
-            } finally {
-                setLoading(false)
+            if (error) {
+                console.error('Error fetching admin stats:', error)
+                return
             }
-        }
 
+            if (data) {
+                setStats(data)
+            }
+        } catch (err) {
+            console.error('Unexpected error:', err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
         fetchStats()
+
+        // Realtime subscriptions
+        const channels = supabase.channel('admin-dashboard-stats')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+                console.log('Orders changed, refreshing stats...')
+                fetchStats()
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => {
+                console.log('Drivers changed, refreshing stats...')
+                fetchStats()
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
+                console.log('Withdrawals changed, refreshing stats...')
+                fetchStats()
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channels)
+        }
     }, [])
 
     const weeklyOrderData = [

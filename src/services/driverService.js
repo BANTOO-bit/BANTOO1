@@ -427,6 +427,47 @@ export const driverService = {
             return { todayOrders: 0, todayRevenue: 0 }
         }
     }
+    /**
+     * Update driver profile
+     */
+    async updateDriver(userId, updates) {
+        try {
+            const { data, error } = await supabase
+                .from('drivers')
+                .update(updates)
+                .eq('user_id', userId)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data
+        } catch (error) {
+            console.error('Error updating driver:', error)
+            throw error
+        }
+    },
+
+    /**
+     * Get Driver Bank Details
+     */
+    async getBankDetails() {
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return null
+
+            const { data, error } = await supabase
+                .from('drivers')
+                .select('bank_name, bank_account_number, bank_account_name')
+                .eq('user_id', user.id)
+                .single()
+
+            if (error) throw error
+            return data
+        } catch (error) {
+            console.error('Error fetching bank details:', error)
+            return null
+        }
+    }
 }
 
 export default driverService

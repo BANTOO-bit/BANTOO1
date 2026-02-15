@@ -112,7 +112,7 @@ function OrderSuccessPage() {
             <div className="p-5 space-y-3">
                 <button
                     onClick={() => navigate(order?.id ? `/tracking/${order.id}` : '/tracking')}
-                    className="w-full py-4 bg-primary text-white font-bold rounded-2xl shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
                 >
                     <span className="material-symbols-outlined">location_on</span>
                     Lacak Pesanan

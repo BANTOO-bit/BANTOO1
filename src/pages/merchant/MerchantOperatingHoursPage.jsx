@@ -141,7 +141,7 @@ function MerchantOperatingHoursPage() {
                 <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center pointer-events-auto disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center pointer-events-auto disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                     {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>

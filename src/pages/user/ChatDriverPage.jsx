@@ -225,7 +225,7 @@ function ChatDriverPage() {
                     <button
                         onClick={() => handleSend()}
                         disabled={!inputText.trim()}
-                        className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span className="material-symbols-outlined">send</span>
                     </button>

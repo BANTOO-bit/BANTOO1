@@ -9,7 +9,7 @@ import { generateOrderId } from '../../utils/orderUtils'
 
 function MerchantDashboard() {
     const navigate = useNavigate()
-    const { user } = useAuth()
+    const { user, isShopOpen } = useAuth()
     const [activeTab, setActiveTab] = useState('baru') // baru, diproses, selesai
     const [stats, setStats] = useState({
         todayEarnings: 0,
@@ -69,6 +69,16 @@ function MerchantDashboard() {
             <MerchantHeader />
 
             <main className="flex flex-col gap-6 px-4 pt-2">
+                {/* Offline Status Banner */}
+                {!isShopOpen && (
+                    <div className="bg-gray-100 dark:bg-gray-800 border-l-4 border-gray-500 text-gray-700 dark:text-gray-300 p-4 rounded-r shadow-sm flex items-start gap-3 animate-fade-in">
+                        <span className="material-symbols-outlined text-gray-500">storefront</span>
+                        <div>
+                            <p className="font-bold text-sm">Warung Sedang Tutup (Offline)</p>
+                            <p className="text-xs mt-0.5">Anda tidak akan menerima pesanan baru. Gunakan waktu ini untuk istirahat atau mengelola stok.</p>
+                        </div>
+                    </div>
+                )}
                 {/* Stats Section */}
                 <section className="grid grid-cols-2 gap-3">
                     <button

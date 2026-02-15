@@ -130,7 +130,7 @@ function MerchantCategoriesPage() {
             <div className="fixed bottom-6 right-6 z-40">
                 <button
                     onClick={() => openModal()}
-                    className="w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-orange-500/30 flex items-center justify-center hover:bg-primary-dark transition-transform active:scale-95"
+                    className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center hover:bg-primary-dark transition-transform active:scale-95"
                 >
                     <span className="material-symbols-outlined text-[28px]">add</span>
                 </button>

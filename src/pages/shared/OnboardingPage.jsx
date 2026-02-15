@@ -44,7 +44,7 @@ function MapIllustration() {
             {/* Driver Icon */}
             <div className="absolute top-[33.3%] left-[55%] transform -translate-x-1/2 -translate-y-1/2 z-20">
                 <div className="relative">
-                    <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/30 border-4 border-white text-white">
+                    <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center border-4 border-white text-white">
                         <span className="material-symbols-outlined text-[24px]">two_wheeler</span>
                     </div>
                     <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-30"></div>
@@ -153,7 +153,7 @@ function OnboardingPage({ onComplete }) {
                 {/* Action Button */}
                 <button
                     onClick={handleNext}
-                    className="w-full h-14 bg-primary hover:opacity-90 active:scale-[0.98] text-white text-base font-medium flex items-center justify-center transition-all shadow-lg shadow-primary/20 rounded-[28px]"
+                    className="w-full h-14 bg-primary hover:opacity-90 active:scale-[0.98] text-white text-base font-medium flex items-center justify-center transition-all rounded-[28px]"
                 >
                     {isLastScreen ? 'Mulai' : 'Selanjutnya'}
                 </button>

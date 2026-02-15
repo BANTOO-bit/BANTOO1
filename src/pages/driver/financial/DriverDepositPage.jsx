@@ -94,7 +94,7 @@ function DriverDepositPage() {
                     <div className="mt-8">
                         <button
                             onClick={() => navigate('/driver/deposit/verification')}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined">check_circle</span>
                             KONFIRMASI SETORAN

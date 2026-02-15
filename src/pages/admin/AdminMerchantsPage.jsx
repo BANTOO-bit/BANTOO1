@@ -56,7 +56,7 @@ export default function AdminMerchantsPage() {
                         <p className="text-[#617589] dark:text-[#94a3b8]">Terdapat <span className="font-bold text-blue-600 dark:text-blue-400">3 Warung Baru</span> yang menunggu peninjauan dokumen dan persetujuan.</p>
                     </div>
                 </div>
-                <a href="/admin/merchants/verification" className="whitespace-nowrap flex items-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg shadow-primary/20">
+                <a href="/admin/merchants/verification" className="whitespace-nowrap flex items-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
                     Tinjau Antrean
                     <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </a>

@@ -24,7 +24,7 @@ export default function AdminSettingsPage() {
                     </p>
                     <button
                         onClick={handleStartConfiguration}
-                        className="px-8 py-3 text-sm font-semibold text-white bg-primary hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-500/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                        className="px-8 py-3 text-sm font-semibold text-white bg-primary hover:bg-blue-700 rounded-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                     >
                         <span className="material-symbols-outlined text-[20px]">tune</span>
                         Mulai Konfigurasi
@@ -123,7 +123,7 @@ export default function AdminSettingsPage() {
                                 </div>
                                 <div className="lg:w-[340px] bg-blue-50 dark:bg-blue-900/10 border-t lg:border-t-0 lg:border-l border-[#e5e7eb] dark:border-[#2a3b4d] p-8 flex flex-col items-center justify-center text-center">
                                     <div className="relative w-48 h-48 mb-6">
-                                        <div className="absolute inset-0 bg-white dark:bg-[#1a2632] rounded-full border-4 border-primary/20 flex items-center justify-center shadow-lg">
+                                        <div className="absolute inset-0 bg-white dark:bg-[#1a2632] rounded-full border-4 border-primary/20 flex items-center justify-center">
                                             <div className="w-36 h-36 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center relative">
                                                 <div className="absolute w-1 h-16 bg-primary rounded-full bottom-1/2 left-1/2 -translate-x-1/2 origin-bottom transform rotate-45"></div>
                                                 <div className="absolute w-1 h-12 bg-blue-300 rounded-full bottom-1/2 left-1/2 -translate-x-1/2 origin-bottom transform -rotate-45"></div>

@@ -457,7 +457,7 @@ function TrackingPage() {
                     {/* Icon Group */}
                     <div className="relative mb-6">
                         <div className="absolute inset-0 bg-orange-400 rounded-full animate-ping opacity-20"></div>
-                        <div className="relative w-24 h-24 bg-gradient-to-tr from-orange-500 to-orange-400 rounded-full flex items-center justify-center shadow-lg shadow-orange-200">
+                        <div className="relative w-24 h-24 bg-gradient-to-tr from-orange-500 to-orange-400 rounded-full flex items-center justify-center">
                             <span className="material-symbols-outlined text-4xl text-white animate-pulse">storefront</span>
                         </div>
                     </div>
@@ -529,7 +529,7 @@ function TrackingPage() {
                     </ErrorBoundary>
 
                     {/* Floating Status Card Overlay */}
-                    <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-white z-30 flex items-center justify-between">
+                    <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl p-3 border border-white z-30 flex items-center justify-between">
                         <div>
                             <p className="text-xs text-text-secondary font-medium">Estimasi Tiba</p>
                             <p className="text-lg font-bold text-text-main flex items-center gap-1">
@@ -661,7 +661,7 @@ function TrackingPage() {
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-border-color z-30 animate-slide-up">
                     <button
                         onClick={() => navigate('/review')}
-                        className="w-full py-3.5 bg-primary text-white font-bold rounded-xl shadow-lg active:scale-[0.99] transition-transform flex items-center justify-center gap-2"
+                        className="w-full py-3.5 bg-primary text-white font-bold rounded-xl active:scale-[0.99] transition-transform flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined">star</span>
                         Beri Ulasan

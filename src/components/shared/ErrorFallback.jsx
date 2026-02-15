@@ -76,7 +76,7 @@ function ErrorFallback({ error, resetError, errorInfo }) {
                     </button>
                     <button
                         onClick={handleReload}
-                        className="flex-1 py-3 px-4 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                        className="flex-1 py-3 px-4 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined text-[20px]">refresh</span>
                         <span>Muat Ulang</span>

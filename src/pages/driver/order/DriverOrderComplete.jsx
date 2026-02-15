@@ -144,7 +144,7 @@ function DriverOrderComplete() {
                         clearOrder()
                         navigate('/driver/dashboard')
                     }}
-                    className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 transition-colors text-white font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+                    className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 transition-colors text-white font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2"
                 >
                     <span>KEMBALI KE BERANDA</span>
                 </button>

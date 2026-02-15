@@ -479,7 +479,7 @@ export const merchantService = {
             // 1. Get Owner ID first (withdrawals are linked to user_id)
             const { data: merchant, error: mError } = await supabase
                 .from('merchants')
-                .select('owner_id')
+                .select('owner_id, bank_name, bank_account_number, bank_account_name')
                 .eq('id', merchantId)
                 .single()
 
@@ -512,7 +512,11 @@ export const merchantService = {
                 balance: totalEarnings - totalWithdrawals,
                 totalEarnings,
                 totalWithdrawals,
-                withdrawals: withdrawals.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                withdrawals: withdrawals.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+                // Bank details from merchant record
+                bankName: merchant.bank_name,
+                accountNumber: merchant.bank_account_number,
+                accountName: merchant.bank_account_name
             }
         } catch (error) {
             logger.error('Failed to fetch balance', error, 'merchantService')
@@ -521,7 +525,10 @@ export const merchantService = {
                 balance: 0,
                 totalEarnings: 0,
                 totalWithdrawals: 0,
-                withdrawals: []
+                withdrawals: [],
+                bankName: null,
+                accountNumber: null,
+                accountName: null
             }
         }
     },

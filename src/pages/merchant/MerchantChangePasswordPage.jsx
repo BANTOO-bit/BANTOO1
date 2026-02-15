@@ -1,11 +1,87 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { authService } from '../../services/authService'
+import { useToast } from '../../context/ToastContext'
 
 function MerchantChangePasswordPage() {
     const navigate = useNavigate()
+    const { user } = useAuth()
+    const toast = useToast()
+
     const [showOldPassword, setShowOldPassword] = useState(false)
     const [showNewPassword, setShowNewPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+    const [formData, setFormData] = useState({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    })
+    const [loading, setLoading] = useState(false)
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        })
+    }
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+
+        // Validation
+        if (!formData.oldPassword || !formData.newPassword || !formData.confirmPassword) {
+            toast.error('Mohon lengkapi semua bidang')
+            return
+        }
+
+        if (formData.newPassword.length < 8) {
+            toast.error('Kata sandi baru minimal 8 karakter')
+            return
+        }
+
+        if (formData.newPassword !== formData.confirmPassword) {
+            toast.error('Konfirmasi kata sandi tidak cocok')
+            return
+        }
+
+        if (formData.oldPassword === formData.newPassword) {
+            toast.error('Kata sandi baru tidak boleh sama dengan yang lama')
+            return
+        }
+
+        setLoading(true)
+
+        try {
+            // 1. Verify Old Password
+            // We use signInWithPhone because that's how merchants login
+            const { error: verifyError } = await authService.signInWithPhone(user.phone, formData.oldPassword)
+
+            if (verifyError) {
+                console.error('Password verification failed:', verifyError)
+                toast.error('Kata sandi lama salah')
+                setLoading(false)
+                return
+            }
+
+            // 2. Update Password
+            const { error: updateError } = await authService.updatePassword(formData.newPassword)
+
+            if (updateError) {
+                throw updateError
+            }
+
+            toast.success('Kata sandi berhasil diperbarui')
+            navigate(-1)
+
+        } catch (error) {
+            console.error('Change password failed:', error)
+            toast.error('Gagal memperbarui kata sandi')
+        } finally {
+            setLoading(false)
+        }
+    }
 
     return (
         <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
@@ -21,11 +97,14 @@ function MerchantChangePasswordPage() {
             </header>
 
             <main className="flex flex-col px-4 pt-6">
-                <form className="flex flex-col gap-6" onSubmit={(e) => { e.preventDefault(); navigate(-1); }}>
+                <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-text-main dark:text-gray-200 ml-1">Kata Sandi Saat Ini</label>
                         <div className="relative group">
                             <input
+                                name="oldPassword"
+                                value={formData.oldPassword}
+                                onChange={handleChange}
                                 className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark text-text-main dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-sm"
                                 placeholder="Masukkan kata sandi lama"
                                 type={showOldPassword ? "text" : "password"}
@@ -46,6 +125,9 @@ function MerchantChangePasswordPage() {
                         <label className="text-sm font-semibold text-text-main dark:text-gray-200 ml-1">Kata Sandi Baru</label>
                         <div className="relative group">
                             <input
+                                name="newPassword"
+                                value={formData.newPassword}
+                                onChange={handleChange}
                                 className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark text-text-main dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-sm"
                                 placeholder="Masukkan kata sandi baru"
                                 type={showNewPassword ? "text" : "password"}
@@ -70,6 +152,9 @@ function MerchantChangePasswordPage() {
                         <label className="text-sm font-semibold text-text-main dark:text-gray-200 ml-1">Konfirmasi Kata Sandi Baru</label>
                         <div className="relative group">
                             <input
+                                name="confirmPassword"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
                                 className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark text-text-main dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-sm"
                                 placeholder="Ulangi kata sandi baru"
                                 type={showConfirmPassword ? "text" : "password"}
@@ -88,11 +173,18 @@ function MerchantChangePasswordPage() {
 
                     <div className="pt-8">
                         <button
-                            className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-[15px] shadow-lg shadow-orange-500/25 hover:bg-primary-dark hover:shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-[15px] hover:bg-primary-dark active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                             type="submit"
+                            disabled={loading}
                         >
-                            <span className="material-symbols-outlined text-[20px]">lock_reset</span>
-                            Update Kata Sandi
+                            {loading ? (
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            ) : (
+                                <>
+                                    <span className="material-symbols-outlined text-[20px]">lock_reset</span>
+                                    Update Kata Sandi
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>

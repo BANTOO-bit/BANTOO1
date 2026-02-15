@@ -222,7 +222,7 @@ function DriverPickupOrder() {
                     onClick={handleConfirmPickup}
                     disabled={!allItemsChecked || isConfirming}
                     className={`w - full font - bold py - 3.5 rounded - xl flex items - center justify - center gap - 2 shadow - sm transition - all active: scale - [0.98] ${allItemsChecked && !isConfirming
-                        ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20 shadow-lg'
+                        ? 'bg-green-500 hover:bg-green-600 text-white'
                         : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                         } `}
                 >

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import ProgressBar from '../../../components/partner/ProgressBar'
 import FileUploadZone from '../../../components/partner/FileUploadZone'
 import { usePartnerRegistration } from '../../../context/PartnerRegistrationContext'
+import BankSelectSheet, { getBankDisplayName } from '../../../components/shared/BankSelectSheet'
 
 function MerchantRegistrationStep2() {
     const navigate = useNavigate()
@@ -19,6 +20,7 @@ function MerchantRegistrationStep2() {
     const [idCardPreview, setIdCardPreview] = useState(null)
     const [shopPreview, setShopPreview] = useState(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isBankSheetOpen, setIsBankSheetOpen] = useState(false)
     const [errors, setErrors] = useState({})
 
     const handleIdCardChange = (file) => {
@@ -180,29 +182,13 @@ function MerchantRegistrationStep2() {
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" htmlFor="bankName">
                                     Nama Bank/Wallet
                                 </label>
-                                <div className="relative">
-                                    <select
+                                <div className="relative" onClick={() => setIsBankSheetOpen(true)}>
+                                    <input
+                                        readOnly
+                                        value={getBankDisplayName(formData.bankName)}
+                                        placeholder="Pilih Bank/Wallet"
                                         className={`w-full px-4 py-3 bg-white dark:bg-surface-dark border ${errors.bankName ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 dark:border-gray-700 focus:ring-primary'} rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all shadow-sm text-gray-900 dark:text-white appearance-none cursor-pointer pr-10`}
-                                        id="bankName"
-                                        name="bankName"
-                                        value={formData.bankName || ''}
-                                        onChange={(e) => {
-                                            setFormData(prev => ({ ...prev, bankName: e.target.value }))
-                                            if (errors.bankName) setErrors(prev => ({ ...prev, bankName: null }))
-                                        }}
-                                    >
-                                        <option value="" disabled>Pilih Bank/Wallet</option>
-                                        <option value="bca">BCA</option>
-                                        <option value="mandiri">Mandiri</option>
-                                        <option value="bni">BNI</option>
-                                        <option value="bri">BRI</option>
-                                        <option value="cimb">CIMB Niaga</option>
-                                        <option value="jago">Bank Jago</option>
-                                        <option value="gopay">GoPay</option>
-                                        <option value="ovo">OVO</option>
-                                        <option value="dana">DANA</option>
-                                        <option value="lainnya">Lainnya</option>
-                                    </select>
+                                    />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
                                         <span className="material-symbols-outlined text-2xl">expand_more</span>
                                     </div>
@@ -240,7 +226,7 @@ function MerchantRegistrationStep2() {
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-orange-500/20 active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <span>{isSubmitting ? 'Mengirim...' : 'Kirim Pendaftaran'}</span>
                     <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform text-sm">
@@ -248,6 +234,16 @@ function MerchantRegistrationStep2() {
                     </span>
                 </button>
             </div>
+
+            <BankSelectSheet
+                isOpen={isBankSheetOpen}
+                onClose={() => setIsBankSheetOpen(false)}
+                onSelect={(bank) => {
+                    setFormData(prev => ({ ...prev, bankName: bank.code }))
+                    if (errors.bankName) setErrors(prev => ({ ...prev, bankName: null }))
+                }}
+                selectedBankCode={formData.bankName}
+            />
         </div>
     )
 }

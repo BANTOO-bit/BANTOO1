@@ -151,7 +151,7 @@ function AddressListPage() {
                 <div className="bg-gradient-to-t from-background-light via-background-light/95 to-transparent px-4 pb-6 pt-8">
                     <button
                         onClick={() => navigate('/address/add')}
-                        className="w-full h-[56px] bg-primary text-white font-bold rounded-[28px] shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        className="w-full h-[56px] bg-primary text-white font-bold rounded-[28px] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined">add_location_alt</span>
                         <span>Tambah Alamat Baru</span>

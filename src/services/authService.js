@@ -86,5 +86,13 @@ export const authService = {
             data: updates
         })
         return { data, error }
+    },
+
+    // Update Password
+    async updatePassword(newPassword) {
+        const { data, error } = await supabase.auth.updateUser({
+            password: newPassword
+        })
+        return { data, error }
     }
 }

@@ -165,7 +165,7 @@ function MerchantEditProfilePage() {
                     </div>
                     <div className="pt-4">
                         <button
-                            className="w-full py-4 bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-white font-bold rounded-2xl shadow-lg shadow-primary/30 text-base disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full py-4 bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-white font-bold rounded-2xl text-base disabled:opacity-70 disabled:cursor-not-allowed"
                             type="submit"
                             disabled={isSaving}
                         >

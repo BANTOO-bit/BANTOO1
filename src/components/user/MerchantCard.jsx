@@ -12,12 +12,15 @@ function MerchantCard({ merchant, onClick, showFavoriteButton = true }) {
     return (
         <article
             onClick={() => onClick?.(merchant)}
-            className="relative flex items-center p-3 gap-3 rounded-xl bg-card-light shadow-soft border border-border-color active:bg-gray-50 transition-colors cursor-pointer"
+            className={`relative flex items-center p-3 gap-3 rounded-xl bg-card-light shadow-soft border border-border-color active:bg-gray-50 transition-colors cursor-pointer ${!merchant.is_open ? 'opacity-80' : ''}`}
         >
             <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                 <div
                     className="w-full h-full bg-cover bg-center"
-                    style={{ backgroundImage: `url('${merchant.image}')` }}
+                    style={{
+                        backgroundImage: `url('${merchant.image}')`,
+                        filter: !merchant.is_open ? 'grayscale(100%)' : 'none'
+                    }}
                 />
             </div>
             <div className="flex flex-col flex-1 justify-center gap-1">

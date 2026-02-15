@@ -122,14 +122,18 @@ function MerchantBalancePage() {
                                     </h2>
                                     <button
                                         onClick={handleWithdraw}
-                                        className="w-full py-3.5 bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all rounded-xl text-white font-semibold shadow-md shadow-orange-500/20 flex items-center justify-center gap-2"
+                                        className="w-full py-3.5 bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all rounded-xl text-white font-semibold flex items-center justify-center gap-2"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">payments</span>
                                         Tarik Dana
                                     </button>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-dashed border-border-color dark:border-gray-700 flex justify-between items-center text-xs">
-                                    <span className="text-text-secondary dark:text-gray-400">Bank BCA •••• 8892</span>
+                                    <span className="text-text-secondary dark:text-gray-400">
+                                        {balanceData.bankName && balanceData.accountNumber
+                                            ? `${balanceData.bankName} •••• ${balanceData.accountNumber.slice(-4)}`
+                                            : 'Belum ada rekening'}
+                                    </span>
                                     <button onClick={() => navigate('/merchant/balance/edit-bank')} className="text-primary font-medium">Ubah Rekening</button>
                                 </div>
                             </div>

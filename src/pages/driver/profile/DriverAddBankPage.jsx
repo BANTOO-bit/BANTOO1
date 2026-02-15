@@ -1,32 +1,70 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { driverService } from '../../../services/driverService'
+import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
+import PageLoader from '../../../components/shared/PageLoader'
+import BankSelectSheet, { getBankDisplayName } from '../../../components/shared/BankSelectSheet'
 
 function DriverAddBankPage() {
     const navigate = useNavigate()
+    const { user } = useAuth()
     const toast = useToast()
+    const [loading, setLoading] = useState(false)
+    const [initialLoading, setInitialLoading] = useState(true)
+    const [isBankSheetOpen, setIsBankSheetOpen] = useState(false)
     const [formData, setFormData] = useState({
         bank: '',
         number: '',
         holder: ''
     })
 
-    const banks = [
-        { id: 'bca', name: 'Bank BCA', icon: 'account_balance' },
-        { id: 'mandiri', name: 'Bank Mandiri', icon: 'account_balance' },
-        { id: 'bri', name: 'Bank BRI', icon: 'account_balance' },
-        { id: 'gopay', name: 'GoPay', icon: 'account_balance_wallet' },
-        { id: 'ovo', name: 'OVO', icon: 'account_balance_wallet' },
-        { id: 'dana', name: 'DANA', icon: 'account_balance_wallet' }
-    ]
+    useEffect(() => {
+        fetchCurrentData()
+    }, [])
 
-    const handleSave = () => {
+    const fetchCurrentData = async () => {
+        try {
+            const data = await driverService.getBankDetails()
+            if (data) {
+                setFormData({
+                    bank: data.bank_name || '',
+                    number: data.bank_account_number || '',
+                    holder: data.bank_account_name || ''
+                })
+            }
+        } catch (error) {
+            console.error('Error fetching bank details:', error)
+        } finally {
+            setInitialLoading(false)
+        }
+    }
+
+    const handleSave = async () => {
         if (!formData.bank || !formData.number || !formData.holder) {
-            toast.warning('Mohon lengkapi semua data')
+            toast.error('Mohon lengkapi semua data')
             return
         }
-        // Logic to save
-        navigate('/driver/bank')
+
+        setLoading(true)
+        try {
+            await driverService.updateDriver(user.id, {
+                bank_name: formData.bank,
+                bank_account_number: formData.number,
+                bank_account_name: formData.holder
+            })
+
+            toast.success('Rekening berhasil disimpan')
+            navigate('/driver/bank')
+        } catch (error) {
+            console.error('Error saving bank details:', error)
+            toast.error('Gagal menyimpan rekening')
+        } finally {
+            setLoading(false)
+        }
     }
+
+    if (initialLoading) return <PageLoader />
 
     return (
         <div className="font-display bg-background-light text-slate-900 antialiased min-h-screen">
@@ -47,16 +85,17 @@ function DriverAddBankPage() {
                 <main className="flex-1 p-5 pb-10 flex flex-col gap-6">
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-bold text-slate-700 ml-1">Pilih Bank / E-Wallet</label>
-                        <select
-                            value={formData.bank}
-                            onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
-                            className="w-full p-4 rounded-xl border border-slate-200 bg-white text-slate-900 font-bold focus:border-[#0d59f2] focus:ring-0 outline-none appearance-none"
-                        >
-                            <option value="">Pilih Bank Tujuan</option>
-                            {banks.map(bank => (
-                                <option key={bank.id} value={bank.id}>{bank.name}</option>
-                            ))}
-                        </select>
+                        <div className="relative" onClick={() => setIsBankSheetOpen(true)}>
+                            <input
+                                readOnly
+                                value={getBankDisplayName(formData.bank)}
+                                placeholder="Pilih Bank Tujuan"
+                                className="w-full p-4 pr-10 rounded-xl border border-slate-200 bg-white text-slate-900 font-bold focus:border-[#0d59f2] focus:ring-0 outline-none appearance-none cursor-pointer"
+                            />
+                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                                <span className="material-symbols-outlined text-slate-500">keyboard_arrow_down</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -86,12 +125,21 @@ function DriverAddBankPage() {
 
                     <button
                         onClick={handleSave}
-                        className="w-full bg-[#0d59f2] hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-base transition-all active:scale-[0.98] shadow-lg shadow-blue-500/20"
+                        disabled={loading}
+                        className="w-full bg-[#0d59f2] hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-4 rounded-xl text-base transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                        SIMPAN REKENING
+                        {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                        {loading ? 'MENYIMPAN...' : 'SIMPAN REKENING'}
                     </button>
                 </main>
             </div>
+
+            <BankSelectSheet
+                isOpen={isBankSheetOpen}
+                onClose={() => setIsBankSheetOpen(false)}
+                onSelect={(bank) => setFormData(prev => ({ ...prev, bank: bank.code }))}
+                selectedBankCode={formData.bank}
+            />
         </div>
     )
 }

@@ -125,7 +125,7 @@ function CartPage() {
                     </p>
                     <button
                         onClick={() => navigate('/')}
-                        className="px-6 py-3 bg-primary text-white font-bold rounded-full shadow-lg shadow-primary/30 active:scale-95 transition-transform"
+                        className="px-6 py-3 bg-primary text-white font-bold rounded-full active:scale-95 transition-transform"
                     >
                         Cari Makanan
                     </button>
@@ -319,7 +319,7 @@ function CartPage() {
             <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-border-color px-4 pt-4 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.05)]">
                 <button
                     onClick={() => navigate('/checkout')}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold h-14 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold h-14 rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                     <span>Pilih Metode Pembayaran</span>
                     <span className="material-symbols-outlined text-[20px]">arrow_forward</span>

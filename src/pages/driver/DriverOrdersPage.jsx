@@ -105,7 +105,7 @@ function DriverOrdersPage() {
                                                     navigate('/driver/order/delivery')
                                                 }
                                             }}
-                                            className="flex items-center justify-center gap-2 bg-[#0d59f2] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
+                                            className="flex items-center justify-center gap-2 bg-[#0d59f2] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors"
                                         >
                                             Detail Tugas
                                             <span className="material-symbols-outlined text-[16px]">arrow_forward</span>

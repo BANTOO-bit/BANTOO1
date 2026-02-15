@@ -9,11 +9,13 @@ import EmptyState from '../../components/shared/EmptyState'
 // Menu categories for filtering
 // Menu categories are now derived dynamically from the data
 
-function MenuItemCard({ item, merchant }) {
+function MenuItemCard({ item, merchant, isShopOpen }) {
     const { addToCart, getItemQuantity, updateQuantity } = useCart()
     const quantity = getItemQuantity(item.id)
 
     const handleAdd = () => {
+        if (!isShopOpen) return
+
         // No merchant restriction - just add to cart
         addToCart({
             ...item,
@@ -22,12 +24,14 @@ function MenuItemCard({ item, merchant }) {
     }
 
     const handleDecrease = () => {
+        if (!isShopOpen) return
         if (quantity > 0) {
             updateQuantity(item.id, quantity - 1)
         }
     }
 
     const handleIncrease = () => {
+        if (!isShopOpen) return
         addToCart({
             ...item,
             merchantName: merchant.name
@@ -35,13 +39,14 @@ function MenuItemCard({ item, merchant }) {
     }
 
     return (
-        <div className="flex gap-3 p-3 bg-white rounded-xl border border-border-color">
+        <div className={`flex gap-3 p-3 bg-white rounded-xl border border-border-color ${!isShopOpen ? 'opacity-70' : ''}`}>
             {/* Item Image */}
             <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0">
                 <img
                     src={item.image}
                     alt={item.name}
                     className="w-full h-full object-cover"
+                    style={!isShopOpen ? { filter: 'grayscale(100%)' } : {}}
                 />
             </div>
 
@@ -61,29 +66,39 @@ function MenuItemCard({ item, merchant }) {
                 <div className="flex items-center justify-between mt-2">
                     <span className="font-bold text-primary text-sm">Rp {item.price.toLocaleString()}</span>
 
-                    {quantity === 0 ? (
+                    {/* Button Logic for Closed Shop */}
+                    {!isShopOpen ? (
                         <button
-                            onClick={handleAdd}
-                            className="w-7 h-7 flex items-center justify-center bg-primary text-white rounded-full active:scale-95 transition-transform shadow-md"
+                            disabled
+                            className="px-3 py-1 bg-gray-100 text-gray-400 text-xs font-medium rounded-full cursor-not-allowed border border-gray-200"
                         >
-                            <span className="material-symbols-outlined text-base">add</span>
+                            Tutup
                         </button>
                     ) : (
-                        <div className="flex items-center gap-2">
+                        quantity === 0 ? (
                             <button
-                                onClick={handleDecrease}
-                                className="w-7 h-7 flex items-center justify-center bg-gray-100 text-text-main rounded-full active:scale-95 transition-transform"
-                            >
-                                <span className="material-symbols-outlined text-base">remove</span>
-                            </button>
-                            <span className="font-bold text-sm w-5 text-center">{quantity}</span>
-                            <button
-                                onClick={handleIncrease}
-                                className="w-7 h-7 flex items-center justify-center bg-primary text-white rounded-full active:scale-95 transition-transform"
+                                onClick={handleAdd}
+                                className="w-7 h-7 flex items-center justify-center bg-primary text-white rounded-full active:scale-95 transition-transform shadow-md"
                             >
                                 <span className="material-symbols-outlined text-base">add</span>
                             </button>
-                        </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleDecrease}
+                                    className="w-7 h-7 flex items-center justify-center bg-gray-100 text-text-main rounded-full active:scale-95 transition-transform"
+                                >
+                                    <span className="material-symbols-outlined text-base">remove</span>
+                                </button>
+                                <span className="font-bold text-sm w-5 text-center">{quantity}</span>
+                                <button
+                                    onClick={handleIncrease}
+                                    className="w-7 h-7 flex items-center justify-center bg-primary text-white rounded-full active:scale-95 transition-transform"
+                                >
+                                    <span className="material-symbols-outlined text-base">add</span>
+                                </button>
+                            </div>
+                        )
                     )}
                 </div>
             </div>
@@ -131,7 +146,8 @@ function MerchantDetailPage() {
         ? merchantMenus
         : merchantMenus.filter(item => item.category === activeCategory)
 
-    const showCartButton = cartCount > 0 && merchantInfo?.id === currentMerchant?.id
+    // Only show cart button if shop is open AND cart has items
+    const showCartButton = currentMerchant?.isOpen && cartCount > 0 && merchantInfo?.id === currentMerchant?.id
 
     // Derive categories from menu items
     const uniqueCategories = [...new Set(merchantMenus.map(item => item.category).filter(Boolean))]
@@ -170,6 +186,8 @@ function MerchantDetailPage() {
     if (error) return <ErrorState message="Gagal Memuat" detail={error} onRetry={fetchMerchantData} />
     if (!currentMerchant) return null
 
+    const isShopOpen = currentMerchant?.isOpen
+
     return (
         <div className="relative min-h-screen flex flex-col bg-background-light pb-24">
             {/* Hero Image with Back Button */}
@@ -178,6 +196,7 @@ function MerchantDetailPage() {
                     src={currentMerchant?.image}
                     alt={currentMerchant?.name}
                     className="w-full h-full object-cover"
+                    style={!isShopOpen ? { filter: 'grayscale(100%)' } : {}}
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent" />
                 <button
@@ -195,8 +214,8 @@ function MerchantDetailPage() {
                         <h1 className="text-lg font-bold text-text-main">{currentMerchant?.name}</h1>
                         <p className="text-xs text-text-secondary mt-0.5">{currentMerchant?.category}</p>
                     </div>
-                    <div className={`px-2 py-1 rounded-full text-[10px] font-bold ${currentMerchant?.isOpen ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                        {currentMerchant?.isOpen ? 'Buka' : 'Tutup'}
+                    <div className={`px-2 py-1 rounded-full text-[10px] font-bold ${isShopOpen ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                        {isShopOpen ? 'Buka' : 'Tutup'}
                     </div>
                 </div>
 
@@ -229,6 +248,7 @@ function MerchantDetailPage() {
                                 key={item.id}
                                 item={item}
                                 merchant={currentMerchant}
+                                isShopOpen={isShopOpen}
                             />
                         ))
                     ) : (
@@ -239,6 +259,21 @@ function MerchantDetailPage() {
                     )}
                 </div>
             </div>
+
+            {/* Closed Banner */}
+            {!isShopOpen && (
+                <div className="fixed bottom-0 left-0 right-0 z-50 bg-red-600 text-white p-4 shadow-lg-reverse animate-slide-up">
+                    <div className="max-w-md mx-auto flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined">storefront</span>
+                            <div>
+                                <p className="font-bold text-sm">Warung Sedang Tutup</p>
+                                <p className="text-xs text-red-100">Silakan kembali lagi nanti saat warung buka.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Floating Cart Button */}
             {showCartButton && (

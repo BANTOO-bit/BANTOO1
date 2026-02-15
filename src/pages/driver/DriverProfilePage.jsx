@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import driverService from '../../services/driverService'
+import { reviewService } from '../../services/reviewService'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
 
 function DriverProfilePage() {
@@ -10,18 +11,25 @@ function DriverProfilePage() {
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [driverData, setDriverData] = useState(null)
     const [stats, setStats] = useState(null)
+    const [ratingData, setRatingData] = useState({ averageRating: 0, totalReviews: 0 })
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const fetchDriverData = async () => {
             if (!user?.id) return
             try {
-                const [profile, drvStats] = await Promise.all([
-                    driverService.getProfile(),
-                    driverService.getStats()
+                // Get user role first to find driver record
+                const profile = await driverService.getProfile()
+                if (!profile) return
+
+                const [drvStats, rating] = await Promise.all([
+                    driverService.getStats(),
+                    reviewService.getDriverRating(profile.id)
                 ])
+
                 setDriverData(profile)
                 setStats(drvStats)
+                setRatingData(rating)
             } catch (error) {
                 console.error('Failed to fetch driver profile:', error)
             } finally {
@@ -90,9 +98,19 @@ function DriverProfilePage() {
 
                         {/* Stats */}
                         <div className="flex w-full justify-center gap-8 mt-2">
-                            <div className="flex flex-col items-center">
-                                <span className="text-lg font-bold text-slate-900">5.0</span>
-                                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Rating</span>
+                            <div
+                                className="flex flex-col items-center cursor-pointer active:scale-95 transition-transform"
+                                onClick={() => navigate('/driver/reviews')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    <span className="text-lg font-bold text-slate-900">
+                                        {ratingData?.averageRating ? ratingData.averageRating.toFixed(1) : '5.0'}
+                                    </span>
+                                    <span className="material-symbols-outlined text-amber-500 text-sm">star</span>
+                                </div>
+                                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                                    Rating ({ratingData?.totalReviews || 0})
+                                </span>
                             </div>
                             <div className="w-px h-8 bg-slate-200" />
                             <div className="flex flex-col items-center">

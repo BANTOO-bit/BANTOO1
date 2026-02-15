@@ -210,7 +210,7 @@ function CategoryDetailPage() {
                             key={subCat}
                             onClick={() => setActiveFilter(subCat)}
                             className={`flex h-9 shrink-0 items-center justify-center px-5 gap-1.5 rounded-lg cursor-pointer transition-all ${activeFilter === subCat
-                                ? 'bg-primary text-white shadow-md shadow-primary/20'
+                                ? 'bg-primary text-white'
                                 : 'bg-white border border-gray-100'
                                 }`}
                         >
@@ -237,7 +237,7 @@ function CategoryDetailPage() {
                         <div className="flex flex-col gap-3 w-full max-w-[280px]">
                             <button
                                 onClick={() => navigate('/categories')}
-                                className="w-full py-2.5 px-4 bg-primary text-white font-medium rounded-full shadow-lg shadow-primary/20 hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
+                                className="w-full py-2.5 px-4 bg-primary text-white font-medium rounded-full hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-[20px]">category</span>
                                 Lihat Kategori Lain

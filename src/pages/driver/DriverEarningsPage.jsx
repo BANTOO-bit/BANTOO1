@@ -175,7 +175,7 @@ function DriverEarningsPage() {
                     </div>
 
                     {/* COD Fee Card - ALWAYS RED */}
-                    <div className="w-full rounded-2xl bg-red-500 text-white p-5 shadow-lg shadow-red-500/20 relative overflow-hidden group">
+                    <div className="w-full rounded-2xl bg-red-500 text-white p-5 relative overflow-hidden group">
                         <div className="absolute -right-4 -top-4 opacity-10">
                             <span className="material-symbols-outlined text-[120px]">payments</span>
                         </div>
@@ -345,7 +345,7 @@ function DriverEarningsPage() {
                                 </button>
                                 <button
                                     onClick={handleApplyFilter}
-                                    className="flex-1 py-3 text-sm font-bold text-white bg-[#0d59f2] rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                                    className="flex-1 py-3 text-sm font-bold text-white bg-[#0d59f2] rounded-xl hover:bg-blue-600 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                                     disabled={!startDate}
                                 >
                                     Terapkan Filter

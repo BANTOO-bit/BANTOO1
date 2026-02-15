@@ -1,62 +1,59 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import MerchantBottomNavigation from '../../components/merchant/MerchantBottomNavigation'
+import { useAuth } from '../../context/AuthContext'
+import { reviewService } from '../../services/reviewService'
+import merchantService from '../../services/merchantService'
 
 function MerchantReviewsPage() {
     const navigate = useNavigate()
+    const { user } = useAuth()
     const [activeFilter, setActiveFilter] = useState('all') // all, with_photo, reply_needed
+    const [reviews, setReviews] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [merchantRating, setMerchantRating] = useState({ averageRating: 0, totalReviews: 0, distribution: {} })
 
-    // Mock Data
-    const reviews = [
-        {
-            id: 1,
-            customer: {
-                name: 'Rizky Ramadhan',
-                avatar: 'https://i.pravatar.cc/150?u=rizky',
-            },
-            date: '20 Okt 2024',
-            rating: 5,
-            items: 'Bakso Urat Jumbo, Es Teh Manis',
-            comment: 'Baksonya enak banget, kuahnya gurih! Pengiriman juga cepat. Mantap 👍',
-            photos: [
-                'https://placehold.co/200x200/orange/white?text=Bakso',
-                'https://placehold.co/200x200/orange/white?text=Es+Teh'
-            ],
-            reply: null
-        },
-        {
-            id: 2,
-            customer: {
-                name: 'Siti Aminah',
-                avatar: 'https://i.pravatar.cc/150?u=siti',
-            },
-            date: '19 Okt 2024',
-            rating: 4,
-            items: 'Mie Ayam Ceker',
-            comment: 'Rasanya oke, tapi cekernya agak keras dikit. Tolong diperbaiki ya.',
-            photos: [],
-            reply: 'Terima kasih masukannya kak Siti. Mohon maaf atas ketidaknyamanannya, akan kami perbaiki kedepannya.'
-        },
-        {
-            id: 3,
-            customer: {
-                name: 'Budi Santoso',
-                avatar: 'https://i.pravatar.cc/150?u=budi',
-            },
-            date: '18 Okt 2024',
-            rating: 5,
-            items: 'Es Jeruk Peras',
-            comment: 'Seger banget es jeruknya!',
-            photos: [],
-            reply: null
+    useEffect(() => {
+        const fetchReviews = async () => {
+            if (!user?.merchantId) return
+            try {
+                // Fetch reviews and merchant details (for rating summary if needed, but we calculate locally or fetch stats)
+                // We'll calculate stats from reviews for now or add a service method if needed.
+                // Actually reviewService.getMerchantReviews returns the list.
+                // We might need a separate stats endpoint or calculate on client if list is small.
+                // For now, let's fetch all (or paginated) and calculate stats on client for simplicity,
+                // or better, implement a getMerchantRating in reviewService similar to driver.
+
+                const [reviewsData, ratingData] = await Promise.all([
+                    reviewService.getMerchantReviews(user.merchantId),
+                    // We need to implement getMerchantRating in reviewService to be consistent
+                    reviewService.getMerchantRating(user.merchantId)
+                ])
+
+                setReviews(reviewsData || [])
+                setMerchantRating(ratingData)
+            } catch (error) {
+                console.error('Failed to fetch reviews:', error)
+            } finally {
+                setLoading(false)
+            }
         }
-    ]
+
+        fetchReviews()
+    }, [user?.merchantId])
 
     const filteredReviews = reviews.filter(review => {
-        if (activeFilter === 'with_photo') return review.photos.length > 0
-        if (activeFilter === 'reply_needed') return review.reply === null
+        if (activeFilter === 'with_photo') return review.photos && review.photos.length > 0
+        if (activeFilter === 'reply_needed') return review.merchant_reply === null
         return true
     })
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-background-light dark:bg-background-dark">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        )
+    }
 
     return (
         <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
@@ -75,28 +72,34 @@ function MerchantReviewsPage() {
                 {/* Summary Section */}
                 <section className="bg-white dark:bg-card-dark p-5 rounded-2xl shadow-soft border border-gray-100 dark:border-gray-700 flex items-center gap-6">
                     <div className="flex flex-col items-center justify-center gap-1 min-w-[80px]">
-                        <span className="text-4xl font-bold text-text-main dark:text-white">4.8</span>
+                        <span className="text-4xl font-bold text-text-main dark:text-white">
+                            {merchantRating.averageRating.toFixed(1)}
+                        </span>
                         <div className="flex text-yellow-400 text-sm">
-                            <span className="material-symbols-outlined fill-current text-[16px]">star</span>
-                            <span className="material-symbols-outlined fill-current text-[16px]">star</span>
-                            <span className="material-symbols-outlined fill-current text-[16px]">star</span>
-                            <span className="material-symbols-outlined fill-current text-[16px]">star</span>
-                            <span className="material-symbols-outlined fill-current text-[16px]">star_half</span>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <span key={star} className="material-symbols-outlined fill-current text-[16px]">
+                                    {star <= Math.round(merchantRating.averageRating) ? 'star' : 'star_border'}
+                                </span>
+                            ))}
                         </div>
-                        <span className="text-[10px] text-text-secondary">86 Ulasan</span>
+                        <span className="text-[10px] text-text-secondary">{merchantRating.totalReviews} Ulasan</span>
                     </div>
                     <div className="flex-1 flex flex-col gap-1.5 border-l border-gray-100 dark:border-gray-700 pl-6">
-                        {[5, 4, 3, 2, 1].map((star, idx) => (
-                            <div key={star} className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-text-secondary w-2">{star}</span>
-                                <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-yellow-400 rounded-full"
-                                        style={{ width: idx === 0 ? '70%' : idx === 1 ? '20%' : '5%' }}
-                                    ></div>
+                        {[5, 4, 3, 2, 1].map((star, idx) => {
+                            const count = merchantRating.distribution?.[star] || 0
+                            const percentage = merchantRating.totalReviews > 0 ? (count / merchantRating.totalReviews) * 100 : 0
+                            return (
+                                <div key={star} className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-text-secondary w-2">{star}</span>
+                                    <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-yellow-400 rounded-full"
+                                            style={{ width: `${percentage}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 </section>
 
@@ -111,8 +114,8 @@ function MerchantReviewsPage() {
                             key={tab.id}
                             onClick={() => setActiveFilter(tab.id)}
                             className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeFilter === tab.id
-                                    ? 'bg-primary text-white shadow-md shadow-primary/20'
-                                    : 'bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 text-text-secondary hover:bg-gray-50'
+                                ? 'bg-primary text-white'
+                                : 'bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 text-text-secondary hover:bg-gray-50'
                                 }`}
                         >
                             {tab.label}
@@ -122,71 +125,99 @@ function MerchantReviewsPage() {
 
                 {/* Review List */}
                 <div className="flex flex-col gap-4">
-                    {filteredReviews.map(review => (
-                        <article key={review.id} className="bg-white dark:bg-card-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-700 flex flex-col gap-3">
-                            {/* Reviewer Header */}
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-3">
-                                    <img
-                                        src={review.customer.avatar}
-                                        alt={review.customer.name}
-                                        className="w-10 h-10 rounded-full object-cover bg-gray-200"
-                                    />
-                                    <div className="flex flex-col">
-                                        <h3 className="text-sm font-bold text-text-main dark:text-white">{review.customer.name}</h3>
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="flex text-yellow-400">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <span key={i} className={`material-symbols-outlined text-[14px] ${i < review.rating ? 'fill-current' : 'text-gray-300'}`}>star</span>
-                                                ))}
+                    {filteredReviews.length === 0 ? (
+                        <div className="text-center py-10">
+                            <p className="text-gray-500 dark:text-gray-400">Belum ada ulasan</p>
+                        </div>
+                    ) : (
+                        filteredReviews.map(review => (
+                            <article key={review.id} className="bg-white dark:bg-card-dark rounded-2xl p-4 shadow-soft border border-gray-100 dark:border-gray-700 flex flex-col gap-3">
+                                {/* Reviewer Header */}
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-3">
+                                        <img
+                                            src={review.customer?.avatar_url || 'https://via.placeholder.com/150'}
+                                            alt={review.customer?.full_name || 'Customer'}
+                                            className="w-10 h-10 rounded-full object-cover bg-gray-200"
+                                        />
+                                        <div className="flex flex-col">
+                                            <h3 className="text-sm font-bold text-text-main dark:text-white">
+                                                {review.customer?.full_name || 'Pelanggan'}
+                                            </h3>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="flex text-yellow-400">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <span key={i} className={`material-symbols-outlined text-[14px] ${i < review.merchant_rating ? 'fill-current' : 'text-gray-300'}`}>star</span>
+                                                    ))}
+                                                </div>
+                                                <span className="text-[10px] text-text-secondary">
+                                                    • {new Date(review.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                </span>
                                             </div>
-                                            <span className="text-[10px] text-text-secondary">• {review.date}</span>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Ordered Items */}
-                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2.5">
-                                <p className="text-[11px] text-text-secondary line-clamp-1">
-                                    <span className="font-semibold text-text-main dark:text-gray-300">Dipesan: </span>
-                                    {review.items}
-                                </p>
-                            </div>
+                                {/* Ordered Items (If available in review data, otherwise omit or fetch) */}
+                                {/* Currently review schema might not have items string, usually joined from order_items. 
+                                    For now we'll skip or use placeholder if not in query. 
+                                    Standard reviewService.getMerchantReviews selects * from reviews. 
+                                    If we want items, we need to join orders -> order_items.
+                                    Let's keep it simple for now or assume review might have it if updated.
+                                    Since we didn't update schema to store items string in reviews, we might miss this.
+                                    I will omit it for now to avoid errors, or try to fetch if critical.
+                                */}
 
-                            {/* Comment */}
-                            <p className="text-sm text-text-main dark:text-gray-200 leading-relaxed">
-                                {review.comment}
-                            </p>
+                                {/* Comment */}
+                                {review.comment ? (
+                                    <p className="text-sm text-text-main dark:text-gray-200 leading-relaxed">
+                                        "{review.comment}"
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-slate-400 italic">Tidak ada komentar</p>
+                                )}
 
-                            {/* Photos */}
-                            {review.photos.length > 0 && (
-                                <div className="flex gap-2 mt-1">
-                                    {review.photos.map((photo, idx) => (
-                                        <img
-                                            key={idx}
-                                            src={photo}
-                                            alt="Review"
-                                            className="w-16 h-16 rounded-xl object-cover border border-gray-100 dark:border-gray-700 hover:scale-105 transition-transform cursor-pointer"
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                                {/* Photos - check if review has photos column or related table. 
+                                    Assuming 'photos' column exists based on previous mock usage, 
+                                    but need to verify schema. If not, hidden.
+                                    Standard schema: reviews table. If photos are stored, likely a column 'photos' (array) or separate table.
+                                    Let's handle safely.
+                                */}
+                                {review.photos && review.photos.length > 0 && (
+                                    <div className="flex gap-2 mt-1">
+                                        {review.photos.map((photo, idx) => (
+                                            <img
+                                                key={idx}
+                                                src={photo}
+                                                alt="Review"
+                                                className="w-16 h-16 rounded-xl object-cover border border-gray-100 dark:border-gray-700 hover:scale-105 transition-transform cursor-pointer"
+                                            />
+                                        ))}
+                                    </div>
+                                )}
 
-                            {/* Merchant Reply */}
-                            {review.reply ? (
-                                <div className="mt-2 pl-4 border-l-2 border-primary/20">
-                                    <p className="text-xs font-bold text-text-main dark:text-white mb-1">Balasan Anda:</p>
-                                    <p className="text-xs text-text-secondary dark:text-gray-400 italic">"{review.reply}"</p>
-                                </div>
-                            ) : (
-                                <button className="self-end mt-2 px-4 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-primary hover:bg-orange-100 transition-colors text-xs font-bold flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-[16px]">reply</span>
-                                    Balas Ulasan
-                                </button>
-                            )}
-                        </article>
-                    ))}
+                                {/* Merchant Reply */}
+                                {review.merchant_reply ? (
+                                    <div className="mt-2 pl-4 border-l-2 border-primary/20">
+                                        <p className="text-xs font-bold text-text-main dark:text-white mb-1">Balasan Anda:</p>
+                                        <p className="text-xs text-text-secondary dark:text-gray-400 italic">"{review.merchant_reply}"</p>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            // Handle reply logic - maybe open modal
+                                            // For now just console log
+                                            console.log('Reply to', review.id)
+                                        }}
+                                        className="self-end mt-2 px-4 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-primary hover:bg-orange-100 transition-colors text-xs font-bold flex items-center gap-1"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">reply</span>
+                                        Balas Ulasan
+                                    </button>
+                                )}
+                            </article>
+                        ))
+                    )}
                 </div>
             </main>
         </div>

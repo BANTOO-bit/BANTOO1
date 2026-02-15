@@ -203,7 +203,7 @@ function MerchantMenuPage() {
                     </div>
                     <button
                         onClick={handleAddMenu}
-                        className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-2xl font-semibold shadow-lg shadow-primary/30 transition-all active:scale-95 w-full max-w-[280px] justify-center"
+                        className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-2xl font-semibold transition-all active:scale-95 w-full max-w-[280px] justify-center"
                     >
                         <span className="material-symbols-outlined text-[20px]">add_circle</span>
                         <span>Tambah Menu Pertama</span>
@@ -250,7 +250,7 @@ function MerchantMenuPage() {
                                 key={cat.id}
                                 onClick={() => setActiveCategory(cat.id)}
                                 className={`px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${activeCategory === cat.id
-                                    ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+                                    ? 'bg-primary text-white border-primary'
                                     : 'bg-white dark:bg-card-dark text-text-secondary dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-primary/50'
                                     }`}
                             >
@@ -321,7 +321,7 @@ function MerchantMenuPage() {
                                 </button>
                                 <button
                                     onClick={confirmDelete}
-                                    className="flex-1 py-2.5 rounded-2xl bg-[#FF6B00] text-white font-semibold text-sm shadow-lg shadow-orange-500/20 hover:bg-[#e65100] transition-colors"
+                                    className="flex-1 py-2.5 rounded-2xl bg-[#FF6B00] text-white font-semibold text-sm hover:bg-[#e65100] transition-colors"
                                 >
                                     Hapus
                                 </button>

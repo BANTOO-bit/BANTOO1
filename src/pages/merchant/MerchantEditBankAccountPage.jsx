@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import BackButton from '../../components/shared/BackButton'
 import { useToast } from '../../context/ToastContext'
-import { handleError, handleSuccess } from '../../utils/errorHandler'
+import { handleError } from '../../utils/errorHandler'
 import { supabase } from '../../services/supabaseClient'
 import PageLoader from '../../components/shared/PageLoader'
+import BankSelectSheet, { getBankDisplayName } from '../../components/shared/BankSelectSheet'
 
 function MerchantEditBankAccountPage() {
     const navigate = useNavigate()
@@ -13,6 +13,7 @@ function MerchantEditBankAccountPage() {
     const toast = useToast()
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [isBankSheetOpen, setIsBankSheetOpen] = useState(false)
     const [formData, setFormData] = useState({
         bank_name: '',
         bank_account_number: '',
@@ -56,6 +57,10 @@ function MerchantEditBankAccountPage() {
             ...prev,
             [name]: value
         }))
+    }
+
+    const handleBankSelect = (bank) => {
+        setFormData(prev => ({ ...prev, bank_name: bank.code }))
     }
 
     const handleSubmit = async (e) => {
@@ -108,21 +113,13 @@ function MerchantEditBankAccountPage() {
                 <section className="bg-white dark:bg-card-dark rounded-2xl shadow-soft border border-border-color dark:border-gray-700 p-5 flex flex-col gap-5">
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-semibold text-text-main dark:text-white">Nama Bank</label>
-                        <div className="relative">
-                            <select
-                                name="bank_name"
-                                value={formData.bank_name}
-                                onChange={handleChange}
-                                className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white text-sm rounded-xl focus:ring-1 focus:ring-primary focus:border-primary block p-3.5 pr-10 appearance-none outline-none transition-all"
-                            >
-                                <option disabled value="">Pilih Bank</option>
-                                <option value="bca">Bank Central Asia (BCA)</option>
-                                <option value="mandiri">Bank Mandiri</option>
-                                <option value="bri">Bank Rakyat Indonesia (BRI)</option>
-                                <option value="bni">Bank Negara Indonesia (BNI)</option>
-                                <option value="cimb">CIMB Niaga</option>
-                                <option value="jago">Bank Jago</option>
-                            </select>
+                        <div className="relative" onClick={() => setIsBankSheetOpen(true)}>
+                            <input
+                                readOnly
+                                value={getBankDisplayName(formData.bank_name)}
+                                placeholder="Pilih Bank"
+                                className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white text-sm rounded-xl focus:ring-1 focus:ring-primary focus:border-primary block p-3.5 pr-10 cursor-pointer outline-none transition-all selection:bg-transparent"
+                            />
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                                 <span className="material-symbols-outlined text-[20px]">expand_more</span>
                             </div>
@@ -164,6 +161,13 @@ function MerchantEditBankAccountPage() {
                     </div>
                 </div>
             </main>
+
+            <BankSelectSheet
+                isOpen={isBankSheetOpen}
+                onClose={() => setIsBankSheetOpen(false)}
+                onSelect={handleBankSelect}
+                selectedBankCode={formData.bank_name}
+            />
         </div>
     )
 }

@@ -243,7 +243,7 @@ function CheckoutPage() {
                 <button
                     onClick={handlePlaceOrder}
                     disabled={isProcessing || (user?.isMerchant && isShopOpen)}
-                    className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all ${isProcessing || (user?.isMerchant && isShopOpen)
+                    className={`w-full py-4 rounded-2xl font-bold text-white transition-all ${isProcessing || (user?.isMerchant && isShopOpen)
                         ? 'bg-gray-400 cursor-not-allowed'
                         : 'bg-primary active:scale-[0.98]'
                         }`}

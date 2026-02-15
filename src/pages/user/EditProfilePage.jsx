@@ -83,7 +83,7 @@ function EditProfilePage() {
                     {/* Avatar Section */}
                     <div className="flex flex-col items-center gap-4 py-4">
                         <div className="relative group">
-                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white">
                                 <img
                                     src={avatarUrl}
                                     alt="Profile"
@@ -156,7 +156,7 @@ function EditProfilePage() {
                 <button
                     onClick={handleSubmit}
                     disabled={isLoading}
-                    className="w-full py-4 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
+                    className="w-full py-4 bg-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
                 >
                     {isLoading ? (
                         <>

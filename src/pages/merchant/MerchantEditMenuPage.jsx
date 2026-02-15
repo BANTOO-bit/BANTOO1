@@ -396,7 +396,7 @@ function MerchantEditMenuPage() {
                 <button
                     onClick={handleSubmit}
                     disabled={isSaving}
-                    className={`w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    className={`w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                     {isSaving ? (
                         <>

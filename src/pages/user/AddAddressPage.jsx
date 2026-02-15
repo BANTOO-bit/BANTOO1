@@ -341,7 +341,7 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
                 <button
                     onClick={handleSave}
                     disabled={isGPSLoading}
-                    className="w-full rounded-2xl bg-primary py-4 text-center text-base font-bold text-white shadow-lg shadow-primary/25 active:scale-[0.98] transition-all hover:bg-primary/90 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full rounded-2xl bg-primary py-4 text-center text-base font-bold text-white active:scale-[0.98] transition-all hover:bg-primary/90 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Simpan Alamat
                 </button>

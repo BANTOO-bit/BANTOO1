@@ -36,7 +36,7 @@ function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="flex-1 h-[44px] flex items-center justify-center rounded-lg bg-red-500 text-white text-[14px] font-semibold shadow-lg shadow-red-500/30 active:shadow-none active:translate-y-[1px] transition-all hover:bg-red-600"
+                        className="flex-1 h-[44px] flex items-center justify-center rounded-lg bg-red-500 text-white text-[14px] font-semibold active:shadow-none active:translate-y-[1px] transition-all hover:bg-red-600"
                     >
                         Keluar
                     </button>

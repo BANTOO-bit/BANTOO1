@@ -2,25 +2,76 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
 import { handleSuccess, handleWarning } from '../../utils/errorHandler'
+import { authService } from '../../services/authService'
+import issueService from '../../services/issueService'
 
 function SecurityPage() {
     const navigate = useNavigate()
     const toast = useToast()
     const [showChangePassword, setShowChangePassword] = useState(false)
+    const [loading, setLoading] = useState(false)
     const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' })
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async () => {
+        if (!passwords.new || !passwords.confirm) {
+            toast.warning('Mohon isi semua kolom password')
+            return
+        }
+
         if (passwords.new !== passwords.confirm) {
             toast.warning('Password baru tidak cocok!')
             return
         }
+
         if (passwords.new.length < 6) {
             toast.warning('Password minimal 6 karakter!')
             return
         }
-        toast.success('Password berhasil diubah!')
-        setShowChangePassword(false)
-        setPasswords({ current: '', new: '', confirm: '' })
+
+        try {
+            setLoading(true)
+            const { error } = await authService.updatePassword(passwords.new)
+
+            if (error) throw error
+
+            toast.success('Password berhasil diubah!')
+            setShowChangePassword(false)
+            setPasswords({ current: '', new: '', confirm: '' })
+        } catch (error) {
+            console.error('Change password error:', error)
+            toast.error(error.message || 'Gagal mengubah password')
+        } finally {
+            setLoading(false)
+        }
+
+    }
+
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [deleteConfirmation, setDeleteConfirmation] = useState('')
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmation !== 'HAPUS') {
+            toast.warning('Silakan ketik HAPUS untuk konfirmasi')
+            return
+        }
+
+        try {
+            setLoading(true)
+            await issueService.reportIssue({
+                category: 'Lainnya',
+                description: 'PERMINTAAN HAPUS AKUN: User meminta penghapusan akun permanen.',
+                priority: 'high'
+            })
+
+            toast.success('Permintaan penghapusan akun telah dikirim ke admin.')
+            setShowDeleteConfirm(false)
+            setDeleteConfirmation('')
+        } catch (error) {
+            console.error('Delete account request error:', error)
+            toast.error('Gagal mengirim permintaan. Silakan coba lagi.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -91,7 +142,10 @@ function SecurityPage() {
                         Zona Bahaya
                     </h2>
                     <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
-                        <button className="w-full p-4 flex items-center gap-3 text-red-500 hover:bg-red-50">
+                        <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="w-full p-4 flex items-center gap-3 text-red-500 hover:bg-red-50 transition-colors"
+                        >
                             <span className="material-symbols-outlined">delete_forever</span>
                             <span className="font-medium text-sm">Hapus Akun</span>
                         </button>
@@ -133,9 +187,56 @@ function SecurityPage() {
                             />
                             <button
                                 onClick={handleChangePassword}
-                                className="w-full py-4 bg-primary text-white font-bold rounded-xl"
+                                disabled={loading}
+                                className="w-full py-4 bg-primary text-white font-bold rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed"
                             >
-                                Simpan Password
+                                {loading ? 'Menyimpan...' : 'Simpan Password'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Account Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
+                    <div className="w-full bg-white rounded-t-3xl p-5 animate-slide-up">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2 text-red-500">
+                                <span className="material-symbols-outlined">warning</span>
+                                <h3 className="text-lg font-bold">Hapus Akun?</h3>
+                            </div>
+                            <button onClick={() => setShowDeleteConfirm(false)}>
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="bg-red-50 p-4 rounded-xl mb-4 text-sm text-red-600 leading-relaxed border border-red-100">
+                            Permintaan penghapusan akun tidak dapat dibatalkan. Semua data riwayat pesanan dan poin akan hilang permanen.
+                            <br /><br />
+                            Tim kami akan memproses permintaan Anda dalam 24 jam.
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                                    Ketik <span className="font-bold text-gray-900">HAPUS</span> untuk konfirmasi
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="HAPUS"
+                                    value={deleteConfirmation}
+                                    onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())}
+                                    className="w-full p-4 border border-border-color rounded-xl font-bold tracking-widest text-center focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all placeholder:font-normal placeholder:tracking-normal"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={loading || deleteConfirmation !== 'HAPUS'}
+                                className="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                            >
+                                {loading ? 'Mengirim Permintaan...' : 'Ajukan Penghapusan Akun'}
                             </button>
                         </div>
                     </div>

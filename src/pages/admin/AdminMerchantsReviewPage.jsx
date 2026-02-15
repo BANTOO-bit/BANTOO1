@@ -248,7 +248,7 @@ export default function AdminMerchantsReviewPage() {
 
                     <div className="grid grid-cols-1 gap-3">
                         <button
-                            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg shadow-green-600/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={handleApprove}
                             disabled={isApproving || isRejecting}
                         >

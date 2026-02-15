@@ -132,7 +132,7 @@ export default function AdminDriversPage() {
                                                 <button className="text-[#617589] hover:text-[#111418] dark:text-[#94a3b8] dark:hover:text-white p-2 hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] rounded-lg transition-colors">
                                                     <span className="material-symbols-outlined text-[20px]">more_vert</span>
                                                 </button>
-                                                <div className="hidden group-hover:block absolute right-0 top-full z-50 w-56 bg-white dark:bg-[#1a2632] rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] flex flex-col py-1 text-left shadow-lg">
+                                                <div className="hidden group-hover:block absolute right-0 top-full z-50 w-56 bg-white dark:bg-[#1a2632] rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] flex flex-col py-1 text-left">
                                                     <button className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left">
                                                         <span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">person</span>
                                                         Lihat Profil

@@ -38,7 +38,7 @@ function WelcomePage() {
                 {/* Login Button */}
                 <button
                     onClick={() => navigate('/login')}
-                    className="w-full h-14 bg-primary text-white font-bold rounded-[28px] shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    className="w-full h-14 bg-primary text-white font-bold rounded-[28px] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                     <span className="material-symbols-outlined">login</span>
                     Masuk

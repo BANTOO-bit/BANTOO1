@@ -192,7 +192,7 @@ function DriverRegistrationStep1() {
             <div className="absolute bottom-0 left-0 right-0 p-5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20">
                 <button
                     onClick={handleContinue}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-orange-500/20 active:shadow-none active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
                     type="button"
                 >
                     <span>Lanjutkan</span>

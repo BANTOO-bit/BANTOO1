@@ -68,7 +68,7 @@ function EmptyState({
             {actionLabel && onAction && (
                 <button
                     onClick={onAction}
-                    className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center gap-2"
+                    className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm active:scale-95 transition-all flex items-center gap-2"
                 >
                     {actionLabel}
                 </button>

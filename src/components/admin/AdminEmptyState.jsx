@@ -19,7 +19,7 @@ export default function AdminEmptyState({
                 {actionLabel && onAction && (
                     <button
                         onClick={onAction}
-                        className="px-6 py-2.5 bg-admin-primary hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                        className="px-6 py-2.5 bg-admin-primary hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
                     >
                         <span className="material-symbols-outlined text-[20px]">add</span>
                         {actionLabel}

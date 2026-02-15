@@ -31,8 +31,8 @@ function ConfirmationModal({
     }
 
     const getButtonColor = () => {
-        if (confirmColor === 'red') return 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
-        return 'bg-primary hover:bg-[#e65f00] shadow-primary/30'
+        if (confirmColor === 'red') return 'bg-red-500 hover:bg-red-600'
+        return 'bg-primary hover:bg-[#e65f00]'
     }
 
     return (

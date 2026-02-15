@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import ProgressBar from '../../../components/partner/ProgressBar'
 import FileUploadZone from '../../../components/partner/FileUploadZone'
 import { usePartnerRegistration } from '../../../context/PartnerRegistrationContext'
+import BankSelectSheet, { getBankDisplayName } from '../../../components/shared/BankSelectSheet'
 
 function DriverRegistrationStep3() {
     const navigate = useNavigate()
@@ -19,6 +20,7 @@ function DriverRegistrationStep3() {
     const [idCardPreview, setIdCardPreview] = useState(null)
     const [withVehiclePreview, setWithVehiclePreview] = useState(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isBankSheetOpen, setIsBankSheetOpen] = useState(false)
     const [errors, setErrors] = useState({})
 
     const handleIdCardChange = (file) => {
@@ -191,27 +193,13 @@ function DriverRegistrationStep3() {
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nama Bank/Wallet</label>
-                                <div className="relative">
-                                    <select
-                                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border ${errors.bankName ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 dark:border-gray-700 focus:ring-primary'} rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all appearance-none text-sm text-gray-900 dark:text-white pr-10`}
-                                        value={formData.bankName || ''}
-                                        onChange={(e) => {
-                                            setFormData(prev => ({ ...prev, bankName: e.target.value }))
-                                            if (errors.bankName) setErrors(prev => ({ ...prev, bankName: null }))
-                                        }}
-                                    >
-                                        <option value="" disabled>Pilih Bank/Wallet</option>
-                                        <option value="bca">BCA</option>
-                                        <option value="mandiri">Mandiri</option>
-                                        <option value="bri">BRI</option>
-                                        <option value="bni">BNI</option>
-                                        <option value="cimb">CIMB Niaga</option>
-                                        <option value="jago">Bank Jago</option>
-                                        <option value="gopay">GoPay</option>
-                                        <option value="ovo">OVO</option>
-                                        <option value="dana">DANA</option>
-                                        <option value="lainnya">Lainnya</option>
-                                    </select>
+                                <div className="relative" onClick={() => setIsBankSheetOpen(true)}>
+                                    <input
+                                        readOnly
+                                        value={getBankDisplayName(formData.bankName)}
+                                        placeholder="Pilih Bank/Wallet"
+                                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border ${errors.bankName ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 dark:border-gray-700 focus:ring-primary'} rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all appearance-none text-sm text-gray-900 dark:text-white pr-10 cursor-pointer`}
+                                    />
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
                                         <span className="material-symbols-outlined text-gray-400">expand_more</span>
                                     </span>
@@ -251,7 +239,7 @@ function DriverRegistrationStep3() {
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-orange-500/20 active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <span>{isSubmitting ? 'Mengirim...' : 'Kirim Pendaftaran'}</span>
                     <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">
@@ -259,6 +247,16 @@ function DriverRegistrationStep3() {
                     </span>
                 </button>
             </div>
+
+            <BankSelectSheet
+                isOpen={isBankSheetOpen}
+                onClose={() => setIsBankSheetOpen(false)}
+                onSelect={(bank) => {
+                    setFormData(prev => ({ ...prev, bankName: bank.code }))
+                    if (errors.bankName) setErrors(prev => ({ ...prev, bankName: null }))
+                }}
+                selectedBankCode={formData.bankName}
+            />
         </div>
     )
 }

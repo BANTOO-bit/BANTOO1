@@ -30,7 +30,7 @@ export function EmptyOrders({ onAction }) {
             </p>
             <button
                 onClick={handleAction}
-                className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center gap-2"
+                className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold active:scale-95 transition-all flex items-center gap-2"
             >
                 <span className="material-symbols-outlined text-[20px]">restaurant</span>
                 <span>Mulai Belanja</span>
@@ -69,7 +69,7 @@ export function EmptyFavorites({ onAction }) {
             </p>
             <button
                 onClick={handleAction}
-                className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center gap-2"
+                className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold active:scale-95 transition-all flex items-center gap-2"
             >
                 <span className="material-symbols-outlined text-[20px]">explore</span>
                 <span>Jelajahi Merchant</span>
@@ -115,7 +115,7 @@ export function EmptySearch({ query = '', onClear, onBrowseAll }) {
                 {onBrowseAll && (
                     <button
                         onClick={onBrowseAll}
-                        className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                        className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm active:scale-95 transition-all"
                     >
                         Lihat Semua
                     </button>
@@ -177,7 +177,7 @@ export function EmptyCart({ onAction }) {
             </p>
             <button
                 onClick={handleAction}
-                className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center gap-2"
+                className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold active:scale-95 transition-all flex items-center gap-2"
             >
                 <span className="material-symbols-outlined text-[20px]">add_shopping_cart</span>
                 <span>Mulai Belanja</span>
