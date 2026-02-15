@@ -56,10 +56,8 @@ function MerchantSalesReportPage() {
         fetchStats()
     }, [user?.merchantId, selectedPeriod, toast])
 
-    // Mock top sellers for now (complex to aggregate real-time efficiently without dedicated table)
-    const topSellers = [
-        { name: 'Menu Data Belum Tersedia', sold: 0, percentage: 0 }
-    ]
+    // Use real top sellers from stats, or empty array if not available
+    const topSellers = stats.topSellers || []
 
     return (
         <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">

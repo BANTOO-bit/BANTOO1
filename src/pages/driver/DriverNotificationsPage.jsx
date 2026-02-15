@@ -1,16 +1,38 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
-import { mockNotifications as initialNotifications } from '../../data/driverNotifications'
+import { driverService } from '../../services/driverService'
+import { useAuth } from '../../context/AuthContext'
 
 function DriverNotificationsPage() {
     const navigate = useNavigate()
-    const [notifications, setNotifications] = useState(initialNotifications)
+    const { user } = useAuth()
+    const [notifications, setNotifications] = useState([])
     const [allRead, setAllRead] = useState(false)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        if (user?.id) {
+            loadNotifications()
+        }
+    }, [user?.id])
+
+    const loadNotifications = async () => {
+        try {
+            setLoading(true)
+            const data = await driverService.getNotifications(user.id)
+            setNotifications(data)
+        } catch (error) {
+            console.error('Failed to load notifications:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const handleMarkAllRead = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isUnread: false })))
         setAllRead(true)
+        // In a real app, you would also update the read status in the backend here
     }
 
     const getNotificationStyles = (type, isUnread) => {
@@ -49,138 +71,142 @@ function DriverNotificationsPage() {
             }
         } else {
             return {
-                container: 'bg-white dark:bg-gray-800 border-transparent dark:border-gray-700',
-                iconBg: 'bg-purple-100 dark:bg-purple-900/30',
-                iconColor: 'text-purple-600',
+                container: isUnread
+                    ? 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
+                    : 'bg-white dark:bg-gray-800 border-transparent dark:border-gray-700',
+                iconBg: 'bg-gray-100 dark:bg-gray-700',
+                iconColor: 'text-gray-600 dark:text-gray-300',
                 titleColor: 'text-gray-900 dark:text-white',
-                dotColor: 'bg-orange-600',
+                dotColor: 'bg-blue-600',
                 timeColor: 'text-gray-400 dark:text-gray-500'
             }
         }
     }
 
-    const todayNotifications = notifications.filter(n => n.category === 'today')
-    const yesterdayNotifications = notifications.filter(n => n.category === 'yesterday')
     const hasNotifications = notifications.length > 0
 
     return (
         <div className="font-display bg-background-light text-slate-900 antialiased min-h-screen">
-            <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-background-light">
+            <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-white">
                 {/* Header */}
-                <header className="bg-white dark:bg-gray-800 px-4 py-4 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                        <span className="material-symbols-outlined text-gray-600 dark:text-gray-300">arrow_back</span>
-                    </button>
-                    <h1 className="text-lg font-bold text-center flex-grow pr-8">Notifikasi</h1>
-                    <div className="w-6"></div>
+                <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 transition-colors duration-300">
+                    <div className="flex items-center p-4 justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-slate-900">notifications</span>
+                            <h1 className="text-xl font-bold text-slate-900">Notifikasi</h1>
+                        </div>
+                        {notifications.length > 0 && !allRead && (
+                            <button
+                                onClick={handleMarkAllRead}
+                                className="text-xs font-bold text-[#0d59f2] hover:text-blue-700 transition-colors uppercase tracking-wide"
+                            >
+                                Tandai Dibaca
+                            </button>
+                        )}
+                    </div>
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-grow p-4 space-y-3 pb-24 overflow-y-auto no-scrollbar">
-                    {hasNotifications ? (
-                        <>
-                            {/* Today Section */}
-                            {todayNotifications.length > 0 && (
-                                <>
-                                    <div className="flex items-center justify-between my-4">
-                                        <div className="w-24"></div>
-                                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded-full absolute left-1/2 transform -translate-x-1/2">
-                                            Hari Ini
-                                        </span>
-                                        <button
-                                            onClick={handleMarkAllRead}
-                                            disabled={allRead}
-                                            className={`text-xs font-semibold transition-colors z-10 ${allRead
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-blue-600 hover:text-blue-700 active:text-blue-800 cursor-pointer'
-                                                }`}
-                                        >
-                                            {allRead ? 'Semua Dibaca' : 'Tandai Semua Dibaca'}
-                                        </button>
-                                    </div>
-
-                                    {todayNotifications.map(notification => {
-                                        const styles = getNotificationStyles(notification.type, notification.isUnread)
-                                        return (
-                                            <div
-                                                key={notification.id}
-                                                onClick={() => navigate(`/driver/notifications/${notification.id}`)}
-                                                className={`group relative ${styles.container} border rounded-xl p-4 flex items-start space-x-4 transition-all active:scale-[0.98] cursor-pointer hover:shadow-md`}
-                                            >
-                                                {notification.isUnread && (
-                                                    <div className={`absolute top-4 right-4 w-2.5 h-2.5 ${styles.dotColor} rounded-full ${notification.type === 'alert' ? 'animate-pulse' : ''}`}></div>
-                                                )}
-                                                <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${styles.iconBg}`}>
-                                                    <span className={`material-symbols-outlined ${styles.iconColor} text-2xl`}>{notification.icon}</span>
-                                                </div>
-                                                <div className="flex-grow">
-                                                    <div className="flex justify-between items-start pr-4">
-                                                        <h3 className={`font-bold ${styles.titleColor} text-sm`}>{notification.title}</h3>
-                                                    </div>
-                                                    <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 leading-relaxed font-medium">
-                                                        {notification.message}
-                                                    </p>
-                                                    <span className={`text-[10px] ${styles.timeColor} mt-2 block font-medium`}>{notification.time}</span>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </>
-                            )}
-
-                            {/* Yesterday Section */}
-                            {yesterdayNotifications.length > 0 && (
-                                <>
-                                    <div className="flex items-center justify-center my-6">
-                                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded-full">Kemarin</span>
-                                    </div>
-
-                                    {yesterdayNotifications.map(notification => {
-                                        const styles = getNotificationStyles(notification.type, notification.isUnread)
-                                        return (
-                                            <div
-                                                key={notification.id}
-                                                onClick={() => navigate(`/driver/notifications/${notification.id}`)}
-                                                className={`group ${styles.container} border rounded-xl p-4 flex items-start space-x-4 transition-all active:scale-[0.98] cursor-pointer hover:shadow-md`}
-                                            >
-                                                <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${styles.iconBg}`}>
-                                                    <span className={`material-symbols-outlined ${styles.iconColor} text-2xl`}>{notification.icon}</span>
-                                                </div>
-                                                <div className="flex-grow">
-                                                    <h3 className={`font-bold ${styles.titleColor} text-sm`}>{notification.title}</h3>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                                                        {notification.message}
-                                                    </p>
-                                                    <span className={`text-[10px] ${styles.timeColor} mt-2 block`}>{notification.time}</span>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </>
-                            )}
-                        </>
-                    ) : (
-                        /* Empty State */
-                        <div className="flex flex-col items-center justify-center text-center pt-32">
-                            <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-full mb-6 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-gray-300 dark:text-gray-600 text-6xl">notifications_off</span>
-                            </div>
-                            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Belum ada notifikasi</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
-                                Informasi pesanan, sistem, dan promosi terbaru akan muncul di sini.
-                            </p>
+                <main className="flex-1 bg-background-light p-4 pb-24">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <div className="w-8 h-8 border-4 border-slate-200 border-t-[#0d59f2] rounded-full animate-spin mb-4"></div>
+                            <p className="text-slate-500 text-sm font-medium">Memuat notifikasi...</p>
                         </div>
-                    )}
-                </main>
+                    ) : notifications.length > 0 ? (
+                        <div className="flex flex-col gap-3">
+                            {/* Group notifications by date (simplified for now) */}
+                            <div className="flex items-center gap-2 mb-1">
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Terbaru</h2>
+                                <div className="h-px flex-1 bg-slate-200"></div>
+                            </div>
 
-                {/* Bottom Navigation */}
-                <DriverBottomNavigation />
-            </div>
+                            {notifications.map((notification) => {
+                                const styles = getNotificationStyles(notification.type, notification.isUnread)
+
+                                return (
+                                    <div
+                                        key={notification.id}
+                                        onClick={() => {
+                                            if (notification.type === 'order') {
+                                                navigate('/driver/order/pickup')
+                                            }
+                                        }}
+                                        className={`relative p-4 rounded-xl border transition-all duration-200 ${styles.container} ${notification.type === 'order' ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                                    >
+                                        <div className="flex gap-3">
+                                            {/* Icon */}
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${styles.iconBg} ${styles.iconColor}`}>
+                                                <span className="material-symbols-outlined text-[20px]">{notification.icon}</span>
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className={`text-sm font-bold mb-1 ${styles.titleColor}`}>
+                                                    {notification.title}
+                                                </h3>
+                                                <p className="text-xs text-slate-500 leading-relaxed mb-1.5">
+                                                    {notification.message}
+                                                </p>
+                                                <span className={`text-[10px] font-medium ${styles.timeColor}`}>
+                                                    {notification.time}
+                                                </span>
+
+                                                {/* Details Box (if any) */}
+                                                {notification.details && (
+                                                    <div className="mt-3 p-3 bg-white/50 rounded-lg border border-slate-100 text-xs text-slate-600">
+                                                        {notification.details.description}
+                                                    </div>
+                            {/* Yesterday Section */}
+                                                {yesterdayNotifications.length > 0 && (
+                                                    <>
+                                                        <div className="flex items-center justify-center my-6">
+                                                            <span className="text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded-full">Kemarin</span>
+                                                        </div>
+
+                                                        {yesterdayNotifications.map(notification => {
+                                                            const styles = getNotificationStyles(notification.type, notification.isUnread)
+                                                            return (
+                                                                <div
+                                                                    key={notification.id}
+                                                                    onClick={() => navigate(`/driver/notifications/${notification.id}`)}
+                                                                    className={`group ${styles.container} border rounded-xl p-4 flex items-start space-x-4 transition-all active:scale-[0.98] cursor-pointer hover:shadow-md`}
+                                                                >
+                                                                    <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${styles.iconBg}`}>
+                                                                        <span className={`material-symbols-outlined ${styles.iconColor} text-2xl`}>{notification.icon}</span>
+                                                                    </div>
+                                                                    <div className="flex-grow">
+                                                                        <h3 className={`font-bold ${styles.titleColor} text-sm`}>{notification.title}</h3>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                                                            {notification.message}
+                                                                        </p>
+                                                                        <span className={`text-[10px] ${styles.timeColor} mt-2 block`}>{notification.time}</span>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </>
+                                                )}
+                                            </>
+                                            ) : (
+                                            /* Empty State */
+                                            <div className="flex flex-col items-center justify-center text-center pt-32">
+                                                <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-full mb-6 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-gray-300 dark:text-gray-600 text-6xl">notifications_off</span>
+                                                </div>
+                                                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Belum ada notifikasi</h2>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
+                                                    Informasi pesanan, sistem, dan promosi terbaru akan muncul di sini.
+                                                </p>
+                                            </div>
+                    )}
+                                        </main>
+
+                                        {/* Bottom Navigation */}
+                                        <DriverBottomNavigation />
+                                    </div>
         </div>
-    )
+                    )
 }
 
-export default DriverNotificationsPage
+                    export default DriverNotificationsPage

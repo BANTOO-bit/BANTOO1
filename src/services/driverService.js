@@ -148,9 +148,48 @@ export const driverService = {
             })
             if (error) throw error
         } catch (error) {
-            console.error('Error toggling status:', error)
+            console.error('Failed to toggle driver status:', error)
             throw error
         }
+    },
+
+    /**
+     * Get real-time notifications for driver
+     * Simulates notifications by checking for available orders and system status
+     */
+    async getNotifications(driverId) {
+        try {
+            // 1. Get available orders (Type: 'order')
+            const availableOrders = await this.getAvailableOrders({ lat: 0, lng: 0 }) // Coordinates optional for list
+
+            const orderNotifications = availableOrders.map(order => ({
+                id: `order-${order.id}`,
+                type: 'order',
+                icon: 'local_shipping',
+                title: 'Pesanan Baru Masuk!',
+                message: `Pesanan #${order.id.slice(0, 8)} dari ${order.merchant_name} siap diambil.`,
+                time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                isUnread: true, // You might want to track read state in local storage or a table
+                category: 'today',
+                orderId: order.id
+            }))
+
+            // 2. Fetch system alerts or wallet warnings if needed
+            // For now, we'll return order notifications
+            return orderNotifications
+
+        } catch (error) {
+            console.error('Failed to get notifications:', error)
+            return []
+        }
+    },
+
+    /**
+     * Get driver's assigned orders (Wrapper for orderService)
+     */
+    async getDriverOrders(status = null) {
+        const { orderService } = await import('./orderService')
+        return orderService.getDriverOrders(status)
     },
 
     /**

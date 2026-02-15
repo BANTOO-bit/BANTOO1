@@ -123,6 +123,13 @@ export const merchantService = {
     },
 
     /**
+     * Search merchants by name
+     */
+    async searchMerchants(query) {
+        return this.getMerchants({ search: query, limit: 5 })
+    },
+
+    /**
      * Get merchant by ID
      */
     async getMerchantById(id) {
@@ -438,7 +445,17 @@ export const merchantService = {
 
             const { data, error } = await supabase
                 .from('orders')
-                .select('id, subtotal, created_at, status')
+                .select(`
+                    id, 
+                    subtotal, 
+                    created_at, 
+                    status,
+                    order_items (
+                        product_name,
+                        quantity,
+                        price_at_time
+                    )
+                `)
                 .eq('merchant_id', merchantId)
                 .eq('status', 'completed')
                 .gte('created_at', startDate.toISOString())
@@ -459,11 +476,47 @@ export const merchantService = {
                 graphData[date] = (graphData[date] || 0) + (order.subtotal || 0)
             })
 
+            // Calculate Top Sellers
+            const itemMap = {}
+            sales.forEach(order => {
+                if (order.order_items) {
+                    order.order_items.forEach(item => {
+                        if (!itemMap[item.product_name]) {
+                            itemMap[item.product_name] = {
+                                name: item.product_name,
+                                sold: 0,
+                                revenue: 0
+                            }
+                        }
+                        itemMap[item.product_name].sold += item.quantity
+                        itemMap[item.product_name].revenue += (item.price_at_time * item.quantity)
+                    })
+                }
+            })
+
+            // Sort by quantity sold and take top 5
+            const topSellers = Object.values(itemMap)
+                .sort((a, b) => b.sold - a.sold)
+                .slice(0, 5)
+                .map(item => ({
+                    ...item,
+                    percentage: totalOrders > 0 ? Math.round((item.sold / sales.reduce((acc, order) => acc + (order.order_items?.length || 0), 0)) * 100) : 0 // Percentage of total items sold approximation
+                }))
+
+            // Recalculate percentage based on total items sold count for better accuracy if needed, 
+            // but for now a simple relative metric is fine. 
+            // Let's refine percentage to be share of total sold items.
+            const totalItemsSold = Object.values(itemMap).reduce((acc, item) => acc + item.sold, 0)
+            topSellers.forEach(item => {
+                item.percentage = totalItemsSold > 0 ? Math.round((item.sold / totalItemsSold) * 100) : 0
+            })
+
             return {
                 totalRevenue,
                 totalOrders,
                 averageOrderValue,
-                graphData: Object.entries(graphData).map(([name, value]) => ({ name, value }))
+                graphData: Object.entries(graphData).map(([name, value]) => ({ name, value })),
+                topSellers
             }
         } catch (error) {
             logger.error('Failed to fetch sales stats', error, 'merchantService')

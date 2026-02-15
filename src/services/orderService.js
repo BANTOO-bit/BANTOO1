@@ -229,6 +229,43 @@ export const orderService = {
     },
 
     /**
+     * Get merchant order history with date filtering
+     */
+    async getMerchantOrderHistory(merchantId, { startDate, endDate, search = '' } = {}) {
+        let query = supabase
+            .from('orders')
+            .select(`
+                *,
+                customer:profiles!customer_id(id, full_name, phone, avatar_url),
+                items:order_items(*)
+            `)
+            .eq('merchant_id', merchantId)
+            .or('status.eq.completed,status.eq.cancelled') // Only history (completed/cancelled)
+            .order('created_at', { ascending: false })
+
+        if (startDate) {
+            query = query.gte('created_at', startDate.toISOString())
+        }
+        if (endDate) {
+            // Adjust end date to end of day
+            const end = new Date(endDate)
+            end.setHours(23, 59, 59, 999)
+            query = query.lte('created_at', end.toISOString())
+        }
+
+        // Note: extensive search might need backend search engine or simple client side filter if list is small.
+        // For now, if search string is provided, we might filter ID. 
+        // Supabase basic text search on ID:
+        if (search) {
+            query = query.ilike('id', `%${search}%`)
+        }
+
+        const { data, error } = await query
+        if (error) throw error
+        return data
+    },
+
+    /**
      * Get available orders for driver
      */
     async getAvailableOrders() {

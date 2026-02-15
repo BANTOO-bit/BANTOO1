@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MerchantCard from './MerchantCard'
-import { getAllMerchants, getAllMenus, getMerchantById } from '../../data/merchantsData'
 import { useCart } from '../../context/CartContext'
+import merchantService from '../../services/merchantService'
 
 // Menu Card for search results
 function MenuSearchCard({ menu, onMerchantClick, onClose }) {
     const { addToCart, getItemQuantity, updateQuantity } = useCart()
-    const merchant = getMerchantById(menu.merchantId)
+
+    // Construct merchant object from menu data (returned by service)
+    const merchant = {
+        id: menu.merchantId,
+        name: menu.merchantName,
+        image: menu.merchantImage
+    }
+
     const quantity = getItemQuantity(menu.id)
 
     const handleAdd = (e) => {
@@ -93,36 +100,37 @@ function SearchBar() {
     const [menuResults, setMenuResults] = useState([])
     const [merchantResults, setMerchantResults] = useState([])
     const [isSearching, setIsSearching] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
 
-    // Get data from centralized source
-    const allMerchants = getAllMerchants()
-    const allMenus = getAllMenus()
-
-    // Search effect
+    // Search effect with debounce
     useEffect(() => {
-        if (searchQuery.trim().length >= 2) {
-            const query = searchQuery.toLowerCase()
+        const fetchResults = async () => {
+            if (searchQuery.trim().length < 2) {
+                setMenuResults([])
+                setMerchantResults([])
+                setIsSearching(false)
+                return
+            }
 
-            // Search menus (limit to 5)
-            const menus = allMenus.filter(menu =>
-                menu.name.toLowerCase().includes(query) ||
-                menu.description?.toLowerCase().includes(query)
-            ).slice(0, 5)
-            setMenuResults(menus)
+            setIsLoading(true)
+            try {
+                const [menus, merchants] = await Promise.all([
+                    merchantService.getAllMenus({ search: searchQuery, limit: 5 }),
+                    merchantService.searchMerchants(searchQuery)
+                ])
 
-            // Search merchants (limit to 3)
-            const merchants = allMerchants.filter(merchant =>
-                merchant.name.toLowerCase().includes(query) ||
-                merchant.category.toLowerCase().includes(query)
-            ).slice(0, 3)
-            setMerchantResults(merchants)
-
-            setIsSearching(true)
-        } else {
-            setMenuResults([])
-            setMerchantResults([])
-            setIsSearching(false)
+                setMenuResults(menus)
+                setMerchantResults(merchants)
+                setIsSearching(true)
+            } catch (error) {
+                console.error('Search failed:', error)
+            } finally {
+                setIsLoading(false)
+            }
         }
+
+        const timeoutId = setTimeout(fetchResults, 500)
+        return () => clearTimeout(timeoutId)
     }, [searchQuery])
 
     const handleMerchantClick = (merchant) => {
@@ -150,7 +158,7 @@ function SearchBar() {
 
     const handleViewAll = () => {
         handleClear()
-        navigate('/search')
+        navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
     }
 
     const totalResults = menuResults.length + merchantResults.length
@@ -182,7 +190,12 @@ function SearchBar() {
             {/* Search Results Dropdown */}
             {isSearching && (
                 <div className="absolute left-4 right-4 top-full mt-1 bg-white rounded-xl shadow-lg border border-border-color max-h-[60vh] overflow-y-auto z-50">
-                    {totalResults === 0 ? (
+                    {isLoading ? (
+                        <div className="flex flex-col items-center py-8">
+                            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-xs text-text-secondary mt-2">Mencari...</p>
+                        </div>
+                    ) : totalResults === 0 ? (
                         <div className="flex flex-col items-center py-8 px-4">
                             <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">search_off</span>
                             <p className="text-sm text-text-secondary">Tidak ditemukan hasil untuk "{searchQuery}"</p>

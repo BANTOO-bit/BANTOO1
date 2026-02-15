@@ -1,53 +1,72 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { orderService } from '../../services/orderService'
 import MerchantBottomNavigation from '../../components/merchant/MerchantBottomNavigation'
+import EmptyState from '../../components/shared/EmptyState'
 
 function MerchantOrderHistoryPage() {
     const navigate = useNavigate()
+    const { user } = useAuth()
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedPeriod, setSelectedPeriod] = useState('7days')
-
-    // Mock order history data
-    const orders = [
-        {
-            id: 'JKT-8805',
-            date: '19 Okt, 14:30',
-            status: 'completed',
-            customerName: 'Rizky Ramadhan',
-            items: '2x Bakso Urat Jumbo, 1x Es Teh',
-            earnings: 32000
-        },
-        {
-            id: 'JKT-8802',
-            date: '19 Okt, 12:15',
-            status: 'completed',
-            customerName: 'Siti Aminah',
-            items: '1x Mie Ayam Ceker, 2x Kerupuk Putih',
-            earnings: 17000
-        },
-        {
-            id: 'JKT-8799',
-            date: '18 Okt, 19:45',
-            status: 'cancelled',
-            customerName: 'Budi Santoso',
-            items: '3x Es Jeruk Peras',
-            earnings: 18000
-        },
-        {
-            id: 'JKT-8795',
-            date: '18 Okt, 18:20',
-            status: 'completed',
-            customerName: 'Andi Saputra',
-            items: '2x Bakso Telur, 1x Kerupuk Kulit',
-            earnings: 28000
-        }
-    ]
+    const [orders, setOrders] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
 
     const periods = [
         { id: 'today', label: 'Hari Ini' },
         { id: '7days', label: '7 Hari Terakhir' },
         { id: '30days', label: '30 Hari Terakhir' }
     ]
+
+    useEffect(() => {
+        if (user?.merchantId) {
+            fetchOrders()
+        }
+    }, [user?.merchantId, selectedPeriod, searchQuery])
+
+    const fetchOrders = async () => {
+        setIsLoading(true)
+        try {
+            const now = new Date()
+            let startDate = null
+
+            if (selectedPeriod === 'today') {
+                startDate = new Date()
+                startDate.setHours(0, 0, 0, 0)
+            } else if (selectedPeriod === '7days') {
+                startDate = new Date()
+                startDate.setDate(now.getDate() - 7)
+                startDate.setHours(0, 0, 0, 0)
+            } else if (selectedPeriod === '30days') {
+                startDate = new Date()
+                startDate.setDate(now.getDate() - 30)
+                startDate.setHours(0, 0, 0, 0)
+            }
+
+            const data = await orderService.getMerchantOrderHistory(user.merchantId, {
+                startDate,
+                endDate: now,
+                search: searchQuery
+            })
+
+            // Transform data to UI format
+            const formattedOrders = data.map(order => ({
+                id: order.id,
+                date: new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                status: order.status,
+                customerName: order.customer?.full_name || 'Pelanggan',
+                items: order.items?.map(i => `${i.quantity}x ${i.product_name}`).join(', ') || '',
+                earnings: order.subtotal // Assuming subtotal is what merchant earns (approximation)
+            }))
+
+            setOrders(formattedOrders)
+        } catch (error) {
+            console.error('Failed to fetch order history:', error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     const getStatusBadge = (status) => {
         if (status === 'completed') {
@@ -101,9 +120,9 @@ function MerchantOrderHistoryPage() {
                             <button
                                 key={period.id}
                                 onClick={() => setSelectedPeriod(period.id)}
-                                className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap active:scale-95 transition-transform ${selectedPeriod === period.id
-                                        ? 'bg-primary text-white border border-primary shadow-sm font-semibold'
-                                        : 'border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark text-text-secondary hover:bg-gray-50'
+                                className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${selectedPeriod === period.id
+                                    ? 'bg-primary text-white shadow-sm'
+                                    : 'bg-white dark:bg-card-dark text-text-secondary border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                                     }`}
                             >
                                 {period.label}
@@ -112,44 +131,55 @@ function MerchantOrderHistoryPage() {
                     </div>
                 </section>
 
-                {/* Order List */}
+                {/* Orders List */}
                 <section className="flex flex-col gap-4">
-                    {orders.map((order) => (
-                        <article
-                            key={order.id}
-                            className={`bg-card-light dark:bg-card-dark rounded-2xl shadow-soft border border-border-color dark:border-gray-700 p-4 flex flex-col gap-3 ${order.status === 'cancelled' ? 'opacity-90' : ''}`}
-                        >
-                            {/* Header */}
-                            <div className="flex justify-between items-start">
-                                <div className="flex flex-col">
-                                    <span className="text-xs text-text-secondary font-medium">Order ID #{order.id}</span>
-                                    <span className="text-[10px] text-text-secondary mt-0.5">{order.date}</span>
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin mb-4"></div>
+                            <p className="text-slate-500 text-sm font-medium">Memuat riwayat...</p>
+                        </div>
+                    ) : orders.length > 0 ? (
+                        orders.map((order) => (
+                            <div key={order.id} className="bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col gap-3">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                                                #{order.id.slice(0, 8)}
+                                            </span>
+                                            <span className="text-xs text-text-secondary">{order.date}</span>
+                                        </div>
+                                        <h3 className="font-bold text-text-main dark:text-white line-clamp-1">
+                                            {order.customerName}
+                                        </h3>
+                                    </div>
+                                    {getStatusBadge(order.status)}
                                 </div>
-                                {getStatusBadge(order.status)}
-                            </div>
 
-                            {/* Customer & Items */}
-                            <div className="flex flex-col gap-1">
-                                <h3 className="font-bold text-sm text-text-main dark:text-white">{order.customerName}</h3>
-                                <p className="text-xs text-text-secondary line-clamp-1">{order.items}</p>
-                            </div>
+                                <div className="h-px bg-gray-100 dark:bg-gray-800 w-full" />
 
-                            <div className="h-px bg-border-color dark:bg-gray-800 w-full my-1" />
-
-                            {/* Footer */}
-                            <div className="flex justify-between items-center mt-1">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-text-secondary">Pendapatan Bersih</span>
-                                    <span className={`text-sm font-bold ${order.status === 'cancelled' ? 'text-text-secondary line-through' : 'text-text-main dark:text-white'}`}>
-                                        Rp {order.earnings.toLocaleString('id-ID')}
-                                    </span>
+                                <div className="flex flex-col gap-2">
+                                    <p className="text-sm text-text-secondary line-clamp-2 leading-relaxed">
+                                        {order.items}
+                                    </p>
+                                    <div className="flex justify-between items-end mt-1">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase tracking-wider text-text-secondary font-medium">Total Pendapatan</span>
+                                            <span className="text-base font-bold text-primary">
+                                                Rp {order.earnings.toLocaleString('id-ID')}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button className="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-text-main dark:text-gray-300 font-medium text-xs hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors active:scale-95">
-                                    Lihat Rincian
-                                </button>
                             </div>
-                        </article>
-                    ))}
+                        ))
+                    ) : (
+                        <EmptyState
+                            icon="history"
+                            title="Belum ada riwayat"
+                            message="Riwayat pesanan yang sudah selesai atau dibatalkan akan muncul di sini."
+                        />
+                    )}
                 </section>
             </main>
 
