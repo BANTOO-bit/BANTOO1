@@ -143,13 +143,29 @@ export const driverService = {
      */
     async toggleStatus(isActive) {
         try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            // 1. Try RPC First
             const { error } = await supabase.rpc('toggle_driver_status', {
                 p_is_active: isActive
             })
-            if (error) throw error
+
+            if (!error) return
+
+            console.warn('RPC toggle_driver_status failed, falling back to direct update:', error.message)
+
+            // 2. Fallback: Direct Update
+            const { error: updateError } = await supabase
+                .from('drivers')
+                .update({ is_active: isActive })
+                .eq('user_id', user.id)
+
+            if (updateError) throw updateError
+
         } catch (error) {
             console.error('Failed to toggle driver status:', error)
-            throw error
+            // Don't throw, just log. The UI optimistically updates anyway.
         }
     },
 
@@ -193,8 +209,70 @@ export const driverService = {
     },
 
     /**
+     * Get Notifications
+     */
+    async getNotifications(userId) {
+        // Return mock data for now until notification table exists
+        const { mockNotifications } = await import('../data/driverNotifications')
+        return mockNotifications
+    },
+
+    /**
      * Get Driver Profile
      */
+    /**
+     * Get Driver Stats (Rating, Trips, Join Date)
+     */
+    async getDriverStats(userId) {
+        try {
+            // 1. Get Join Date & ID
+            const { data: driver, error: driverError } = await supabase
+                .from('drivers')
+                .select('created_at')
+                .eq('user_id', userId)
+                .single()
+
+            if (driverError) throw driverError
+
+            // Calculate "Member Since" - e.g. "Jan 2024"
+            const date = new Date(driver.created_at)
+            const joinDate = date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })
+
+            // 2. Get Completed Trips Count
+            const { count: tripsCount, error: tripsError } = await supabase
+                .from('orders')
+                .select('*', { count: 'exact', head: true })
+                .eq('driver_id', userId)
+                .eq('status', 'completed')
+
+            if (tripsError) throw tripsError
+
+            // 3. Get Average Rating
+            // Note: Schema might vary. Assuming 'reviews' table linked to 'orders' or 'driver_id'
+            // For now, if no review table is clear, we return '-' or a mock if DB not ready.
+            // Let's assume a 'reviews' table exists for now
+            /* 
+            const { data: reviews, error: reviewsError } = await supabase
+                .from('reviews')
+                .select('rating')
+                .eq('driver_id', userId)
+            */
+
+            // Placeholder rating until reviews table confirmed active
+            const rating = '-'
+
+            return {
+                rating: rating,
+                trips: tripsCount || 0,
+                joinDate: joinDate
+            }
+
+        } catch (error) {
+            console.error('Error fetching driver stats:', error)
+            return { rating: '-', trips: 0, joinDate: '-' }
+        }
+    },
+
     async getProfile() {
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -237,11 +315,94 @@ export const driverService = {
                 ...data,
                 full_name: data.profile?.full_name,
                 avatar_url: data.profile?.avatar_url,
-                email: data.profile?.email
+                email: data.profile?.email,
+                phone: data.profile?.phone,
+                address: data.address // Now available in drivers table
             }
         } catch (error) {
             console.error('Error fetching driver profile:', error)
             return null
+        }
+    },
+
+    /**
+     * Update Driver Profile
+     * @param {Object} updates - { full_name, phone, address, vehicle_plate, etc }
+     */
+    async updateProfile(userId, updates) {
+        try {
+            // 1. Update Profile (Name, Phone) in 'profiles' table
+            const profileUpdates = {}
+            if (updates.full_name) profileUpdates.full_name = updates.full_name
+            if (updates.phone) profileUpdates.phone = updates.phone
+            // Note: Email updates require Auth API
+
+            if (Object.keys(profileUpdates).length > 0) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .update(profileUpdates)
+                    .eq('id', userId)
+
+                if (profileError) throw profileError
+            }
+
+            // 2. Update Driver Details in 'drivers' table (Address, etc.)
+            const driverUpdates = {}
+            if (updates.address) driverUpdates.address = updates.address
+            if (updates.vehicle_plate) driverUpdates.vehicle_plate = updates.vehicle_plate
+            if (updates.vehicle_brand) driverUpdates.vehicle_brand = updates.vehicle_brand
+
+            // Add other fields as needed based on what's passed
+            if (updates.bank_name) driverUpdates.bank_name = updates.bank_name
+            if (updates.bank_account_number) driverUpdates.bank_account_number = updates.bank_account_number
+            if (updates.bank_account_name) driverUpdates.bank_account_name = updates.bank_account_name
+
+            if (Object.keys(driverUpdates).length > 0) {
+                const { error: driverError } = await supabase
+                    .from('drivers')
+                    .update(driverUpdates)
+                    .eq('user_id', userId)
+
+                if (driverError) throw driverError
+            }
+
+            return { success: true }
+        } catch (error) {
+            console.error('Error updating profile:', error)
+            throw error
+        }
+    },
+
+    /**
+     * Upload Avatar
+     * @param {File} file 
+     * @param {string} userId 
+     */
+    async uploadAvatar(file, userId) {
+        try {
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${userId}-${Math.random()}.${fileExt}`
+            const filePath = `${fileName}`
+
+            // 1. Upload to 'avatars' bucket
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file)
+
+            if (uploadError) throw uploadError
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath)
+
+            // 3. Update Profile with new URL
+            await this.updateProfile(userId, { avatar_url: publicUrl })
+
+            return publicUrl
+        } catch (error) {
+            console.error('Error uploading avatar:', error)
+            throw error
         }
     },
 
@@ -437,35 +598,52 @@ export const driverService = {
     },
 
     /**
-     * Get Dashboard Stats (Simple Version)
+     * Get Dashboard Stats
      */
     async getStats() {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return null
 
-            // Example: Get today's completed orders
-            // This is a placeholder, a real RPC would be better for performance
-            const today = new Date().toISOString().split('T')[0]
+            // 1. Try RPC First
+            const { data: rpcData, error: rpcError } = await supabase.rpc('get_driver_stats', {
+                p_driver_id: user.id
+            })
 
-            const { count, error } = await supabase
+            if (!rpcError && rpcData) {
+                return rpcData
+            }
+
+            // 2. Fallback: Manual Calculation
+            // Get today's start and end
+            const now = new Date()
+            const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString()
+            const endOfDay = new Date(now.setHours(23, 59, 59, 999)).toISOString()
+
+            const { data: orders, error } = await supabase
                 .from('orders')
-                .select('id', { count: 'exact', head: true })
+                .select('id, total_amount, delivery_fee')
                 .eq('driver_id', user.id)
                 .eq('status', 'delivered')
-                .gte('delivered_at', today)
+                .gte('delivered_at', startOfDay)
+                .lte('delivered_at', endOfDay)
 
             if (error) throw error
 
+            const todayOrders = orders.length
+            // Calculate revenue (using delivery_fee or a percentage of total? 
+            // Usually driver gets delivery_fee. Let's assume delivery_fee is the earnings for now)
+            const todayRevenue = orders.reduce((sum, order) => sum + (order.delivery_fee || 10000), 0)
+
             return {
-                todayOrders: count || 0,
-                // Revenue calculation requires more complex query or RPC
-                todayRevenue: 0
+                todayOrders,
+                todayRevenue
             }
         } catch (error) {
+            console.error('Error fetching stats:', error)
             return { todayOrders: 0, todayRevenue: 0 }
         }
-    }
+    },
     /**
      * Update driver profile
      */

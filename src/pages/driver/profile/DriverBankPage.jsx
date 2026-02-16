@@ -48,14 +48,14 @@ function DriverBankPage() {
                 <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200">
                     <div className="flex items-center px-4 h-[64px] gap-4">
                         <button
-                            onClick={() => navigate('/driver/profile')}
+                            onClick={() => navigate('/driver/account')}
                             className="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-slate-700 hover:bg-slate-50 transition-colors active:scale-95"
                         >
                             <span className="material-symbols-outlined text-[24px]">arrow_back</span>
                         </button>
                         <h2 className="text-slate-900 text-lg font-bold leading-tight flex-1">Rekening Bank & Wallet</h2>
                         <button
-                            onClick={() => navigate('/driver/bank/add')}
+                            onClick={() => navigate('/driver/bank/edit')}
                             className="bg-slate-50 text-[#0d59f2] w-9 h-9 flex items-center justify-center rounded-full hover:bg-blue-50 transition-colors"
                         >
                             <span className="material-symbols-outlined text-[22px]">{account ? 'edit' : 'add'}</span>

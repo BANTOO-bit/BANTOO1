@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
@@ -77,6 +77,26 @@ function ProfilePage() {
 
     // If logging out or no user, don't render profile content to avoid flash/crash
     if (!userData) return null
+
+    // Helper to check if user is primarily a driver (e.g. came from driver app)
+    // For now, we redirect if they are an approved driver and accessing this consumer page
+    // This assumes drivers should use /driver/profile for their profile needs.
+    useEffect(() => {
+        if (user?.driverStatus === 'approved' && window.location.pathname === '/profile') {
+            // We can use a more subtle check, e.g. if they don't have 'customer' role
+            // But to be safe and fix the user issue:
+            // If I am a driver, I probably want Driver Profile.
+            // But if I want to order food? I need Customer Profile.
+            // The screen shows "Masuk ke Driver" button (line 182).
+            // So the user CAN go back.
+            // The user's issue is "kenapa kayak gini?" implying they didn't expect it.
+            // I will Auto-Redirect ONLY if they are NOT a customer-role user.
+            if (!user?.roles?.includes('customer')) {
+                navigate('/driver/profile', { replace: true })
+            }
+        }
+    }, [user, navigate])
+
 
     return (
         <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-[100px] bg-background-light">

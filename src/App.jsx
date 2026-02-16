@@ -58,6 +58,7 @@ const AddressListPage = lazy(() => import('./pages/user/AddressListPage'))
 const AddAddressPage = lazy(() => import('./pages/user/AddAddressPage'))
 const FavoritesPage = lazy(() => import('./pages/user/FavoritesPage'))
 const NotificationsPage = lazy(() => import('./pages/user/NotificationsPage'))
+const DriverAccountPage = lazy(() => import('./pages/driver/DriverAccountPage'))
 const PaymentMethodsPage = lazy(() => import('./pages/user/PaymentMethodsPage'))
 const SecurityPage = lazy(() => import('./pages/user/SecurityPage'))
 const AboutPage = lazy(() => import('./pages/user/AboutPage'))
@@ -155,7 +156,7 @@ const DriverNotificationsPage = lazy(() => import('./pages/driver/DriverNotifica
 const DriverNotificationDetailPage = lazy(() => import('./pages/driver/DriverNotificationDetailPage'))
 const DriverVehiclePage = lazy(() => import('./pages/driver/profile/DriverVehiclePage'))
 const DriverBankPage = lazy(() => import('./pages/driver/profile/DriverBankPage'))
-const DriverAddBankPage = lazy(() => import('./pages/driver/profile/DriverAddBankPage'))
+const DriverEditBankPage = lazy(() => import('./pages/driver/profile/DriverEditBankPage'))
 const DriverSecurityPage = lazy(() => import('./pages/driver/profile/DriverSecurityPage'))
 
 // Driver Financial Pages
@@ -284,6 +285,7 @@ function AppContent() {
                     <Route path="/driver/dashboard" element={<ProtectedRoute allowedRoles={['driver']}><DriverDashboard /></ProtectedRoute>} />
                     <Route path="/driver/orders" element={<ProtectedRoute allowedRoles={['driver']}><DriverOrdersPage /></ProtectedRoute>} />
                     <Route path="/driver/earnings" element={<ProtectedRoute allowedRoles={['driver']}><DriverEarningsPage /></ProtectedRoute>} />
+                    <Route path="/driver/account" element={<ProtectedRoute allowedRoles={['driver']}><DriverAccountPage /></ProtectedRoute>} />
                     <Route path="/driver/profile" element={<ProtectedRoute allowedRoles={['driver']}><DriverProfilePage /></ProtectedRoute>} />
                     <Route path="/driver/profile/edit" element={<ProtectedRoute allowedRoles={['driver']}><DriverEditProfile /></ProtectedRoute>} />
                     <Route path="/driver/notifications" element={<ProtectedRoute allowedRoles={['driver']}><DriverNotificationsPage /></ProtectedRoute>} />
@@ -293,7 +295,8 @@ function AppContent() {
                     {/* Driver Account Sub-Pages */}
                     <Route path="/driver/vehicle" element={<ProtectedRoute allowedRoles={['driver']}><DriverVehiclePage /></ProtectedRoute>} />
                     <Route path="/driver/bank" element={<ProtectedRoute allowedRoles={['driver']}><DriverBankPage /></ProtectedRoute>} />
-                    <Route path="/driver/bank/add" element={<ProtectedRoute allowedRoles={['driver']}><DriverAddBankPage /></ProtectedRoute>} />
+                    <Route path="/driver/bank/edit" element={<ProtectedRoute allowedRoles={['driver']}><DriverEditBankPage /></ProtectedRoute>} />
+                    <Route path="/driver/bank/add" element={<ProtectedRoute allowedRoles={['driver']}><DriverEditBankPage /></ProtectedRoute>} />
                     <Route path="/driver/security" element={<ProtectedRoute allowedRoles={['driver']}><DriverSecurityPage /></ProtectedRoute>} />
 
                     {/* Driver Financial Routes */}

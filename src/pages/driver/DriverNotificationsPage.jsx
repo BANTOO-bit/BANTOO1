@@ -157,56 +157,32 @@ function DriverNotificationsPage() {
                                                     <div className="mt-3 p-3 bg-white/50 rounded-lg border border-slate-100 text-xs text-slate-600">
                                                         {notification.details.description}
                                                     </div>
-                            {/* Yesterday Section */}
-                                                {yesterdayNotifications.length > 0 && (
-                                                    <>
-                                                        <div className="flex items-center justify-center my-6">
-                                                            <span className="text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded-full">Kemarin</span>
-                                                        </div>
-
-                                                        {yesterdayNotifications.map(notification => {
-                                                            const styles = getNotificationStyles(notification.type, notification.isUnread)
-                                                            return (
-                                                                <div
-                                                                    key={notification.id}
-                                                                    onClick={() => navigate(`/driver/notifications/${notification.id}`)}
-                                                                    className={`group ${styles.container} border rounded-xl p-4 flex items-start space-x-4 transition-all active:scale-[0.98] cursor-pointer hover:shadow-md`}
-                                                                >
-                                                                    <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${styles.iconBg}`}>
-                                                                        <span className={`material-symbols-outlined ${styles.iconColor} text-2xl`}>{notification.icon}</span>
-                                                                    </div>
-                                                                    <div className="flex-grow">
-                                                                        <h3 className={`font-bold ${styles.titleColor} text-sm`}>{notification.title}</h3>
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                                                                            {notification.message}
-                                                                        </p>
-                                                                        <span className={`text-[10px] ${styles.timeColor} mt-2 block`}>{notification.time}</span>
-                                                                    </div>
-                                                                </div>
-                                                            )
-                                                        })}
-                                                    </>
                                                 )}
-                                            </>
-                                            ) : (
-                                            /* Empty State */
-                                            <div className="flex flex-col items-center justify-center text-center pt-32">
-                                                <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-full mb-6 flex items-center justify-center">
-                                                    <span className="material-symbols-outlined text-gray-300 dark:text-gray-600 text-6xl">notifications_off</span>
-                                                </div>
-                                                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Belum ada notifikasi</h2>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
-                                                    Informasi pesanan, sistem, dan promosi terbaru akan muncul di sini.
-                                                </p>
                                             </div>
-                    )}
-                                        </main>
-
-                                        {/* Bottom Navigation */}
-                                        <DriverBottomNavigation />
+                                        </div>
                                     </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        /* Empty State */
+                        <div className="flex flex-col items-center justify-center text-center pt-32">
+                            <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-full mb-6 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-gray-300 dark:text-gray-600 text-6xl">notifications_off</span>
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Belum ada notifikasi</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
+                                Informasi pesanan, sistem, dan promosi terbaru akan muncul di sini.
+                            </p>
+                        </div>
+                    )}
+                </main>
+
+                {/* Bottom Navigation */}
+                <DriverBottomNavigation />
+            </div>
         </div>
-                    )
+    )
 }
 
-                    export default DriverNotificationsPage
+export default DriverNotificationsPage

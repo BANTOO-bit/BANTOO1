@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { useAuth } from './AuthContext'
 
 const NotificationsContext = createContext()
 
@@ -71,32 +72,45 @@ const defaultNotifications = [
 ]
 
 export function NotificationsProvider({ children }) {
+    const { activeRole } = useAuth() // Get active role
+
     // ===== Persistent Notifications State =====
-    const [notifications, setNotifications] = useState(() => {
+    const [allNotifications, setAllNotifications] = useState(() => {
         const saved = localStorage.getItem('bantoo_notifications')
-        return saved ? JSON.parse(saved) : defaultNotifications
+        return saved ? JSON.parse(saved) : defaultNotifications.map(n => ({ ...n, role: 'customer' })) // Default legacy ones to customer
     })
 
     useEffect(() => {
-        localStorage.setItem('bantoo_notifications', JSON.stringify(notifications))
-    }, [notifications])
+        localStorage.setItem('bantoo_notifications', JSON.stringify(allNotifications))
+    }, [allNotifications])
+
+    // Filter notifications based on active role
+    const notifications = allNotifications.filter(n => {
+        if (!n.role) return true // Show legacy/global notifications
+        return n.role === activeRole
+    })
 
     const markAsRead = (notificationId) => {
-        setNotifications(prev =>
+        setAllNotifications(prev =>
             prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
         )
     }
 
     const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+        setAllNotifications(prev => prev.map(n => {
+            if (n.role === activeRole || !n.role) {
+                return { ...n, read: true }
+            }
+            return n
+        }))
     }
 
     const deleteNotification = (notificationId) => {
-        setNotifications(prev => prev.filter(n => n.id !== notificationId))
+        setAllNotifications(prev => prev.filter(n => n.id !== notificationId))
     }
 
     const clearAll = () => {
-        setNotifications([])
+        setAllNotifications(prev => prev.filter(n => n.role !== activeRole))
     }
 
     const addNotification = (notification) => {
@@ -104,9 +118,10 @@ export function NotificationsProvider({ children }) {
             ...notification,
             id: Date.now(),
             time: 'Baru saja',
-            read: false
+            read: false,
+            role: activeRole || 'customer' // Tag with current role
         }
-        setNotifications(prev => [newNotification, ...prev])
+        setAllNotifications(prev => [newNotification, ...prev])
     }
 
     const unreadCount = notifications.filter(n => !n.read).length

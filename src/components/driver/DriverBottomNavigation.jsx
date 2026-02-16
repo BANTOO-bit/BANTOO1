@@ -10,14 +10,14 @@ function DriverBottomNavigation({ activeTab }) {
         currentPath.includes('/driver/dashboard') ? 'home' :
             currentPath.includes('/driver/orders') ? 'orders' :
                 currentPath.includes('/driver/earnings') ? 'earnings' :
-                    currentPath.includes('/driver/profile') ? 'profile' : 'home'
+                    (currentPath.includes('/driver/profile') || currentPath.includes('/driver/account')) ? 'profile' : 'home'
     )
 
     const navItems = [
         { id: 'home', icon: 'home', label: 'Beranda', path: '/driver/dashboard' },
         { id: 'orders', icon: 'assignment', label: 'Order', path: '/driver/orders' },
         { id: 'earnings', icon: 'account_balance_wallet', label: 'Pendapatan', path: '/driver/earnings' },
-        { id: 'profile', icon: 'person', label: 'Akun', path: '/driver/profile' },
+        { id: 'profile', icon: 'person', label: 'Akun', path: '/driver/account' },
     ]
 
     return (

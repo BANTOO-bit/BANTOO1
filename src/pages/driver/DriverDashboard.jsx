@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useNotification } from '../../context/NotificationsContext'
@@ -27,21 +27,33 @@ function DriverDashboard() {
     const [availableOrders, setAvailableOrders] = useState([])
 
     useEffect(() => {
+        let mounted = true
+
         async function fetchEarnings() {
             if (!user?.id) return
             try {
                 const data = await dashboardService.getDriverStats(user.id)
-                setEarnings({ ...data, loading: false })
+                if (mounted) {
+                    setEarnings({ ...data, loading: false })
+                }
             } catch (error) {
                 console.error('Error fetching driver stats:', error)
-                setEarnings(prev => ({ ...prev, loading: false }))
+                if (mounted) {
+                    setEarnings(prev => ({ ...prev, loading: false }))
+                }
             }
         }
+
         async function fetchProfile() {
             if (!user?.id) return
             try {
                 const profile = await driverService.getProfile()
-                if (profile) setDriverProfile(profile)
+                if (mounted && profile) {
+                    setDriverProfile(profile)
+                    // Sync local state with DB state
+                    setIsOnline(profile.is_active)
+                    setDriverStatus(profile.status === 'suspended' || profile.status === 'rejected' ? 'suspended' : 'active')
+                }
             } catch (error) {
                 console.error('Error fetching driver profile:', error)
             }
@@ -50,38 +62,61 @@ function DriverDashboard() {
         // Check for active order on mount (Session Resume)
         async function checkActiveOrder() {
             if (!user?.id) return
-            const activeOrder = await driverService.getActiveOrder()
-            if (activeOrder) {
-                console.log('Found active order, resuming...', activeOrder)
-                // Normalize data structure...
-                // ... (omitted normalization code for brevity, assume handled elsewhere or user navigates)
-                // Navigation logic:
-                if (activeOrder.status === 'pickup') {
-                    navigate(`/driver/order/pickup/${activeOrder.id}`, { replace: true })
-                } else if (['picked_up', 'delivering'].includes(activeOrder.status)) {
-                    navigate(`/driver/order/delivery/${activeOrder.id}`, { replace: true })
+            try {
+                const activeOrder = await driverService.getActiveOrder()
+                if (mounted && activeOrder) {
+                    console.log('Found active order, resuming...', activeOrder)
+
+                    if (activeOrder.status === 'pickup') {
+                        navigate(`/driver/order/pickup/${activeOrder.id}`, { replace: true })
+                    } else if (['picked_up', 'delivering'].includes(activeOrder.status)) {
+                        navigate(`/driver/order/delivery/${activeOrder.id}`, { replace: true })
+                    }
                 }
+            } catch (error) {
+                console.error('Error checking active order:', error)
             }
         }
 
-        fetchEarnings()
-        fetchProfile()
-        checkActiveOrder()
+        if (user?.id) {
+            fetchEarnings()
+            fetchProfile()
+            checkActiveOrder()
+        }
 
         // Refresh every 30 seconds
         const interval = setInterval(() => {
-            fetchEarnings()
-            checkActiveOrder()
+            if (user?.id) {
+                fetchEarnings()
+                checkActiveOrder()
+            }
         }, 30000)
 
-        return () => clearInterval(interval)
+        return () => {
+            mounted = false
+            clearInterval(interval)
+        }
     }, [user?.id, navigate])
+
+    // Track mount status to prevent leaks
+    const isMountedRef = useRef(true)
+
+    useEffect(() => {
+        return () => {
+            isMountedRef.current = false
+        }
+    }, [])
 
     // Specific function to check orders and update local state
     // Defined outside to be accessible if needed, but primarily used in Location effect
     const checkAvailableOrders = async (lat, lng) => {
+        if (!user?.id || !isMountedRef.current) return
+
         try {
             const orders = await driverService.getAvailableOrders({ lat, lng })
+
+            if (!isMountedRef.current) return
+
             setAvailableOrders(orders || []) // Update state for list view
 
             if (orders && orders.length > 0) {
@@ -372,7 +407,11 @@ function DriverDashboard() {
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div>
                                                             <h4 className="font-bold text-slate-900">{order.merchant_name}</h4>
-                                                            <p className="text-xs text-slate-500 line-clamp-1">{order.merchant_address}</p>
+                                                            <p className="text-xs text-slate-500 line-clamp-1">
+                                                                {order.merchant_address?.includes('Lokasi Terpilih')
+                                                                    ? 'Lokasi via Peta (Klik untuk detail)'
+                                                                    : order.merchant_address}
+                                                            </p>
                                                         </div>
                                                         <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">
                                                             {order.distance_to_merchant ? `${order.distance_to_merchant.toFixed(1)} km` : '? km'}
@@ -409,52 +448,7 @@ function DriverDashboard() {
                                         </>
                                     )}
 
-                                    {/* Dev Only: Simulate Order */}
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => {
-                                                addNotification({
-                                                    type: 'order',
-                                                    title: 'Pesanan Baru Masuk!',
-                                                    message: 'Order #OD-99282 - Nasi Goreng Spesial (COD) - 2.5km',
-                                                    actionLabel: 'Lihat Order',
-                                                    actionUrl: '/driver/order/incoming',
-                                                    sticky: true
-                                                })
-                                            }}
-                                            className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-100 transition-colors"
-                                        >
-                                            🔍 Simulasi (COD)
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                addNotification({
-                                                    type: 'order',
-                                                    title: 'Pesanan Baru Masuk!',
-                                                    message: 'Order #OD-99283 - Sate Ayam Madura (Wallet) - 1.2km',
-                                                    actionLabel: 'Lihat Order',
-                                                    actionUrl: '/driver/order/incoming-wallet',
-                                                    sticky: true
-                                                })
-                                            }}
-                                            className="bg-sky-50 text-sky-600 px-4 py-2 rounded-lg text-xs font-bold border border-sky-100 hover:bg-sky-100 transition-colors"
-                                        >
-                                            💳 Simulasi (Wallet)
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                addNotification({
-                                                    type: 'success',
-                                                    title: 'Setoran Berhasil',
-                                                    message: 'Setoran harian sebesar Rp 50.000 telah berhasil dikonfirmasi.',
-                                                    duration: 5000
-                                                })
-                                            }}
-                                            className="bg-green-50 text-green-600 px-4 py-2 rounded-lg text-xs font-bold border border-green-100 hover:bg-green-100 transition-colors"
-                                        >
-                                            ✅ Test Alert
-                                        </button>
-                                    </div>
+                                    {/* Dev Only: Simulate Order - REMOVED FOR PRODUCTION */}
                                 </div>
                             )}
                         </>
