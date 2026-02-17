@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { useOrder } from '../../../context/OrderContext'
 import { useToast } from '../../../context/ToastContext'
 import orderService from '../../../services/orderService'
+import { calculateDistance } from '../../../services/driverLocationService'
 import { generateOrderId } from '../../../utils/orderUtils'
 import { handleError } from '../../../utils/errorHandler'
 
@@ -17,6 +18,17 @@ function DriverIncomingOrder() {
     const [availableOrder, setAvailableOrder] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isAccepting, setIsAccepting] = useState(false)
+    const [driverPos, setDriverPos] = useState(null)
+
+    // Get driver's current position for distance calculation
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setDriverPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => console.warn('Geolocation not available')
+            )
+        }
+    }, [])
 
     // Fetch specific order
     useEffect(() => {
@@ -66,6 +78,22 @@ function DriverIncomingOrder() {
         }
     }, [timeLeft, availableOrder, navigate])
 
+    // Compute distances from driver position to merchant and customer
+    const distToMerchant = (() => {
+        if (!driverPos || !availableOrder?.merchant?.latitude || !availableOrder?.merchant?.longitude) return '-- km'
+        const d = calculateDistance(driverPos.lat, driverPos.lng, availableOrder.merchant.latitude, availableOrder.merchant.longitude)
+        return d < 1 ? `${Math.round(d * 1000)} m` : `${d.toFixed(1)} km`
+    })()
+
+    const distToCustomer = (() => {
+        if (!availableOrder?.merchant?.latitude || !availableOrder?.customer_lat || !availableOrder?.customer_lng) return '-- km'
+        const d = calculateDistance(
+            availableOrder.merchant.latitude, availableOrder.merchant.longitude,
+            availableOrder.customer_lat, availableOrder.customer_lng
+        )
+        return d < 1 ? `${Math.round(d * 1000)} m` : `${d.toFixed(1)} km`
+    })()
+
     const handleAcceptOrder = async () => {
         if (!availableOrder || isAccepting) return
 
@@ -95,8 +123,8 @@ function DriverIncomingOrder() {
                     notes: item.notes
                 })) || [],
                 distances: {
-                    toMerchant: '-- km',
-                    toCustomer: '-- km'
+                    toMerchant: distToMerchant,
+                    toCustomer: distToCustomer
                 },
                 customerNote: availableOrder.notes || ''
             })
@@ -212,14 +240,14 @@ function DriverIncomingOrder() {
                                 <div className="flex items-center justify-between px-2">
                                     <div className="flex flex-col items-center gap-0.5">
                                         <span className="text-slate-400 text-[10px] font-bold uppercase">Ke Warung</span>
-                                        <span className="text-slate-900 font-bold text-base">1.2 km</span>
+                                        <span className="text-slate-900 font-bold text-base">{distToMerchant}</span>
                                     </div>
                                     <div className="h-px w-12 bg-slate-300 relative">
                                         <div className="absolute -top-1 left-1/2 -translate-x-1/2 size-2 bg-slate-300 rounded-full"></div>
                                     </div>
                                     <div className="flex flex-col items-center gap-0.5">
                                         <span className="text-slate-400 text-[10px] font-bold uppercase">Ke Customer</span>
-                                        <span className="text-slate-900 font-bold text-base">3.5 km</span>
+                                        <span className="text-slate-900 font-bold text-base">{distToCustomer}</span>
                                     </div>
                                 </div>
                             </div>

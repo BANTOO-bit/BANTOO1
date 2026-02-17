@@ -55,124 +55,15 @@ export const orderService = {
         })
 
         if (rpcError) {
-            // If RPC function doesn't exist yet, fall back to client-side
-            // Also, fallback if RPC fails with specific codes like 23502 (not_null_violation)
-            if (rpcError.code === '42883' || rpcError.code === '23502' || rpcError.message?.includes('function') || rpcError.message?.includes('does not exist')) {
-                console.warn('RPC create_order failed, falling back to client-side:', rpcError)
-                return this._createOrderFallback(user, orderData)
-            }
-            throw rpcError
+            // RPC failed — do not fallback to client-side
+            console.error('RPC create_order failed:', rpcError)
+            throw new Error(rpcError.message || 'Gagal membuat pesanan. Silakan coba lagi.')
         }
 
         return rpcResult
     },
 
-    /**
-     * Fallback: client-side order creation (TEMPORARY — remove after RPC deployment)
-     * @private
-     */
-    async _createOrderFallback(user, orderData) {
-        const {
-            merchantId, items, deliveryAddress, deliveryDetail,
-            customerName, customerPhone, customerLat, customerLng,
-            paymentMethod = 'cod', promoCode = null, notes = null,
-            deliveryFee: propDeliveryFee
-        } = orderData
 
-        // Fetch real prices from database to prevent manipulation
-        const itemIds = items.map(i => i.productId)
-        const { data: dbItems, error: itemsError } = await supabase
-            .from('menu_items')
-            .select('id, price, name')
-            .in('id', itemIds)
-
-        if (itemsError) throw itemsError
-
-        // Build price map from DB (not from frontend!)
-        const priceMap = {}
-            ; (dbItems || []).forEach(item => { priceMap[item.id] = item.price })
-
-        // Calculate subtotal using DB prices
-        const subtotal = items.reduce((sum, item) => {
-            const dbPrice = priceMap[item.productId]
-            if (dbPrice === undefined) throw new Error(`Menu item ${item.productId} not found`)
-            return sum + (dbPrice * item.quantity)
-        }, 0)
-
-        // Fetch delivery fee from DB or use calculated value
-        let deliveryFee = propDeliveryFee || 8000 // Use passed fee first, then default
-        if (!propDeliveryFee && customerLat && customerLng) {
-            try {
-                const { data: fee } = await supabase.rpc('calculate_delivery_fee', {
-                    p_merchant_id: merchantId,
-                    p_user_lat: customerLat,
-                    p_user_lng: customerLng
-                })
-                if (fee) deliveryFee = fee
-            } catch {
-                // Keep default fee on error
-            }
-        }
-
-        const serviceFee = 0
-        let discount = 0
-        let promoId = null
-
-        if (promoCode) {
-            const promo = await this.validatePromo(promoCode, subtotal)
-            if (promo) {
-                promoId = promo.id
-                discount = promo.discount
-            }
-        }
-
-        const totalAmount = subtotal + deliveryFee - discount
-
-        const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .insert({
-                customer_id: user.id,
-                merchant_id: merchantId,
-                subtotal,
-                delivery_fee: deliveryFee,
-                service_fee: 0,
-                discount,
-                total_amount: totalAmount,
-                payment_method: paymentMethod,
-                payment_status: paymentMethod === 'wallet' ? 'paid' : 'pending',
-                promo_id: promoId,
-                promo_code: promoCode,
-                delivery_address: deliveryAddress,
-                delivery_detail: deliveryDetail,
-                customer_name: customerName,
-                customer_phone: customerPhone,
-                customer_lat: customerLat,
-                customer_lng: customerLng,
-                notes,
-                status: 'pending'
-            })
-            .select()
-            .single()
-
-        if (orderError) throw orderError
-
-        const orderItems = items.map(item => ({
-            order_id: order.id,
-            product_id: item.productId,
-            product_name: item.name,
-            quantity: item.quantity,
-            price_at_time: priceMap[item.productId],
-            notes: item.notes || null
-        }))
-
-        const { error: oiError } = await supabase
-            .from('order_items')
-            .insert(orderItems)
-
-        if (oiError) throw oiError
-
-        return order
-    },
 
     /**
      * Get orders for current user (as customer)
@@ -424,44 +315,73 @@ export const orderService = {
     },
 
     /**
-     * Accept order (for driver) — validates order is available
+     * Accept order (for driver) — uses RPC for atomic acceptance, falls back to direct query
      */
     async acceptOrder(orderId) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
-        // Verify order is available (no driver assigned, status is 'ready')
-        const { data: order, error: fetchError } = await supabase
-            .from('orders')
-            .select('id, status, driver_id')
-            .eq('id', orderId)
-            .single()
+        // Try RPC first (atomic — prevents race conditions)
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('driver_accept_order', {
+            p_order_id: orderId
+        })
 
-        if (fetchError || !order) throw new Error('Order not found')
-        if (order.driver_id) throw new Error('Order already taken by another driver')
-        if (order.status !== 'ready') throw new Error('Order is not available for pickup')
+        if (!rpcError && rpcResult) {
+            return rpcResult
+        }
 
-        // Assign driver and update status
-        const { data, error } = await supabase
-            .from('orders')
-            .update({
-                driver_id: user.id,
-                status: 'pickup',
-                picked_up_at: new Date().toISOString()
-            })
-            .eq('id', orderId)
-            .is('driver_id', null)
-            .select()
-            .single()
+        // Fallback to direct query if RPC not deployed yet
+        if (rpcError?.code === '42883' || rpcError?.message?.includes('does not exist')) {
+            console.warn('RPC driver_accept_order not found, using direct query fallback')
 
-        if (error) throw new Error('Failed to accept order — it may have been taken')
-        return data
+            const { data: order, error: fetchError } = await supabase
+                .from('orders')
+                .select('id, status, driver_id')
+                .eq('id', orderId)
+                .single()
+
+            if (fetchError || !order) throw new Error('Order not found')
+            if (order.driver_id) throw new Error('Pesanan sudah diambil driver lain')
+            if (order.status !== 'ready') throw new Error('Pesanan tidak tersedia untuk pickup')
+
+            const { data, error } = await supabase
+                .from('orders')
+                .update({
+                    driver_id: user.id,
+                    status: 'pickup',
+                    picked_up_at: new Date().toISOString()
+                })
+                .eq('id', orderId)
+                .is('driver_id', null)
+                .select()
+                .single()
+
+            if (error) throw new Error('Gagal menerima pesanan — mungkin sudah diambil')
+            return data
+        }
+
+        throw rpcError || new Error('Gagal menerima pesanan')
     },
 
     /**
-     * Cancel order — only the customer or admin can cancel
+     * Cancel order — validates status before cancelling
+     * Only allows cancel when status is 'pending' or 'accepted'
      */
     async cancelOrder(orderId, reason) {
+        // Validate: can only cancel in early stages
+        const { data: order, error: fetchError } = await supabase
+            .from('orders')
+            .select('status')
+            .eq('id', orderId)
+            .single()
+
+        if (fetchError || !order) throw new Error('Pesanan tidak ditemukan')
+
+        const cancellableStatuses = ['pending', 'accepted', 'preparing']
+        if (!cancellableStatuses.includes(order.status)) {
+            throw new Error(`Pesanan tidak bisa dibatalkan karena sudah berstatus "${order.status}"`)
+        }
+
         return this.updateStatus(orderId, 'cancelled', { cancellation_reason: reason })
     },
 
