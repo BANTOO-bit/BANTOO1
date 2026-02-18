@@ -615,7 +615,7 @@ function TrackingPage() {
                                 <span className="material-symbols-outlined text-lg">call</span>
                             </a>
                             <button
-                                onClick={() => navigate('/chat-driver')}
+                                onClick={() => navigate(`/chat-driver/${order.id}`)}
                                 className="w-9 h-9 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full active:scale-95 transition-transform"
                             >
                                 <span className="material-symbols-outlined text-lg">chat</span>

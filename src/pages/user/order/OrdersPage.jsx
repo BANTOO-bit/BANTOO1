@@ -90,8 +90,8 @@ function OrdersPage() {
             setActiveOrders(active)
             setOrderHistory(history)
         } catch (err) {
-            console.error('Error loading orders:', err)
-            setError(err.message || 'Gagal memuat pesanan')
+            const msg = handleError(err, toast, { context: 'Load pesanan' })
+            setError(msg)
         } finally {
             setIsLoading(false)
         }

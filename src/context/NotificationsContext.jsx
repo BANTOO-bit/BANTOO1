@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { useAuth } from './AuthContext'
+import notificationService from '../services/notificationService'
+import pushNotificationService from '../services/pushNotificationService'
 
 const NotificationsContext = createContext()
 
@@ -27,90 +29,131 @@ export function useNotification() {
     }
 }
 
-// Sample notifications
-const defaultNotifications = [
-    {
-        id: 1,
-        type: 'order',
-        title: 'Pesanan Selesai',
-        message: 'Pesanan dari Ayam Geprek UMKM telah sampai. Jangan lupa beri ulasan ya!',
-        time: '10 menit lalu',
-        read: false,
-        icon: 'check_circle',
-        color: 'green'
-    },
-    {
-        id: 2,
-        type: 'promo',
-        title: 'Promo Spesial! 🎉',
-        message: 'Dapatkan diskon 20% untuk pesanan pertamamu hari ini!',
-        time: '1 jam lalu',
-        read: false,
-        icon: 'local_offer',
-        color: 'orange'
-    },
-    {
-        id: 3,
-        type: 'order',
-        title: 'Driver Menuju Lokasi',
-        message: 'Driver Ahmad sedang dalam perjalanan mengantar pesananmu.',
-        time: '2 jam lalu',
-        read: true,
-        icon: 'two_wheeler',
-        color: 'blue'
-    },
-    {
-        id: 4,
-        type: 'system',
-        title: 'Update Aplikasi',
-        message: 'Versi terbaru Bantoo! sudah tersedia. Update sekarang untuk pengalaman lebih baik.',
-        time: '1 hari lalu',
-        read: true,
-        icon: 'system_update',
-        color: 'gray'
-    }
-]
-
 export function NotificationsProvider({ children }) {
-    const { activeRole } = useAuth() // Get active role
+    const { user, activeRole } = useAuth()
 
     // ===== Persistent Notifications State =====
-    const [allNotifications, setAllNotifications] = useState(() => {
-        const saved = localStorage.getItem('bantoo_notifications')
-        return saved ? JSON.parse(saved) : defaultNotifications.map(n => ({ ...n, role: 'customer' })) // Default legacy ones to customer
-    })
+    const [allNotifications, setAllNotifications] = useState([])
+    const [loading, setLoading] = useState(true)
+    const unsubscribeRef = useRef(null)
+    const pushUnsubscribeRef = useRef(null)
 
+    // Request browser notification permission on mount
     useEffect(() => {
-        localStorage.setItem('bantoo_notifications', JSON.stringify(allNotifications))
-    }, [allNotifications])
+        if (user?.id) {
+            pushNotificationService.requestPermission()
+        }
+    }, [user?.id])
+
+    // Fetch notifications from Supabase on mount / user change
+    useEffect(() => {
+        if (!user?.id) {
+            setAllNotifications([])
+            setLoading(false)
+            return
+        }
+
+        let cancelled = false
+
+        async function fetchNotifications() {
+            try {
+                const data = await notificationService.getNotifications(100)
+                if (!cancelled) {
+                    setAllNotifications((data || []).map(n => ({
+                        ...n,
+                        read: n.is_read,
+                        time: formatRelativeTime(n.created_at),
+                        icon: getIconForType(n.type),
+                        color: getColorForType(n.type),
+                        role: n.type === 'driver' ? 'driver' : n.type === 'merchant' ? 'merchant' : 'customer'
+                    })))
+                }
+            } catch (err) {
+                console.error('Failed to fetch notifications:', err)
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        }
+
+        fetchNotifications()
+
+        // Subscribe to real-time notifications
+        const unsubscribe = notificationService.subscribeToNotifications(user.id, (newNotif) => {
+            setAllNotifications(prev => [{
+                ...newNotif,
+                read: newNotif.is_read,
+                time: 'Baru saja',
+                icon: getIconForType(newNotif.type),
+                color: getColorForType(newNotif.type),
+                role: newNotif.type === 'driver' ? 'driver' : newNotif.type === 'merchant' ? 'merchant' : 'customer'
+            }, ...prev])
+
+            // Play notification sound
+            playNotificationSound()
+
+            // Show browser push notification (when tab not focused)
+            pushNotificationService.showFromRecord(newNotif)
+        })
+
+        unsubscribeRef.current = unsubscribe
+
+        // Subscribe to browser push notifications as backup
+        pushUnsubscribeRef.current = pushNotificationService.subscribeToNotifications(user.id)
+
+        return () => {
+            cancelled = true
+            if (unsubscribeRef.current) unsubscribeRef.current()
+            if (pushUnsubscribeRef.current) pushUnsubscribeRef.current()
+        }
+    }, [user?.id])
 
     // Filter notifications based on active role
     const notifications = allNotifications.filter(n => {
-        if (!n.role) return true // Show legacy/global notifications
+        if (!n.role) return true
         return n.role === activeRole
     })
 
-    const markAsRead = (notificationId) => {
+    const markAsRead = async (notificationId) => {
         setAllNotifications(prev =>
-            prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+            prev.map(n => n.id === notificationId ? { ...n, read: true, is_read: true } : n)
         )
+        try {
+            await notificationService.markAsRead(notificationId)
+        } catch (err) {
+            console.error('Failed to mark as read:', err)
+        }
     }
 
-    const markAllAsRead = () => {
+    const markAllAsRead = async () => {
         setAllNotifications(prev => prev.map(n => {
             if (n.role === activeRole || !n.role) {
-                return { ...n, read: true }
+                return { ...n, read: true, is_read: true }
             }
             return n
         }))
+        try {
+            await notificationService.markAllAsRead()
+        } catch (err) {
+            console.error('Failed to mark all as read:', err)
+        }
     }
 
-    const deleteNotification = (notificationId) => {
+    const deleteNotification = async (notificationId) => {
         setAllNotifications(prev => prev.filter(n => n.id !== notificationId))
+        try {
+            await notificationService.deleteNotification(notificationId)
+        } catch (err) {
+            console.error('Failed to delete notification:', err)
+        }
     }
 
-    const clearAll = () => {
+    const clearAll = async () => {
         setAllNotifications(prev => prev.filter(n => n.role !== activeRole))
+        try {
+            await notificationService.clearAll()
+        } catch (err) {
+            console.error('Failed to clear all:', err)
+        }
     }
 
     const addNotification = (notification) => {
@@ -119,7 +162,7 @@ export function NotificationsProvider({ children }) {
             id: Date.now(),
             time: 'Baru saja',
             read: false,
-            role: activeRole || 'customer' // Tag with current role
+            role: activeRole || 'customer'
         }
         setAllNotifications(prev => [newNotification, ...prev])
     }
@@ -132,7 +175,7 @@ export function NotificationsProvider({ children }) {
     const playNotificationSound = () => {
         // In a real app, this would play an audio file
         // const audio = new Audio('/sounds/notification.mp3')
-        // audio.play().catch(e => { /* Silent fail */ })
+        // audio.play().catch(() => { /* Silent fail */ })
     }
 
     const addToast = useCallback((notification) => {
@@ -171,6 +214,7 @@ export function NotificationsProvider({ children }) {
         // Persistent notifications
         notifications,
         unreadCount,
+        loading,
         markAsRead,
         markAllAsRead,
         deleteNotification,
@@ -188,6 +232,56 @@ export function NotificationsProvider({ children }) {
             {children}
         </NotificationsContext.Provider>
     )
+}
+
+// ===== Helper Functions =====
+
+function formatRelativeTime(dateStr) {
+    if (!dateStr) return ''
+    const now = new Date()
+    const date = new Date(dateStr)
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Baru saja'
+    if (diffMins < 60) return `${diffMins} menit lalu`
+    if (diffHours < 24) return `${diffHours} jam lalu`
+    if (diffDays < 7) return `${diffDays} hari lalu`
+    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })
+}
+
+function getIconForType(type) {
+    const icons = {
+        order: 'receipt_long',
+        promo: 'local_offer',
+        system: 'system_update',
+        driver: 'two_wheeler',
+        merchant: 'store',
+        info: 'info',
+        success: 'check_circle',
+        warning: 'warning',
+        alert: 'gpp_bad',
+        security: 'security'
+    }
+    return icons[type] || 'notifications'
+}
+
+function getColorForType(type) {
+    const colors = {
+        order: 'blue',
+        promo: 'orange',
+        system: 'gray',
+        driver: 'blue',
+        merchant: 'green',
+        info: 'blue',
+        success: 'green',
+        warning: 'orange',
+        alert: 'red',
+        security: 'red'
+    }
+    return colors[type] || 'gray'
 }
 
 export default NotificationsContext

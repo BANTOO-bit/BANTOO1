@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
 import EmptyState from '../../components/shared/EmptyState'
+import BackToTopButton from '../../components/shared/BackToTopButton'
 import { driverService } from '../../services/driverService'
 import { useAuth } from '../../context/AuthContext'
 
@@ -56,7 +57,7 @@ function DriverOrdersPage() {
                 setCompletedOrders(formatted)
             }
         } catch (error) {
-            console.error('Failed to fetch orders:', error)
+            if (process.env.NODE_ENV === 'development') console.error('Failed to fetch orders:', error)
         } finally {
             setLoading(false)
         }
@@ -88,7 +89,10 @@ function DriverOrdersPage() {
                     <div className="flex items-center p-4 justify-between">
                         <h1 className="text-xl font-bold text-slate-900">Riwayat Order</h1>
                         <div className="flex items-center justify-end">
-                            <button className="flex items-center justify-center rounded-full size-10 bg-slate-100 text-slate-900 hover:bg-slate-200 transition-colors relative">
+                            <button
+                                onClick={() => navigate('/driver/notifications')}
+                                className="flex items-center justify-center rounded-full size-10 bg-slate-100 text-slate-900 hover:bg-slate-200 transition-colors relative"
+                            >
                                 <span className="material-symbols-outlined text-[24px]">notifications</span>
                             </button>
                         </div>
@@ -213,6 +217,7 @@ function DriverOrdersPage() {
                 </main>
 
                 {/* Bottom Navigation */}
+                <BackToTopButton />
                 <DriverBottomNavigation activeTab="orders" />
             </div>
         </div>

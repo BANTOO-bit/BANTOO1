@@ -57,8 +57,7 @@ function DriverIncomingOrder() {
                     navigate('/driver/dashboard')
                 }
             } catch (error) {
-                console.error('Error fetching order:', error)
-                navigate('/driver/dashboard')
+                handleError(error, toast, { context: 'Fetch order' })
             } finally {
                 setIsLoading(false)
             }

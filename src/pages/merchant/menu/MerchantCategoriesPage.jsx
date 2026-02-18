@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ConfirmationModal from '../../../components/shared/ConfirmationModal'
 
 function MerchantCategoriesPage() {
     const navigate = useNavigate()
@@ -7,6 +8,7 @@ function MerchantCategoriesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [currentCategory, setCurrentCategory] = useState({ id: '', label: '' })
     const [isEditing, setIsEditing] = useState(false)
+    const [deleteTarget, setDeleteTarget] = useState(null)
 
     // Load categories from localStorage on mount
     useEffect(() => {
@@ -57,11 +59,16 @@ function MerchantCategoriesPage() {
     }
 
     const handleDelete = (id) => {
-        if (window.confirm('Hapus kategori ini?')) {
-            const newCategories = categories.filter(c => c.id !== id)
+        setDeleteTarget(id)
+    }
+
+    const confirmDelete = () => {
+        if (deleteTarget) {
+            const newCategories = categories.filter(c => c.id !== deleteTarget)
             setCategories(newCategories)
             localStorage.setItem('merchant_categories', JSON.stringify(newCategories))
         }
+        setDeleteTarget(null)
     }
 
     const openModal = (category = null) => {
@@ -170,6 +177,19 @@ function MerchantCategoriesPage() {
                     </div>
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={!!deleteTarget}
+                onClose={() => setDeleteTarget(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Kategori?"
+                message="Kategori yang dihapus tidak dapat dikembalikan. Yakin ingin menghapus?"
+                confirmLabel="Hapus"
+                cancelLabel="Batal"
+                icon="delete"
+                confirmColor="red"
+            />
         </div>
     )
 }

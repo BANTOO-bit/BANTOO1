@@ -87,20 +87,8 @@ export const issueService = {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`
-
-        const { data, error } = await supabase.storage
-            .from('issue-evidence')
-            .upload(fileName, file)
-
-        if (error) throw error
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('issue-evidence')
-            .getPublicUrl(fileName)
-
-        return publicUrl
+        const { storageService, STORAGE_PATHS } = await import('./storageService')
+        return await storageService.upload(file, STORAGE_PATHS.ISSUE_EVIDENCE, user.id)
     },
 
     // ===== ADMIN FUNCTIONS =====

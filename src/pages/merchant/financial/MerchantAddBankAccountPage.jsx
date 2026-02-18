@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { merchantService } from '../../../services/merchantService'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
 import MerchantBottomNavigation from '../../../components/merchant/MerchantBottomNavigation'
 import PageLoader from '../../../components/shared/PageLoader'
 import BankSelectSheet, { getBankDisplayName } from '../../../components/shared/BankSelectSheet'
@@ -39,8 +40,7 @@ function MerchantAddBankAccountPage() {
                     })
                 }
             } catch (error) {
-                console.error('Error fetching bank data:', error)
-                // Silent error, just start with empty form
+                if (process.env.NODE_ENV === 'development') console.error('Error fetching bank data:', error)
             } finally {
                 setInitialLoading(false)
             }
@@ -76,8 +76,7 @@ function MerchantAddBankAccountPage() {
             toast.success('Rekening berhasil disimpan')
             navigate(-1) // Go back to balance page
         } catch (error) {
-            console.error('Error updating bank details:', error)
-            toast.error('Gagal menyimpan rekening')
+            handleError(error, toast, { context: 'Simpan rekening merchant' })
         } finally {
             setLoading(false)
         }

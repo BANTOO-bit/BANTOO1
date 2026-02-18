@@ -6,11 +6,13 @@ import BottomNavigation from '../../../components/user/BottomNavigation'
 import LoadingState from '../../../components/shared/LoadingState'
 import ErrorState from '../../../components/shared/ErrorState'
 import EmptyState from '../../../components/shared/EmptyState'
+import useDebounce from '../../../hooks/useDebounce'
 
 function AllPopularMenuPage() {
     const navigate = useNavigate()
     const { addToCart, setMerchantInfo, cartItems } = useCart()
     const [searchQuery, setSearchQuery] = useState('')
+    const debouncedSearch = useDebounce(searchQuery, 300)
     const [addedItems, setAddedItems] = useState({})
     const [allMenus, setAllMenus] = useState([])
     const [loading, setLoading] = useState(true)
@@ -39,10 +41,10 @@ function AllPopularMenuPage() {
         fetchPopularMenus()
     }, [fetchPopularMenus])
 
-    const filteredItems = searchQuery
+    const filteredItems = debouncedSearch
         ? allMenus.filter(item =>
-            item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.merchantName.toLowerCase().includes(searchQuery.toLowerCase())
+            item.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            item.merchantName.toLowerCase().includes(debouncedSearch.toLowerCase())
         )
         : allMenus
 

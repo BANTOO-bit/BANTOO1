@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { driverService } from '../../../services/driverService'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
 import PageLoader from '../../../components/shared/PageLoader'
 
 function DriverBankPage() {
@@ -32,8 +33,7 @@ function DriverBankPage() {
                 setAccount(null)
             }
         } catch (error) {
-            console.error('Error fetching bank details:', error)
-            toast.error('Gagal memuat data rekening')
+            handleError(error, toast, { context: 'Load data rekening' })
         } finally {
             setLoading(false)
         }

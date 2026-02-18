@@ -1,11 +1,68 @@
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { mockNotifications } from '../../data/driverNotifications'
+import { supabase } from '../../services/supabaseClient'
 
 function DriverNotificationDetailPage() {
     const navigate = useNavigate()
     const { id } = useParams()
+    const [notification, setNotification] = useState(null)
+    const [loading, setLoading] = useState(true)
 
-    const notification = mockNotifications.find(n => n.id === parseInt(id))
+    useEffect(() => {
+        async function fetchNotification() {
+            try {
+                const { data, error } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .eq('id', id)
+                    .single()
+
+                if (error) throw error
+
+                if (data) {
+                    // Mark as read
+                    await supabase
+                        .from('notifications')
+                        .update({ is_read: true })
+                        .eq('id', id)
+
+                    // Parse details from message or a metadata field
+                    let details = null
+                    try {
+                        // Try parsing message as JSON for structured notifications
+                        if (data.metadata) {
+                            details = typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata
+                        }
+                    } catch { /* not JSON, use as-is */ }
+
+                    setNotification({
+                        ...data,
+                        subtype: data.type,
+                        details,
+                        time: new Date(data.created_at).toLocaleDateString('id-ID', {
+                            day: '2-digit', month: 'short', year: 'numeric'
+                        }),
+                        icon: getIconForType(data.type),
+                        color: getColorForType(data.type)
+                    })
+                }
+            } catch (err) {
+                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch notification:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        if (id) fetchNotification()
+    }, [id])
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+            </div>
+        )
+    }
 
     if (!notification) {
         return (
@@ -380,6 +437,29 @@ function DriverNotificationDetailPage() {
             </div>
         </div>
     )
+}
+
+// Helper functions for notification types
+function getIconForType(type) {
+    const icons = {
+        order: 'receipt_long', promo: 'local_offer', system: 'system_update',
+        driver: 'two_wheeler', merchant: 'store', info: 'info',
+        success: 'check_circle', warning: 'warning', alert: 'gpp_bad',
+        security: 'security', withdrawal: 'account_balance_wallet',
+        deposit: 'savings', limit: 'payments', suspended: 'gpp_bad', account: 'security'
+    }
+    return icons[type] || 'notifications'
+}
+
+function getColorForType(type) {
+    const colors = {
+        order: 'blue', promo: 'orange', system: 'gray',
+        driver: 'blue', merchant: 'green', info: 'blue',
+        success: 'green', warning: 'orange', alert: 'red',
+        security: 'red', withdrawal: 'green', deposit: 'blue',
+        limit: 'orange', suspended: 'red', account: 'purple'
+    }
+    return colors[type] || 'gray'
 }
 
 export default DriverNotificationDetailPage

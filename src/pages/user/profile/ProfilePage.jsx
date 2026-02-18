@@ -48,7 +48,7 @@ function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
 
 function ProfilePage() {
     const navigate = useNavigate()
-    const { user, logout } = useAuth()
+    const { user, logout, switchRole } = useAuth()
     const { cartItems } = useCart()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
@@ -182,7 +182,14 @@ function ProfilePage() {
                             {/* Merchant Entry */}
                             {user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' ? (
                                 <button
-                                    onClick={() => navigate('/merchant/dashboard')}
+                                    onClick={async () => {
+                                        try {
+                                            await switchRole('merchant')
+                                            navigate('/merchant/dashboard')
+                                        } catch (err) {
+                                            console.error('Failed to switch role:', err)
+                                        }
+                                    }}
                                     className="w-full flex items-center gap-4 p-4 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors border-b border-gray-100 dark:border-gray-800 active:bg-orange-100"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
@@ -199,7 +206,14 @@ function ProfilePage() {
                             {/* Driver Entry */}
                             {user?.roles?.includes('driver') && user?.driverStatus === 'approved' ? (
                                 <button
-                                    onClick={() => navigate('/driver/dashboard')}
+                                    onClick={async () => {
+                                        try {
+                                            await switchRole('driver')
+                                            navigate('/driver/dashboard')
+                                        } catch (err) {
+                                            console.error('Failed to switch role:', err)
+                                        }
+                                    }}
                                     className="w-full flex items-center gap-4 p-4 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors active:bg-blue-100"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">

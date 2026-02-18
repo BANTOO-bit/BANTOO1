@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 import { useCart } from '../../../context/CartContext'
 import merchantService from '../../../services/merchantService'
+import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
+import useDebounce from '../../../hooks/useDebounce'
 
 // Metadata for categories (ID & Icon mapping)
 const categoryMetadata = [
@@ -48,7 +51,9 @@ function CategoryItem({ category, onClick }) {
 function AllCategoriesPage() {
     const navigate = useNavigate()
     const { cartItems } = useCart()
+    const toast = useToast()
     const [searchQuery, setSearchQuery] = useState('')
+    const debouncedSearch = useDebounce(searchQuery, 300)
     const [activeCategories, setActiveCategories] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
@@ -81,7 +86,7 @@ function AllCategoriesPage() {
 
                 setActiveCategories(combinedCategories)
             } catch (error) {
-                console.error('Failed to fetch categories:', error)
+                handleError(error, toast, { context: 'Fetch kategori' })
                 // Fallback: still show standard categories even if DB fails
                 setActiveCategories(categoryMetadata)
             } finally {
@@ -93,9 +98,9 @@ function AllCategoriesPage() {
     }, [])
 
     // Filter categories based on search
-    const filteredCategories = searchQuery.trim()
+    const filteredCategories = debouncedSearch.trim()
         ? activeCategories.filter(cat =>
-            cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+            cat.name.toLowerCase().includes(debouncedSearch.toLowerCase())
         )
         : activeCategories
 

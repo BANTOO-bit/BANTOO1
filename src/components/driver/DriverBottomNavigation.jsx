@@ -21,19 +21,21 @@ function DriverBottomNavigation({ activeTab }) {
     ]
 
     return (
-        <nav className="fixed bottom-0 z-50 w-full max-w-md bg-white border-t border-slate-200 pb-safe">
+        <nav className="fixed bottom-0 z-50 w-full max-w-md bg-white border-t border-slate-200 pb-safe" role="navigation" aria-label="Navigasi driver">
             <div className="flex justify-around items-center h-16 px-2">
                 {navItems.map((item) => (
                     <button
                         key={item.id}
                         onClick={() => navigate(item.path)}
+                        aria-label={item.label}
+                        aria-current={effectiveActiveTab === item.id ? 'page' : undefined}
                         className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors
                             ${effectiveActiveTab === item.id
                                 ? 'text-[#0d59f2]'
                                 : 'text-slate-400 hover:text-slate-600'
                             }`}
                     >
-                        <span className={`material-symbols-outlined text-[24px] ${effectiveActiveTab === item.id ? 'filled' : ''}`}>
+                        <span className={`material-symbols-outlined text-[24px] ${effectiveActiveTab === item.id ? 'filled' : ''}`} aria-hidden="true">
                             {item.icon}
                         </span>
                         <span className="text-[10px] font-bold">{item.label}</span>

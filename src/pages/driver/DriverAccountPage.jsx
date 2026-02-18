@@ -17,7 +17,7 @@ function DriverAccountPage() {
                     const data = await driverService.getDriverStats(user.id)
                     setStats(data)
                 } catch (error) {
-                    console.error('Failed to load stats', error)
+                    if (process.env.NODE_ENV === 'development') console.error('Failed to load stats', error)
                 }
             }
         }
@@ -33,7 +33,7 @@ function DriverAccountPage() {
             await logout()
             navigate('/login')
         } catch (error) {
-            console.error('Logout failed', error)
+            if (process.env.NODE_ENV === 'development') console.error('Logout failed', error)
         }
     }
 

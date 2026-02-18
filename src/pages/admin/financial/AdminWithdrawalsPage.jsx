@@ -3,6 +3,7 @@ import { supabase } from '../../../services/supabaseClient'
 import AdminLayout from '../../../components/admin/AdminLayout'
 import AdminWithdrawalModal from '../../../components/admin/AdminWithdrawalModal'
 import { financeService } from '../../../services/financeService'
+import { exportService } from '../../../services/exportService'
 import { useAuth } from '../../../context/AuthContext'
 
 export default function AdminWithdrawalsPage() {
@@ -11,6 +12,7 @@ export default function AdminWithdrawalsPage() {
     const [selectedWithdrawal, setSelectedWithdrawal] = useState(null)
     const [withdrawals, setWithdrawals] = useState([])
     const [loading, setLoading] = useState(true)
+    const [exporting, setExporting] = useState(false)
     const [stats, setStats] = useState({ pendingCount: 0, pendingAmount: 0, processedAmount: 0 })
 
     useEffect(() => {
@@ -131,6 +133,25 @@ export default function AdminWithdrawalsPage() {
                     >
                         Ditolak
                     </button>
+                    <div className="ml-auto pr-4 flex items-center">
+                        <button
+                            onClick={async () => {
+                                setExporting(true)
+                                try {
+                                    await exportService.exportWithdrawals({ status: activeTab !== 'all' ? activeTab : undefined })
+                                } catch (err) {
+                                    console.error('Export failed:', err)
+                                } finally {
+                                    setExporting(false)
+                                }
+                            }}
+                            disabled={exporting}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-60"
+                        >
+                            <span className="material-symbols-outlined text-[16px]">{exporting ? 'hourglass_empty' : 'download'}</span>
+                            {exporting ? 'Mengekspor...' : 'Ekspor CSV'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Table */}

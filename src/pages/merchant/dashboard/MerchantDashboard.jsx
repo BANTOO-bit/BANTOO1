@@ -53,7 +53,7 @@ function MerchantDashboard() {
                 setRecentOrders(transformedOrders)
 
             } catch (error) {
-                console.error('Error fetching merchant dashboard data:', error)
+                if (process.env.NODE_ENV === 'development') console.error('Error fetching merchant dashboard data:', error)
                 setStats(prev => ({ ...prev, loading: false }))
             }
         }

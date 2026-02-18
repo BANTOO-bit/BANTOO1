@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
+import { validateForm, hasErrors, required, minLength } from '../../../utils/validation'
 import { authService } from '../../../services/authService'
+import { storageService, STORAGE_PATHS } from '../../../services/storageService'
 import BackButton from '../../../components/shared/BackButton'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 
@@ -12,6 +15,10 @@ function EditProfilePage() {
     const toast = useToast()
 
     const [isLoading, setIsLoading] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
+    const [errors, setErrors] = useState({})
+    const [previewAvatar, setPreviewAvatar] = useState(null)
+    const fileInputRef = useRef(null)
     const [formData, setFormData] = useState({
         full_name: '',
         phone: '',
@@ -34,13 +41,20 @@ function EditProfilePage() {
             ...prev,
             [name]: value
         }))
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }))
+        }
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
 
-        if (!formData.full_name.trim()) {
-            toast.error('Nama lengkap tidak boleh kosong')
+        const validationErrors = validateForm(
+            { full_name: formData.full_name },
+            { full_name: [required('Nama lengkap wajib diisi'), minLength(3, 'Nama minimal 3 karakter')] }
+        )
+        if (hasErrors(validationErrors)) {
+            setErrors(validationErrors)
             return
         }
 
@@ -57,16 +71,48 @@ function EditProfilePage() {
             toast.success('Profil berhasil diperbarui')
             navigate('/profile')
         } catch (error) {
-            console.error('Error updating profile:', error)
-            toast.error(error.message || 'Gagal memperbarui profil')
+            handleError(error, toast, { context: 'Update profil' })
         } finally {
             setIsLoading(false)
         }
     }
 
     // Generate Avatar URL based on name
-    const avatarUrl = user?.user_metadata?.avatar_url ||
+    const avatarUrl = previewAvatar || user?.user_metadata?.avatar_url ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.full_name || 'User')}&background=random&color=fff`
+
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+
+        // Validate file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Ukuran foto maksimal 2MB')
+            return
+        }
+
+        // Show immediate preview
+        const reader = new FileReader()
+        reader.onloadend = () => setPreviewAvatar(reader.result)
+        reader.readAsDataURL(file)
+
+        setIsUploading(true)
+        try {
+            const uploadedUrl = await storageService.upload(file, STORAGE_PATHS.USER_PROFILE, user.id)
+            if (uploadedUrl) {
+                const { error } = await authService.updateProfile({ avatar_url: uploadedUrl })
+                if (error) throw error
+                toast.success('Foto profil berhasil diperbarui')
+            }
+        } catch (error) {
+            handleError(error, toast, { context: 'Upload foto profil' })
+            setPreviewAvatar(null) // Revert preview on failure
+        } finally {
+            setIsUploading(false)
+            // Reset input so same file can be selected again
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+    }
 
     return (
         <div className="min-h-screen flex flex-col bg-background-light pb-[100px]">
@@ -83,17 +129,30 @@ function EditProfilePage() {
                     {/* Avatar Section */}
                     <div className="flex flex-col items-center gap-4 py-4">
                         <div className="relative group">
-                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white">
+                            <div className={`w-24 h-24 rounded-full overflow-hidden border-4 border-white ${isUploading ? 'opacity-50' : ''}`}>
                                 <img
                                     src={avatarUrl}
                                     alt="Profile"
                                     className="w-full h-full object-cover"
                                 />
+                                {isUploading && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
+                                        <span className="material-symbols-outlined animate-spin text-white text-2xl">progress_activity</span>
+                                    </div>
+                                )}
                             </div>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                ref={fileInputRef}
+                                onChange={handleImageChange}
+                                className="hidden"
+                            />
                             <button
                                 type="button"
-                                className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform"
-                                onClick={() => toast.info('Fitur ubah foto akan segera hadir!')}
+                                className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform disabled:opacity-50"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
                             >
                                 <span className="material-symbols-outlined text-sm">camera_alt</span>
                             </button>
@@ -113,9 +172,10 @@ function EditProfilePage() {
                                     value={formData.full_name}
                                     onChange={handleChange}
                                     placeholder="Masukkan nama lengkap"
-                                    className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-medium"
+                                    className={`w-full pl-11 pr-4 py-3.5 bg-white border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-medium ${errors.full_name ? 'border-red-400' : 'border-gray-200'}`}
                                 />
                             </div>
+                            {errors.full_name && <p className="text-xs text-red-500 ml-1 mt-1">{errors.full_name}</p>}
                         </div>
 
                         <div className="space-y-1.5 opacity-60">

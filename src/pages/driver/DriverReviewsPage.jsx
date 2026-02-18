@@ -27,7 +27,7 @@ function DriverReviewsPage() {
                 setReviews(reviewsData || [])
                 setRatingData(rating)
             } catch (error) {
-                console.error('Failed to fetch reviews:', error)
+                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch reviews:', error)
             } finally {
                 setLoading(false)
             }

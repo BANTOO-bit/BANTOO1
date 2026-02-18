@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { orderService } from '../../../services/orderService'
 import MerchantBottomNavigation from '../../../components/merchant/MerchantBottomNavigation'
 import EmptyState from '../../../components/shared/EmptyState'
+import BackToTopButton from '../../../components/shared/BackToTopButton'
 
 function MerchantOrderHistoryPage() {
     const navigate = useNavigate()
@@ -62,7 +63,7 @@ function MerchantOrderHistoryPage() {
 
             setOrders(formattedOrders)
         } catch (error) {
-            console.error('Failed to fetch order history:', error)
+            if (process.env.NODE_ENV === 'development') console.error('Failed to fetch order history:', error)
         } finally {
             setIsLoading(false)
         }
@@ -183,6 +184,7 @@ function MerchantOrderHistoryPage() {
                 </section>
             </main>
 
+            <BackToTopButton />
             <MerchantBottomNavigation activeTab="home" />
         </div>
     )

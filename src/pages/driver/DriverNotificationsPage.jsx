@@ -23,7 +23,7 @@ function DriverNotificationsPage() {
             const data = await driverService.getNotifications(user.id)
             setNotifications(data)
         } catch (error) {
-            console.error('Failed to load notifications:', error)
+            if (process.env.NODE_ENV === 'development') console.error('Failed to load notifications:', error)
         } finally {
             setLoading(false)
         }
@@ -92,6 +92,12 @@ function DriverNotificationsPage() {
                 <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 transition-colors duration-300">
                     <div className="flex items-center p-4 justify-between">
                         <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="flex items-center justify-center rounded-full size-10 -ml-2 text-slate-900 hover:bg-slate-100 transition-colors"
+                            >
+                                <span className="material-symbols-outlined">arrow_back</span>
+                            </button>
                             <span className="material-symbols-outlined text-slate-900">notifications</span>
                             <h1 className="text-xl font-bold text-slate-900">Notifikasi</h1>
                         </div>

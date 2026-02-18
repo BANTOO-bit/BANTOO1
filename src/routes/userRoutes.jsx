@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import { Route } from 'react-router-dom'
+import RoleLockRedirect from '../components/shared/RoleLockRedirect'
 
 // ============================================
 // LAZY LOADED USER PAGES
@@ -108,28 +109,28 @@ const MerchantRegistrationStatus = lazy(() => import('../pages/user/partner/Merc
 export default function UserRoutes({ logout }) {
     return (
         <>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<RoleLockRedirect><HomePage /></RoleLockRedirect>} />
 
             {/* Search & Browse */}
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/categories" element={<AllCategoriesPage />} />
-            <Route path="/category/:id" element={<CategoryDetailPage />} />
-            <Route path="/merchant/:id" element={<MerchantDetailPage />} />
-            <Route path="/merchants" element={<AllMerchantsPage />} />
-            <Route path="/popular-menu" element={<AllPopularMenuPage />} />
+            <Route path="/search" element={<RoleLockRedirect><SearchPage /></RoleLockRedirect>} />
+            <Route path="/categories" element={<RoleLockRedirect><AllCategoriesPage /></RoleLockRedirect>} />
+            <Route path="/category/:id" element={<RoleLockRedirect><CategoryDetailPage /></RoleLockRedirect>} />
+            <Route path="/merchant/:id" element={<RoleLockRedirect><MerchantDetailPage /></RoleLockRedirect>} />
+            <Route path="/merchants" element={<RoleLockRedirect><AllMerchantsPage /></RoleLockRedirect>} />
+            <Route path="/popular-menu" element={<RoleLockRedirect><AllPopularMenuPage /></RoleLockRedirect>} />
 
             {/* Cart & Checkout Flow */}
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/order-success" element={<OrderSuccessPage />} />
+            <Route path="/cart" element={<RoleLockRedirect><CartPage /></RoleLockRedirect>} />
+            <Route path="/checkout" element={<RoleLockRedirect><CheckoutPage /></RoleLockRedirect>} />
+            <Route path="/order-success" element={<RoleLockRedirect><OrderSuccessPage /></RoleLockRedirect>} />
 
             {/* Order Management */}
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/order/:id" element={<OrderDetailPage />} />
-            <Route path="/order-detail" element={<OrderDetailPage />} />
-            <Route path="/tracking/:orderId?" element={<TrackingPage />} />
-            <Route path="/review" element={<ReviewPage />} />
-            <Route path="/chat-driver" element={<ChatDriverPage />} />
+            <Route path="/orders" element={<RoleLockRedirect><OrdersPage /></RoleLockRedirect>} />
+            <Route path="/order/:id" element={<RoleLockRedirect><OrderDetailPage /></RoleLockRedirect>} />
+            <Route path="/order-detail" element={<RoleLockRedirect><OrderDetailPage /></RoleLockRedirect>} />
+            <Route path="/tracking/:orderId?" element={<RoleLockRedirect><TrackingPage /></RoleLockRedirect>} />
+            <Route path="/review" element={<RoleLockRedirect><ReviewPage /></RoleLockRedirect>} />
+            <Route path="/chat-driver/:orderId" element={<RoleLockRedirect><ChatDriverPage /></RoleLockRedirect>} />
 
             {/* Profile & Settings */}
             <Route path="/profile" element={<ProfilePage onLogout={logout} />} />

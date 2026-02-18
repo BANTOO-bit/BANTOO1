@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { merchantService } from '../../../services/merchantService'
 import PageLoader from '../../../components/shared/PageLoader'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
 
 function MerchantAccountInfoPage() {
     const navigate = useNavigate()
@@ -32,8 +33,7 @@ function MerchantAccountInfoPage() {
                     ownerName: user.fullName || user.user_metadata?.full_name
                 })
             } catch (error) {
-                console.error('Error fetching merchant info:', error)
-                toast.error('Gagal memuat informasi akun')
+                handleError(error, toast, { context: 'Load informasi akun' })
             } finally {
                 setLoading(false)
             }
@@ -42,7 +42,24 @@ function MerchantAccountInfoPage() {
         fetchMerchantData()
     }, [user])
 
-    if (loading) return <PageLoader />
+    if (loading) return (
+        <div className="bg-background-light dark:bg-background-dark min-h-screen flex flex-col pb-[88px]">
+            <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 border-b border-transparent dark:border-gray-800">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                    <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                </div>
+            </header>
+            <div className="px-4 pt-6 flex flex-col gap-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="bg-white dark:bg-card-dark p-4 rounded-xl border border-gray-100 dark:border-gray-700 space-y-2">
+                        <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
 
     // Fallback if no merchant data found
     if (!merchant && !loading) {

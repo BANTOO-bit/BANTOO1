@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { driverService } from '../../../services/driverService'
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
+import { validateForm, hasErrors, required, numeric, minLength } from '../../../utils/validation'
 import PageLoader from '../../../components/shared/PageLoader'
 import BankSelectSheet, { getBankDisplayName } from '../../../components/shared/BankSelectSheet'
 
@@ -18,6 +20,13 @@ function DriverAddBankPage() {
         number: '',
         holder: ''
     })
+    const [errors, setErrors] = useState({})
+
+    const bankSchema = {
+        bank: [required('Pilih bank terlebih dahulu')],
+        number: [required('Nomor rekening wajib diisi'), numeric(), minLength(10, 'Nomor rekening minimal 10 digit')],
+        holder: [required('Nama pemilik rekening wajib diisi'), minLength(3, 'Nama minimal 3 karakter')],
+    }
 
     useEffect(() => {
         fetchCurrentData()
@@ -34,15 +43,16 @@ function DriverAddBankPage() {
                 })
             }
         } catch (error) {
-            console.error('Error fetching bank details:', error)
+            if (process.env.NODE_ENV === 'development') console.error('Error fetching bank details:', error)
         } finally {
             setInitialLoading(false)
         }
     }
 
     const handleSave = async () => {
-        if (!formData.bank || !formData.number || !formData.holder) {
-            toast.error('Mohon lengkapi semua data')
+        const validationErrors = validateForm(formData, bankSchema)
+        if (hasErrors(validationErrors)) {
+            setErrors(validationErrors)
             return
         }
 
@@ -57,8 +67,7 @@ function DriverAddBankPage() {
             toast.success('Rekening berhasil disimpan')
             navigate('/driver/bank')
         } catch (error) {
-            console.error('Error saving bank details:', error)
-            toast.error('Gagal menyimpan rekening')
+            handleError(error, toast, { context: 'Simpan rekening' })
         } finally {
             setLoading(false)
         }
@@ -90,8 +99,9 @@ function DriverAddBankPage() {
                                 readOnly
                                 value={getBankDisplayName(formData.bank)}
                                 placeholder="Pilih Bank Tujuan"
-                                className="w-full p-4 pr-10 rounded-xl border border-slate-200 bg-white text-slate-900 font-bold focus:border-[#0d59f2] focus:ring-0 outline-none appearance-none cursor-pointer"
+                                className={`w-full p-4 pr-10 rounded-xl border bg-white text-slate-900 font-bold focus:border-[#0d59f2] focus:ring-0 outline-none appearance-none cursor-pointer ${errors.bank ? 'border-red-400' : 'border-slate-200'}`}
                             />
+                            {errors.bank && <p className="text-xs text-red-500 mt-1">{errors.bank}</p>}
                             <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
                                 <span className="material-symbols-outlined text-slate-500">keyboard_arrow_down</span>
                             </div>
@@ -105,8 +115,9 @@ function DriverAddBankPage() {
                             value={formData.number}
                             onChange={(e) => setFormData({ ...formData, number: e.target.value })}
                             placeholder="Contoh: 1234567890"
-                            className="w-full p-4 rounded-xl border border-slate-200 bg-white text-slate-900 font-bold placeholder:font-normal placeholder:text-slate-400 focus:border-[#0d59f2] focus:ring-0 outline-none"
+                            className={`w-full p-4 rounded-xl border bg-white text-slate-900 font-bold placeholder:font-normal placeholder:text-slate-400 focus:border-[#0d59f2] focus:ring-0 outline-none ${errors.number ? 'border-red-400' : 'border-slate-200'}`}
                         />
+                        {errors.number && <p className="text-xs text-red-500 mt-1">{errors.number}</p>}
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -116,8 +127,9 @@ function DriverAddBankPage() {
                             value={formData.holder}
                             onChange={(e) => setFormData({ ...formData, holder: e.target.value.toUpperCase() })}
                             placeholder="Nama sesuai buku tabungan"
-                            className="w-full p-4 rounded-xl border border-slate-200 bg-white text-slate-900 font-bold placeholder:font-normal placeholder:text-slate-400 focus:border-[#0d59f2] focus:ring-0 outline-none uppercase"
+                            className={`w-full p-4 rounded-xl border bg-white text-slate-900 font-bold placeholder:font-normal placeholder:text-slate-400 focus:border-[#0d59f2] focus:ring-0 outline-none uppercase ${errors.holder ? 'border-red-400' : 'border-slate-200'}`}
                         />
+                        {errors.holder && <p className="text-xs text-red-500 mt-1">{errors.holder}</p>}
                         <p className="text-xs text-slate-500 ml-1">Wajib sama dengan nama di KTP Anda.</p>
                     </div>
 

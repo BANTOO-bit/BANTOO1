@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { supabase } from '../services/supabaseClient'
+import { storageService, STORAGE_PATHS } from '../services/storageService'
 
 const PartnerRegistrationContext = createContext()
 
@@ -55,46 +56,6 @@ export function PartnerRegistrationProvider({ children }) {
     // Current step tracking
     const [currentDriverStep, setCurrentDriverStep] = useState(1)
     const [currentMerchantStep, setCurrentMerchantStep] = useState(1)
-
-    // Helper: Upload file to Supabase Storage
-    const uploadFile = async (file, folder, userId) => {
-        if (!file) return null
-
-        try {
-            const fileExt = file.name?.split('.').pop() || 'jpg'
-            const contentType = file.type || `image/${fileExt}`
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
-            const filePath = `${folder}/${userId}/${fileName}`
-
-            // Read file into memory first to avoid ERR_UPLOAD_FILE_CHANGED
-            // Chrome loses File handle reference when files are selected then page rerenders
-            const arrayBuffer = await file.arrayBuffer()
-            const blob = new Blob([arrayBuffer], { type: contentType })
-
-            const { data, error } = await supabase.storage
-                .from('documents')
-                .upload(filePath, blob, {
-                    contentType: contentType,
-                    cacheControl: '3600',
-                    upsert: false
-                })
-
-            if (error) {
-                console.error('Upload error:', error)
-                throw error
-            }
-
-            // Get Public URL
-            const { data: urlData } = supabase.storage
-                .from('documents')
-                .getPublicUrl(filePath)
-
-            return urlData?.publicUrl || null
-        } catch (error) {
-            console.error('Upload failed:', error)
-            throw error
-        }
-    }
 
     // Save driver step data
     const saveDriverStepData = (step, data) => {
@@ -152,13 +113,13 @@ export function PartnerRegistrationProvider({ children }) {
                 step3: { ...driverData.step3, ...(step3FormData || {}) }
             }
 
-            // 1. Upload Photos (with progress tracking)
+            // 1. Upload Photos via storageService
             console.log('[Driver Reg] Uploading photos...')
-            const selfieUrl = await uploadFile(finalData.step1.selfiePhoto, 'driver-selfie', user.id)
-            const vehiclePhotoUrl = await uploadFile(finalData.step2.vehiclePhoto, 'driver-vehicle', user.id)
-            const stnkUrl = await uploadFile(finalData.step2.stnkPhoto, 'driver-stnk', user.id)
-            const idCardUrl = await uploadFile(finalData.step3.idCardPhoto, 'driver-ktp', user.id)
-            const photoWithVehicleUrl = await uploadFile(finalData.step3.photoWithVehicle, 'driver-with-vehicle', user.id)
+            const selfieUrl = await storageService.upload(finalData.step1.selfiePhoto, STORAGE_PATHS.DRIVER_SELFIE, user.id)
+            const vehiclePhotoUrl = await storageService.upload(finalData.step2.vehiclePhoto, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
+            const stnkUrl = await storageService.upload(finalData.step2.stnkPhoto, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
+            const idCardUrl = await storageService.upload(finalData.step3.idCardPhoto, STORAGE_PATHS.DRIVER_KTP, user.id)
+            const photoWithVehicleUrl = await storageService.upload(finalData.step3.photoWithVehicle, STORAGE_PATHS.DRIVER_WITH_VEHICLE, user.id)
             console.log('[Driver Reg] Photos uploaded successfully')
 
             // 2. Insert Driver Record
@@ -217,18 +178,10 @@ export function PartnerRegistrationProvider({ children }) {
                 step2: { ...merchantData.step2, ...(step2FormData || {}) }
             }
 
-            // 1. Upload Photos
+            // 1. Upload Photos via storageService
             console.log('[Merchant Reg] Uploading photos...')
-            let idCardUrl = null
-            let shopPhotoUrl = null
-
-            if (finalData.step2.idCardPhoto) {
-                idCardUrl = await uploadFile(finalData.step2.idCardPhoto, 'merchant-ktp', user.id)
-            }
-
-            if (finalData.step2.shopPhoto) {
-                shopPhotoUrl = await uploadFile(finalData.step2.shopPhoto, 'merchant-photo', user.id)
-            }
+            const idCardUrl = await storageService.upload(finalData.step2.idCardPhoto, STORAGE_PATHS.MERCHANT_KTP, user.id)
+            const shopPhotoUrl = await storageService.upload(finalData.step2.shopPhoto, STORAGE_PATHS.MERCHANT_LOGO, user.id)
             console.log('[Merchant Reg] Photos uploaded:', { idCardUrl, shopPhotoUrl })
 
             // 2. Insert Merchant Record 

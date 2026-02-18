@@ -8,6 +8,7 @@ import { generateOrderId, formatOrderId } from '../../../utils/orderUtils'
 import { showNotification } from '../../../utils/notificationHelper'
 import MerchantBottomNavigation from '../../../components/merchant/MerchantBottomNavigation'
 import MerchantOrderDetail from '../../../components/merchant/MerchantOrderDetail'
+import BackToTopButton from '../../../components/shared/BackToTopButton'
 import OrderCardSkeleton from '../../../components/shared/OrderCardSkeleton'
 import EmptyState from '../../../components/shared/EmptyState'
 import { useToast } from '../../../context/ToastContext'
@@ -95,7 +96,7 @@ function MerchantOrdersPage() {
 
             setOrders(transformedOrders)
         } catch (err) {
-            console.error('Error fetching merchant orders:', err)
+            if (process.env.NODE_ENV === 'development') console.error('Error fetching merchant orders:', err)
             setError(err.message || 'Gagal memuat pesanan')
         } finally {
             setIsLoading(false)
@@ -439,6 +440,7 @@ function MerchantOrdersPage() {
                 <div className="h-8"></div>
             </main>
 
+            <BackToTopButton />
             <MerchantBottomNavigation activeTab="orders" />
 
             {/* Accept Order Modal (Bottom Sheet) */}

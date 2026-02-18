@@ -21,15 +21,17 @@ import { supabase } from './supabaseClient'
 let broadcastChannel = null
 let watchId = null
 let broadcastInterval = null
+let historyInterval = null
 let lastPosition = null
 
 /**
  * Start broadcasting driver's GPS location for a specific order.
  * Should be called when driver begins delivery.
  * @param {string} orderId - The order ID to broadcast location for
+ * @param {string} [driverId] - The driver's user ID (for history logging)
  * @returns {{ stop: Function }} Cleanup handle
  */
-export function startBroadcastingLocation(orderId) {
+export function startBroadcastingLocation(orderId, driverId = null) {
     // Clean up any existing broadcast
     stopBroadcasting()
 
@@ -61,7 +63,7 @@ export function startBroadcastingLocation(orderId) {
             }
         )
 
-        // Broadcast position every 5 seconds
+        // Broadcast position every 5 seconds (realtime, no DB write)
         broadcastInterval = setInterval(() => {
             if (lastPosition && broadcastChannel) {
                 broadcastChannel.send({
@@ -71,11 +73,52 @@ export function startBroadcastingLocation(orderId) {
                 })
             }
         }, 5000)
+
+        // Save location snapshot to DB every 60 seconds (for audit/history)
+        if (driverId) {
+            historyInterval = setInterval(() => {
+                if (lastPosition) {
+                    saveLocationSnapshot(orderId, driverId, lastPosition)
+                }
+            }, 60000)
+
+            // Also save initial position after 5s (first snapshot)
+            setTimeout(() => {
+                if (lastPosition) {
+                    saveLocationSnapshot(orderId, driverId, lastPosition)
+                }
+            }, 5000)
+        }
     } else {
         console.warn('[DriverLocation] Geolocation not supported')
     }
 
     return { stop: stopBroadcasting }
+}
+
+/**
+ * Save a location snapshot to driver_location_history table.
+ * Non-blocking — failures are logged but don't interrupt delivery.
+ */
+async function saveLocationSnapshot(orderId, driverId, position) {
+    try {
+        const { error } = await supabase
+            .from('driver_location_history')
+            .insert({
+                order_id: orderId,
+                driver_id: driverId,
+                lat: position.lat,
+                lng: position.lng,
+                speed: position.speed || 0,
+                heading: position.heading || 0
+            })
+
+        if (error) {
+            console.warn('[DriverLocation] History save failed:', error.message)
+        }
+    } catch (e) {
+        console.warn('[DriverLocation] History save error:', e.message)
+    }
 }
 
 /**
@@ -89,6 +132,10 @@ export function stopBroadcasting() {
     if (broadcastInterval) {
         clearInterval(broadcastInterval)
         broadcastInterval = null
+    }
+    if (historyInterval) {
+        clearInterval(historyInterval)
+        historyInterval = null
     }
     if (broadcastChannel) {
         supabase.removeChannel(broadcastChannel)

@@ -107,7 +107,10 @@ function DriverPickupOrder() {
                         </div>
                     </div>
                     <div className="flex gap-3">
-                        <button className="flex items-center justify-center rounded-full size-10 bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors">
+                        <button
+                            onClick={() => navigate(`/driver/chat/${activeOrder.id}`)}
+                            className="flex items-center justify-center rounded-full size-10 bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                        >
                             <span className="material-symbols-outlined text-[24px]">chat</span>
                         </button>
                         <button className="flex items-center justify-center rounded-full size-10 bg-slate-100 text-slate-900 hover:bg-slate-200 transition-colors">

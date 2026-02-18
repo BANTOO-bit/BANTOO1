@@ -208,14 +208,7 @@ export const driverService = {
         return orderService.getDriverOrders(status)
     },
 
-    /**
-     * Get Notifications
-     */
-    async getNotifications(userId) {
-        // Return mock data for now until notification table exists
-        const { mockNotifications } = await import('../data/driverNotifications')
-        return mockNotifications
-    },
+
 
     /**
      * Get Driver Profile
@@ -335,6 +328,7 @@ export const driverService = {
             const profileUpdates = {}
             if (updates.full_name) profileUpdates.full_name = updates.full_name
             if (updates.phone) profileUpdates.phone = updates.phone
+            if (updates.avatar_url) profileUpdates.avatar_url = updates.avatar_url
             // Note: Email updates require Auth API
 
             if (Object.keys(profileUpdates).length > 0) {
@@ -380,26 +374,13 @@ export const driverService = {
      */
     async uploadAvatar(file, userId) {
         try {
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${userId}-${Math.random()}.${fileExt}`
-            const filePath = `${fileName}`
+            const { storageService, STORAGE_PATHS } = await import('./storageService')
+            const result = await storageService.uploadFile(file, STORAGE_PATHS.USER_PROFILE, userId)
 
-            // 1. Upload to 'avatars' bucket
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file)
+            // Update Profile with new URL
+            await this.updateProfile(userId, { avatar_url: result.url })
 
-            if (uploadError) throw uploadError
-
-            // 2. Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(filePath)
-
-            // 3. Update Profile with new URL
-            await this.updateProfile(userId, { avatar_url: publicUrl })
-
-            return publicUrl
+            return result.url
         } catch (error) {
             console.error('Error uploading avatar:', error)
             throw error
@@ -407,11 +388,28 @@ export const driverService = {
     },
 
     async getActiveOrder() {
+        // Backward-compatible: returns the first active order (or null)
+        const orders = await this.getActiveOrders()
+        return orders.length > 0 ? orders[0] : null
+    },
+
+    /**
+     * Get all active orders for this driver (multi-order support)
+     * @returns {Array} Array of active orders
+     */
+    async getActiveOrders() {
         try {
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return null
+            if (!user) return []
 
-            // Use standard query instead of RPC 'get_driver_active_order' which is missing
+            // Try new RPC first (multi-order)
+            const { data: rpcData, error: rpcError } = await supabase.rpc('get_driver_active_orders')
+
+            if (!rpcError && rpcData?.orders) {
+                return rpcData.orders
+            }
+
+            // Fallback: standard query (returns all active orders)
             const { data, error } = await supabase
                 .from('orders')
                 .select(`
@@ -443,47 +441,34 @@ export const driverService = {
                 `)
                 .eq('driver_id', user.id)
                 .in('status', ['pickup', 'picked_up', 'delivering'])
-                .single()
+                .order('created_at', { ascending: true })
 
-            if (error) {
-                if (error.code === 'PGRST116') {
-                    // No rows found - this is expected if no active order
-                    return null
-                }
-                throw error
-            }
+            if (error) throw error
 
-            // Transform to flat structure expected by UI (if needed) or keep as is
-            // The UI expects flattened properties like merchant_name.
-            // Let's flatten it here to match the component's expectation if it was using RPC return format
-            if (data) {
-                return {
-                    id: data.id,
-                    merchant_name: data.merchants?.name,
-                    merchant_address: data.merchants?.address,
-                    customer_address: data.delivery_address,
-                    total_amount: data.total_amount,
-                    payment_method: data.payment_method,
-                    status: data.status,
-                    created_at: data.created_at,
-                    merchant_lat: data.merchants?.latitude,
-                    merchant_lng: data.merchants?.longitude,
-                    customer_lat: data.latitude,
-                    customer_lng: data.longitude,
-                    customer_name: data.profiles?.full_name || 'Customer',
-                    customer_note: data.notes,
-                    items: data.order_items?.map(i => ({
-                        name: i.product_name,
-                        quantity: i.quantity,
-                        notes: i.notes
-                    }))
-                }
-            }
-
-            return null
+            return (data || []).map(d => ({
+                id: d.id,
+                merchant_name: d.merchants?.name,
+                merchant_address: d.merchants?.address,
+                customer_address: d.delivery_address,
+                total_amount: d.total_amount,
+                payment_method: d.payment_method,
+                status: d.status,
+                created_at: d.created_at,
+                merchant_lat: d.merchants?.latitude,
+                merchant_lng: d.merchants?.longitude,
+                customer_lat: d.latitude,
+                customer_lng: d.longitude,
+                customer_name: d.profiles?.full_name || 'Customer',
+                customer_note: d.notes,
+                items: d.order_items?.map(i => ({
+                    name: i.product_name,
+                    quantity: i.quantity,
+                    notes: i.notes
+                }))
+            }))
         } catch (error) {
-            console.error('Error getting active order:', error)
-            return null
+            console.error('Error getting active orders:', error)
+            return []
         }
     },
 

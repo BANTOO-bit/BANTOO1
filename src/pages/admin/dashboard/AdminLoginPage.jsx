@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../../../context/AuthContext'
 import { authService } from '../../../services/authService'
 import { supabase } from '../../../services/supabaseClient'
 import ButtonLoader from '../../../components/shared/ButtonLoader'
 
 export default function AdminLoginPage() {
     const navigate = useNavigate()
+    const { refreshProfile } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -41,6 +43,9 @@ export default function AdminLoginPage() {
                 setError('Akun ini bukan admin. Gunakan halaman login biasa untuk customer/merchant/driver.')
                 return
             }
+
+            // Sync auth state with AuthContext so user object is fully populated
+            await refreshProfile(data.user)
 
             // Admin verified - redirect to dashboard
             navigate('/admin/dashboard')

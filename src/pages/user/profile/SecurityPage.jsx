@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../../context/ToastContext'
-import { handleSuccess, handleWarning } from '../../../utils/errorHandler'
+import { handleError, handleSuccess, handleWarning } from '../../../utils/errorHandler'
 import { authService } from '../../../services/authService'
 import issueService from '../../../services/issueService'
 
@@ -38,8 +38,7 @@ function SecurityPage() {
             setShowChangePassword(false)
             setPasswords({ current: '', new: '', confirm: '' })
         } catch (error) {
-            console.error('Change password error:', error)
-            toast.error(error.message || 'Gagal mengubah password')
+            handleError(error, toast, { context: 'Ubah password' })
         } finally {
             setLoading(false)
         }
@@ -67,8 +66,7 @@ function SecurityPage() {
             setShowDeleteConfirm(false)
             setDeleteConfirmation('')
         } catch (error) {
-            console.error('Delete account request error:', error)
-            toast.error('Gagal mengirim permintaan. Silakan coba lagi.')
+            handleError(error, toast, { context: 'Hapus akun' })
         } finally {
             setLoading(false)
         }

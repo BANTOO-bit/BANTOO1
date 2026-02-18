@@ -26,6 +26,7 @@ const DriverPickupOrder = lazy(() => import('../pages/driver/order/DriverPickupO
 const DriverDeliveryOrder = lazy(() => import('../pages/driver/order/DriverDeliveryOrder'))
 const DriverPaymentConfirmation = lazy(() => import('../pages/driver/order/DriverPaymentConfirmation'))
 const DriverOrderComplete = lazy(() => import('../pages/driver/order/DriverOrderComplete'))
+const DriverChatPage = lazy(() => import('../pages/driver/order/DriverChatPage'))
 
 // Profile Sub-Pages
 const DriverVehiclePage = lazy(() => import('../pages/driver/profile/DriverVehiclePage'))
@@ -84,6 +85,7 @@ export default function DriverRoutes() {
             <Route path="/driver/order/delivery" element={<ProtectedRoute allowedRoles={['driver']}><DriverDeliveryOrder /></ProtectedRoute>} />
             <Route path="/driver/order/payment" element={<ProtectedRoute allowedRoles={['driver']}><DriverPaymentConfirmation /></ProtectedRoute>} />
             <Route path="/driver/order/complete" element={<ProtectedRoute allowedRoles={['driver']}><DriverOrderComplete /></ProtectedRoute>} />
+            <Route path="/driver/chat/:orderId" element={<ProtectedRoute allowedRoles={['driver']}><DriverChatPage /></ProtectedRoute>} />
         </>
     )
 }

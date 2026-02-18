@@ -74,7 +74,7 @@ function MerchantRegistrationStep1() {
                 }
             }
         } catch (error) {
-            console.error("Failed to reverse geocode:", error)
+            if (process.env.NODE_ENV === 'development') console.error("Geocoding error:", error)
         } finally {
             setIsAddressLoading(false)
         }

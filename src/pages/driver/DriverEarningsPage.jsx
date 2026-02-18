@@ -1,15 +1,20 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
-import { driverTransactions } from '../../data/driverTransactions'
+import BackToTopButton from '../../components/shared/BackToTopButton'
+import { supabase } from '../../services/supabaseClient'
+import { useAuth } from '../../context/AuthContext'
 
 function DriverEarningsPage() {
     const navigate = useNavigate()
+    const { user } = useAuth()
     const [showFilter, setShowFilter] = useState(false)
+    const [allTransactions, setAllTransactions] = useState([])
+    const [loadingData, setLoadingData] = useState(false)
 
     // Calendar State
-    // Default to January 2026 as requested
-    const [currentMonth, setCurrentMonth] = useState(new Date(2026, 0, 1))
+    // Default to current month
+    const [currentMonth, setCurrentMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
     const [startDate, setStartDate] = useState(null)
     const [endDate, setEndDate] = useState(null)
 
@@ -21,6 +26,74 @@ function DriverEarningsPage() {
     const formatCurrency = (value) => {
         return `Rp ${value.toLocaleString('id-ID')}`
     }
+
+    // Fetch real driver orders from Supabase when filter is applied
+    useEffect(() => {
+        if (!appliedStart || !user?.id) return
+
+        async function fetchDriverOrders() {
+            setLoadingData(true)
+            try {
+                // Get driver record
+                const { data: driver } = await supabase
+                    .from('drivers')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .single()
+
+                if (!driver) {
+                    setAllTransactions([])
+                    return
+                }
+
+                const start = new Date(appliedStart)
+                start.setHours(0, 0, 0, 0)
+                const end = new Date(appliedEnd || appliedStart)
+                end.setHours(23, 59, 59, 999)
+
+                const { data: orders, error } = await supabase
+                    .from('orders')
+                    .select('id, total_amount, delivery_fee, service_fee, payment_method, status, created_at')
+                    .eq('driver_id', user.id)
+                    .in('status', ['delivered', 'completed'])
+                    .gte('created_at', start.toISOString())
+                    .lte('created_at', end.toISOString())
+                    .order('created_at', { ascending: false })
+
+                if (error) throw error
+
+                const mapped = (orders || []).map(o => {
+                    const createdAt = new Date(o.created_at)
+                    const isCOD = o.payment_method === 'cod'
+                    return {
+                        id: o.id.substring(0, 8).toUpperCase(),
+                        fullId: o.id,
+                        time: createdAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                        date: createdAt.toISOString().split('T')[0],
+                        status: 'LUNAS',
+                        method: isCOD ? 'Tunai (COD)' : o.payment_method === 'wallet' ? 'Wallet' : 'Transfer',
+                        icon_bg: 'bg-blue-50',
+                        icon_color: 'text-blue-600',
+                        icon: 'local_shipping',
+                        method_icon: isCOD ? 'payments' : 'smartphone',
+                        method_color: isCOD ? 'text-orange-600' : 'text-purple-700',
+                        method_icon_color: isCOD ? 'text-orange-500' : 'text-purple-600',
+                        total_cod: o.total_amount,
+                        admin_fee: o.service_fee || Math.round(o.total_amount * 0.01),
+                        delivery_fee: o.delivery_fee
+                    }
+                })
+
+                setAllTransactions(mapped)
+            } catch (err) {
+                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch driver orders:', err)
+            } finally {
+                setLoadingData(false)
+            }
+        }
+
+        fetchDriverOrders()
+    }, [appliedStart, appliedEnd, user?.id])
 
     // Calendar Logic
     const getDaysInMonth = (date) => {
@@ -81,31 +154,15 @@ function DriverEarningsPage() {
         setShowFilter(false)
     }
 
-    // Filter Logic
-    const filteredTransactions = useMemo(() => {
-        if (!appliedStart) return [] // Initial empty state
-
-        return driverTransactions.filter(t => {
-            const tDate = new Date(t.date)
-            // Reset time part for comparison
-            tDate.setHours(0, 0, 0, 0)
-
-            const start = new Date(appliedStart)
-            start.setHours(0, 0, 0, 0)
-
-            const end = new Date(appliedEnd)
-            end.setHours(0, 0, 0, 0)
-
-            return tDate >= start && tDate <= end
-        })
-    }, [appliedStart, appliedEnd])
+    // Filter Logic — data is already filtered by Supabase query, use directly
+    const filteredTransactions = allTransactions
 
     // Calculate totals
     const earnings = useMemo(() => {
         if (filteredTransactions.length === 0) {
             return { driver: 0, codFee: 0 }
         }
-        const driverIncome = filteredTransactions.length * 10000
+        const driverIncome = filteredTransactions.reduce((acc, curr) => acc + (curr.delivery_fee || 10000), 0)
         const codFee = filteredTransactions.reduce((acc, curr) => acc + curr.admin_fee, 0)
         return { driver: driverIncome, codFee: codFee }
     }, [filteredTransactions])
@@ -355,6 +412,8 @@ function DriverEarningsPage() {
                     </div>
                 )}
             </div>
+
+            <BackToTopButton />
         </div>
     )
 }

@@ -14,7 +14,7 @@ import AdminRoutes from './adminRoutes'
 const NotFoundPage = lazy(() => import('../pages/shared/NotFoundPage'))
 
 export default function AppRoutes() {
-    const { isAuthenticated, logout } = useAuth()
+    const { isAuthenticated, user, logout } = useAuth()
 
     // Onboarding state
     const hasCompletedOnboarding = typeof window !== 'undefined'
@@ -36,17 +36,24 @@ export default function AppRoutes() {
         return <AuthRoutes />
     }
 
+    // ============ ADMIN ROLE LOCK ============
+    // Admin users are permanently locked to admin routes.
+    // They cannot access customer/merchant/driver apps under any condition.
+    const isAdmin = user?.roles?.includes('admin')
+
     // Main app routes with lazy loading
     return (
         <div className="bg-background-light min-h-screen">
             <Suspense fallback={<PageLoader />}>
                 <Routes>
                     {/* Redirect auth pages if already logged in */}
-                    <Route path="/login" element={<Navigate to="/" replace />} />
-                    <Route path="/register" element={<Navigate to="/" replace />} />
+                    <Route path="/login" element={<Navigate to={isAdmin ? '/admin/dashboard' : '/'} replace />} />
+                    <Route path="/register" element={<Navigate to={isAdmin ? '/admin/dashboard' : '/'} replace />} />
 
-                    {/* Account Suspended */}
-                    <Route path="/account-suspended" element={<SuspendedAccountPage />} />
+                    {/* Account Suspended — admin never goes here */}
+                    <Route path="/account-suspended" element={
+                        isAdmin ? <Navigate to="/admin/dashboard" replace /> : <SuspendedAccountPage />
+                    } />
 
                     {/* ============ ROLE-SPECIFIC ROUTES ============ */}
                     {MerchantRoutes()}
@@ -56,8 +63,12 @@ export default function AppRoutes() {
                     {/* ============ USER (CUSTOMER) ROUTES ============ */}
                     {UserRoutes({ logout })}
 
-                    {/* Fallback - 404 */}
-                    <Route path="*" element={<NotFoundPage />} />
+                    {/* Fallback - Admin goes to admin dashboard, others get 404 */}
+                    <Route path="*" element={
+                        isAdmin
+                            ? <Navigate to="/admin/dashboard" replace />
+                            : <NotFoundPage />
+                    } />
                 </Routes>
             </Suspense>
         </div>

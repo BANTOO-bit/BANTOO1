@@ -6,6 +6,7 @@ import BackButton from '../../../components/shared/BackButton'
 import MerchantBottomNavigation from '../../../components/merchant/MerchantBottomNavigation'
 import { useToast } from '../../../context/ToastContext'
 import { handleError, handleWarning, handleSuccess } from '../../../utils/errorHandler'
+import { validateForm, hasErrors, menuItemSchema } from '../../../utils/validation'
 import { supabase } from '../../../services/supabaseClient'
 
 function MerchantAddMenuPage() {
@@ -51,18 +52,24 @@ function MerchantAddMenuPage() {
         price: '',
         description: ''
     })
+    const [errors, setErrors] = useState({})
 
     const handleChange = (e) => {
+        const { id, value } = e.target
         setFormData({
             ...formData,
-            [e.target.id]: e.target.value
+            [id]: value
         })
+        if (errors[id]) {
+            setErrors(prev => ({ ...prev, [id]: null }))
+        }
     }
 
     const handleSubmit = async () => {
         // Validation
-        if (!formData.name || !formData.category || !formData.price) {
-            toast.warning('Mohon lengkapi Nama, Kategori, dan Harga')
+        const validationErrors = validateForm(formData, menuItemSchema)
+        if (hasErrors(validationErrors)) {
+            setErrors(validationErrors)
             return
         }
 
@@ -82,22 +89,8 @@ function MerchantAddMenuPage() {
             let finalImage = null
 
             if (imageFile) {
-                const fileExt = imageFile.name.split('.').pop()
-                const fileName = `${merchant.id}/${Date.now()}.${fileExt}`
-                const filePath = `${fileName}`
-
-                const { error: uploadError } = await supabase.storage
-                    .from('menu-images')
-                    .upload(filePath, imageFile)
-
-                if (uploadError) throw uploadError
-
-                // Get Public URL
-                const { data: { publicUrl } } = supabase.storage
-                    .from('menu-images')
-                    .getPublicUrl(filePath)
-
-                finalImage = publicUrl
+                const { storageService, STORAGE_PATHS } = await import('../../../services/storageService')
+                finalImage = await storageService.upload(imageFile, STORAGE_PATHS.MERCHANT_MENU, user.id)
             }
 
             // Fallback placeholder logic
@@ -211,20 +204,21 @@ function MerchantAddMenuPage() {
                     <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-semibold text-text-main dark:text-white" htmlFor="name">Nama Menu</label>
                         <input
-                            className="w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm placeholder-gray-400 transition-all dark:text-white"
+                            className={`w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm placeholder-gray-400 transition-all dark:text-white ${errors.name ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                             id="name"
                             value={formData.name}
                             onChange={handleChange}
                             placeholder="Contoh: Bakso Spesial"
                             type="text"
                         />
+                        {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-semibold text-text-main dark:text-white" htmlFor="category">Kategori</label>
                         <div className="relative">
                             <div
                                 onClick={() => setIsCategorySheetOpen(true)}
-                                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 flex items-center justify-between cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+                                className={`w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border flex items-center justify-between cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors ${errors.category ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                             >
                                 <span className={`text-sm ${formData.category ? 'text-text-main dark:text-white' : 'text-gray-400'} `}>
                                     {formData.category
@@ -297,31 +291,34 @@ function MerchantAddMenuPage() {
                                 </div>
                             </div>
                         )}
+                        {errors.category && <p className="text-xs text-red-500 mt-1">{errors.category}</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-semibold text-text-main dark:text-white" htmlFor="price">Harga</label>
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary dark:text-gray-400 font-medium text-sm">Rp</span>
                             <input
-                                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm placeholder-gray-400 transition-all dark:text-white"
+                                className={`w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-card-dark border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm placeholder-gray-400 transition-all dark:text-white ${errors.price ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                                 id="price"
                                 value={formData.price}
                                 onChange={handleChange}
                                 placeholder="0"
                                 type="number"
                             />
+                            {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
                         </div>
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-semibold text-text-main dark:text-white" htmlFor="description">Deskripsi</label>
                         <textarea
-                            className="w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm placeholder-gray-400 resize-none transition-all dark:text-white"
+                            className={`w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm placeholder-gray-400 resize-none transition-all dark:text-white ${errors.description ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                             id="description"
                             value={formData.description}
                             onChange={handleChange}
                             placeholder="Jelaskan keunggulan menu kamu..."
                             rows="4"
                         ></textarea>
+                        {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
                     </div>
                 </section>
 

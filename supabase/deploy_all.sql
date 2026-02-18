@@ -281,6 +281,15 @@ CREATE TABLE IF NOT EXISTS public.issues (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 2.15 FAVORITES
+CREATE TABLE IF NOT EXISTS public.favorites (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    merchant_id UUID REFERENCES public.merchants(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, merchant_id)
+);
+
 
 -- ==========================================
 -- 3. COLUMN ADDITIONS (Migrations)
@@ -339,6 +348,7 @@ ALTER TABLE addresses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE issues ENABLE ROW LEVEL SECURITY;
+ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 
 -- === PROFILES ===
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
@@ -552,6 +562,16 @@ DROP POLICY IF EXISTS "Admin update issues" ON issues;
 CREATE POLICY "Admin update issues" ON issues FOR UPDATE USING (
     (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
 );
+
+-- === FAVORITES ===
+DROP POLICY IF EXISTS "Users view own favorites" ON favorites;
+CREATE POLICY "Users view own favorites" ON favorites FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users insert own favorites" ON favorites;
+CREATE POLICY "Users insert own favorites" ON favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users delete own favorites" ON favorites;
+CREATE POLICY "Users delete own favorites" ON favorites FOR DELETE USING (auth.uid() = user_id);
 
 
 -- ==========================================
@@ -1121,6 +1141,215 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 5.14 Request Withdrawal (User-facing, atomic)
+CREATE OR REPLACE FUNCTION request_withdrawal(
+    p_amount INTEGER,
+    p_bank_name TEXT,
+    p_bank_account_name TEXT DEFAULT NULL,
+    p_account_name TEXT DEFAULT NULL,
+    p_bank_account_number TEXT DEFAULT NULL,
+    p_account_number TEXT DEFAULT NULL
+) RETURNS JSONB AS $$
+DECLARE
+    v_user_id UUID;
+    v_wallet RECORD;
+    v_withdrawal_id UUID;
+    v_final_bank_account_name TEXT;
+    v_final_bank_account_number TEXT;
+BEGIN
+    v_user_id := auth.uid();
+
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Not authenticated';
+    END IF;
+
+    v_final_bank_account_name := COALESCE(p_bank_account_name, p_account_name);
+    v_final_bank_account_number := COALESCE(p_bank_account_number, p_account_number);
+
+    IF p_amount IS NULL OR p_amount <= 0 THEN
+        RAISE EXCEPTION 'Jumlah penarikan tidak valid';
+    END IF;
+
+    SELECT * INTO v_wallet FROM wallets
+    WHERE user_id = v_user_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Wallet tidak ditemukan';
+    END IF;
+
+    IF v_wallet.balance < p_amount THEN
+        RAISE EXCEPTION 'Saldo tidak mencukupi. Saldo: %, Diminta: %', v_wallet.balance, p_amount;
+    END IF;
+
+    UPDATE wallets
+    SET balance = balance - p_amount, updated_at = NOW()
+    WHERE user_id = v_user_id;
+
+    INSERT INTO withdrawals (user_id, amount, bank_name, bank_account_name, bank_account_number, status)
+    VALUES (v_user_id, p_amount, p_bank_name, v_final_bank_account_name, v_final_bank_account_number, 'pending')
+    RETURNING id INTO v_withdrawal_id;
+
+    INSERT INTO transactions (wallet_id, type, amount, description, reference_id, status)
+    VALUES (v_wallet.id, 'withdrawal', p_amount, 'Penarikan ke ' || p_bank_name, v_withdrawal_id, 'completed');
+
+    INSERT INTO notifications (user_id, title, message, type)
+    VALUES (v_user_id, 'Penarikan Diproses', 'Permintaan penarikan Rp ' || p_amount || ' sedang diproses.', 'system');
+
+    RETURN json_build_object(
+        'success', true,
+        'withdrawal_id', v_withdrawal_id,
+        'new_balance', v_wallet.balance - p_amount
+    );
+EXCEPTION WHEN OTHERS THEN
+    RAISE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5.15 Wallet Balance Plus (Admin refund on withdrawal rejection)
+CREATE OR REPLACE FUNCTION wallet_balance_plus(
+    p_user_id UUID,
+    p_amount INTEGER
+) RETURNS VOID AS $$
+BEGIN
+    IF p_amount IS NULL OR p_amount <= 0 THEN
+        RAISE EXCEPTION 'Invalid amount';
+    END IF;
+
+    UPDATE wallets
+    SET balance = balance + p_amount, updated_at = NOW()
+    WHERE user_id = p_user_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Wallet not found for user %', p_user_id;
+    END IF;
+
+    INSERT INTO transactions (wallet_id, type, amount, description, status)
+    SELECT w.id, 'refund', p_amount, 'Refund penarikan yang ditolak', 'completed'
+    FROM wallets w WHERE w.user_id = p_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- 5.16 Operating Hours: is_merchant_open helper
+CREATE OR REPLACE FUNCTION is_merchant_open(p_merchant_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_hours JSONB;
+    v_day_key TEXT;
+    v_day_schedule JSONB;
+    v_now TIME;
+    v_open TIME;
+    v_close TIME;
+    v_day_of_week INT;
+BEGIN
+    SELECT operating_hours INTO v_hours FROM merchants WHERE id = p_merchant_id;
+    IF v_hours IS NULL THEN RETURN TRUE; END IF;
+    v_now := (NOW() AT TIME ZONE 'Asia/Jakarta')::TIME;
+    v_day_of_week := EXTRACT(DOW FROM (NOW() AT TIME ZONE 'Asia/Jakarta'));
+    v_day_key := CASE v_day_of_week
+        WHEN 0 THEN 'sun' WHEN 1 THEN 'mon' WHEN 2 THEN 'tue'
+        WHEN 3 THEN 'wed' WHEN 4 THEN 'thu' WHEN 5 THEN 'fri' WHEN 6 THEN 'sat'
+    END;
+    v_day_schedule := v_hours -> v_day_key;
+    IF v_day_schedule IS NULL THEN RETURN TRUE; END IF;
+    IF (v_day_schedule ->> 'isOpen')::BOOLEAN = FALSE THEN RETURN FALSE; END IF;
+    v_open := (v_day_schedule ->> 'open')::TIME;
+    v_close := (v_day_schedule ->> 'close')::TIME;
+    IF v_close < v_open THEN RETURN v_now >= v_open OR v_now <= v_close; END IF;
+    RETURN v_now >= v_open AND v_now <= v_close;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- 5.17 check_merchant_open (frontend RPC)
+CREATE OR REPLACE FUNCTION check_merchant_open(p_merchant_id UUID)
+RETURNS JSONB AS $$
+DECLARE v_is_open BOOLEAN; v_merchant RECORD; v_day_key TEXT; v_day_of_week INT; v_schedule JSONB;
+BEGIN
+    SELECT name, operating_hours, is_open INTO v_merchant FROM merchants WHERE id = p_merchant_id;
+    IF NOT FOUND THEN RETURN json_build_object('is_open', false, 'reason', 'Warung tidak ditemukan'); END IF;
+    IF v_merchant.is_open = FALSE THEN RETURN json_build_object('is_open', false, 'reason', v_merchant.name || ' sedang tutup'); END IF;
+    v_is_open := is_merchant_open(p_merchant_id);
+    IF NOT v_is_open THEN
+        v_day_of_week := EXTRACT(DOW FROM (NOW() AT TIME ZONE 'Asia/Jakarta'));
+        v_day_key := CASE v_day_of_week WHEN 0 THEN 'sun' WHEN 1 THEN 'mon' WHEN 2 THEN 'tue' WHEN 3 THEN 'wed' WHEN 4 THEN 'thu' WHEN 5 THEN 'fri' WHEN 6 THEN 'sat' END;
+        v_schedule := v_merchant.operating_hours -> v_day_key;
+        IF v_schedule IS NOT NULL AND (v_schedule ->> 'isOpen')::BOOLEAN = FALSE THEN
+            RETURN json_build_object('is_open', false, 'reason', v_merchant.name || ' tidak buka hari ini');
+        END IF;
+        RETURN json_build_object('is_open', false, 'reason', v_merchant.name || ' buka jam ' || (v_schedule ->> 'open') || ' - ' || (v_schedule ->> 'close'));
+    END IF;
+    RETURN json_build_object('is_open', true, 'reason', NULL);
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- 5.18 Auto-assign nearest driver
+ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS max_concurrent_orders INT DEFAULT 2;
+
+CREATE OR REPLACE FUNCTION auto_assign_nearest_driver(p_order_id UUID)
+RETURNS JSONB AS $$
+DECLARE v_order RECORD; v_merchant RECORD; v_driver RECORD; v_max_radius FLOAT := 10.0;
+BEGIN
+    SELECT * INTO v_order FROM orders WHERE id = p_order_id;
+    IF NOT FOUND THEN RETURN json_build_object('success', false, 'reason', 'Order not found'); END IF;
+    IF v_order.status != 'ready' OR v_order.driver_id IS NOT NULL THEN
+        RETURN json_build_object('success', false, 'reason', 'Order not eligible');
+    END IF;
+    SELECT * INTO v_merchant FROM merchants WHERE id = v_order.merchant_id;
+    IF NOT FOUND OR v_merchant.latitude IS NULL THEN
+        RETURN json_build_object('success', false, 'reason', 'Merchant location unavailable');
+    END IF;
+    SELECT d.* INTO v_driver FROM drivers d
+    WHERE d.is_active = TRUE AND d.is_verified = TRUE
+      AND (SELECT COUNT(*) FROM orders o WHERE o.driver_id = d.user_id AND o.status IN ('pickup','picked_up','delivering')) < COALESCE(d.max_concurrent_orders, 2)
+      AND d.last_location_update > NOW() - INTERVAL '30 minutes' AND d.latitude IS NOT NULL
+      AND (6371 * acos(cos(radians(v_merchant.latitude)) * cos(radians(d.latitude)) * cos(radians(d.longitude) - radians(v_merchant.longitude)) + sin(radians(v_merchant.latitude)) * sin(radians(d.latitude)))) <= v_max_radius
+    ORDER BY (6371 * acos(cos(radians(v_merchant.latitude)) * cos(radians(d.latitude)) * cos(radians(d.longitude) - radians(v_merchant.longitude)) + sin(radians(v_merchant.latitude)) * sin(radians(d.latitude)))) ASC
+    LIMIT 1;
+    IF NOT FOUND THEN RETURN json_build_object('success', false, 'reason', 'No available drivers'); END IF;
+    UPDATE orders SET driver_id = v_driver.user_id, status = 'pickup', picked_up_at = NOW() WHERE id = p_order_id AND driver_id IS NULL AND status = 'ready';
+    IF NOT FOUND THEN RETURN json_build_object('success', false, 'reason', 'Already assigned'); END IF;
+    INSERT INTO notifications (user_id, title, message, type) VALUES (v_driver.user_id, 'Pesanan Baru Ditugaskan', 'Pickup di ' || v_merchant.name, 'order');
+    RETURN json_build_object('success', true, 'driver_id', v_driver.user_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5.19 Multi-order: override driver_accept_order
+CREATE OR REPLACE FUNCTION driver_accept_order(p_order_id UUID)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_driver_id UUID; v_order RECORD; v_active INT; v_max INT;
+BEGIN
+    v_driver_id := auth.uid();
+    IF v_driver_id IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
+    SELECT max_concurrent_orders INTO v_max FROM drivers WHERE user_id = v_driver_id AND is_active = TRUE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Driver tidak aktif'; END IF;
+    v_max := COALESCE(v_max, 2);
+    SELECT COUNT(*) INTO v_active FROM orders WHERE driver_id = v_driver_id AND status IN ('pickup','picked_up','delivering');
+    IF v_active >= v_max THEN RAISE EXCEPTION 'Maks % pesanan aktif', v_max; END IF;
+    SELECT * INTO v_order FROM orders WHERE id = p_order_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Pesanan tidak ditemukan'; END IF;
+    IF v_order.driver_id IS NOT NULL THEN RAISE EXCEPTION 'Sudah diambil driver lain'; END IF;
+    IF v_order.status != 'ready' THEN RAISE EXCEPTION 'Pesanan tidak tersedia'; END IF;
+    UPDATE orders SET driver_id = v_driver_id, status = 'pickup', picked_up_at = NOW() WHERE id = p_order_id;
+    INSERT INTO notifications (user_id, title, message, type) VALUES (v_order.customer_id, 'Driver Ditugaskan', 'Driver menuju warung', 'order');
+    RETURN json_build_object('success', true, 'order_id', p_order_id, 'active_orders', v_active + 1, 'max_orders', v_max);
+END;
+$$;
+
+-- 5.20 get_driver_active_orders (multi-order)
+CREATE OR REPLACE FUNCTION get_driver_active_orders()
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_driver_id UUID; v_orders JSONB;
+BEGIN
+    v_driver_id := auth.uid();
+    IF v_driver_id IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
+    SELECT COALESCE(json_agg(row_to_json(o.*)), '[]'::json)::jsonb INTO v_orders
+    FROM (SELECT ord.id, ord.status, ord.total_amount, ord.delivery_fee, ord.delivery_address, ord.customer_name, ord.customer_phone, ord.customer_lat, ord.customer_lng, ord.payment_method, ord.merchant_id, ord.created_at, m.name as merchant_name, m.address as merchant_address, m.latitude as merchant_lat, m.longitude as merchant_lng
+    FROM orders ord LEFT JOIN merchants m ON m.id = ord.merchant_id WHERE ord.driver_id = v_driver_id AND ord.status IN ('pickup','picked_up','delivering') ORDER BY ord.created_at ASC) o;
+    RETURN json_build_object('orders', v_orders, 'count', jsonb_array_length(v_orders));
+END;
+$$;
+
 
 -- ==========================================
 -- 6. TRIGGERS
@@ -1307,6 +1536,45 @@ CREATE INDEX IF NOT EXISTS idx_withdrawals_user_id ON withdrawals(user_id);
 
 
 -- ==========================================
+-- 7.1 CHAT MESSAGES TABLE
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES auth.users(id),
+    sender_role TEXT NOT NULL CHECK (sender_role IN ('customer', 'driver')),
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_order_id ON public.chat_messages(order_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_id ON public.chat_messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON public.chat_messages(order_id, created_at);
+
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Customer can view chat messages" ON public.chat_messages FOR SELECT
+USING (EXISTS (SELECT 1 FROM orders o WHERE o.id = chat_messages.order_id AND o.customer_id = auth.uid()));
+
+CREATE POLICY "Driver can view chat messages" ON public.chat_messages FOR SELECT
+USING (EXISTS (SELECT 1 FROM orders o WHERE o.id = chat_messages.order_id AND o.driver_id = auth.uid()));
+
+CREATE POLICY "Customer can send chat messages" ON public.chat_messages FOR INSERT
+WITH CHECK (sender_id = auth.uid() AND sender_role = 'customer'
+    AND EXISTS (SELECT 1 FROM orders o WHERE o.id = chat_messages.order_id AND o.customer_id = auth.uid() AND o.status IN ('pickup', 'picked_up', 'delivering')));
+
+CREATE POLICY "Driver can send chat messages" ON public.chat_messages FOR INSERT
+WITH CHECK (sender_id = auth.uid() AND sender_role = 'driver'
+    AND EXISTS (SELECT 1 FROM orders o WHERE o.id = chat_messages.order_id AND o.driver_id = auth.uid() AND o.status IN ('pickup', 'picked_up', 'delivering')));
+
+CREATE POLICY "Users can mark messages as read" ON public.chat_messages FOR UPDATE
+USING (sender_id != auth.uid() AND EXISTS (SELECT 1 FROM orders o WHERE o.id = chat_messages.order_id AND (o.customer_id = auth.uid() OR o.driver_id = auth.uid())))
+WITH CHECK (sender_id != auth.uid());
+
+
+-- ==========================================
 -- 8. ENABLE REALTIME
 -- ==========================================
 
@@ -1322,45 +1590,118 @@ BEGIN
     EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE withdrawals;
     EXCEPTION WHEN duplicate_object THEN NULL; END;
+    BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+    EXCEPTION WHEN duplicate_object THEN NULL; END;
 END $$;
 
 
 -- ==========================================
--- 9. STORAGE BUCKET & POLICIES
+-- 9. STORAGE BUCKETS & POLICIES
 -- ==========================================
+-- Bucket structure:
+--   public-assets/  → profile photos, merchant logos, menu images (PUBLIC)
+--   private-docs/   → KTP, STNK, receipts, evidence (PRIVATE, signed URL)
+-- Folder convention: {category}/{subcategory}/{userId or entityId}/{timestamp_random.ext}
 
+-- ===== BUCKET: public-assets (PUBLIC) =====
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
-    'documents',
-    'documents',
+    'public-assets',
+    'public-assets',
     true,
-    10485760,
-    ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+    2097152, -- 2 MB
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
 )
 ON CONFLICT (id) DO UPDATE SET
     public = true,
-    file_size_limit = 10485760,
+    file_size_limit = 2097152,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+
+-- ===== BUCKET: private-docs (PRIVATE) =====
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'private-docs',
+    'private-docs',
+    false,
+    2097152, -- 2 MB
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = false,
+    file_size_limit = 2097152,
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
-DROP POLICY IF EXISTS "Allow authenticated uploads" ON storage.objects;
-CREATE POLICY "Allow authenticated uploads"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'documents');
 
-DROP POLICY IF EXISTS "Allow public read" ON storage.objects;
-CREATE POLICY "Allow public read"
+-- ===== POLICIES: public-assets =====
+
+-- Anyone can view public assets
+DROP POLICY IF EXISTS "Public assets are viewable by everyone" ON storage.objects;
+CREATE POLICY "Public assets are viewable by everyone"
 ON storage.objects FOR SELECT TO public
-USING (bucket_id = 'documents');
+USING (bucket_id = 'public-assets');
 
-DROP POLICY IF EXISTS "Allow owner update" ON storage.objects;
-CREATE POLICY "Allow owner update"
+-- Authenticated users can upload to public-assets (folder must contain their user ID)
+DROP POLICY IF EXISTS "Users can upload public assets" ON storage.objects;
+CREATE POLICY "Users can upload public assets"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+    bucket_id = 'public-assets'
+    AND auth.uid()::text = (storage.foldername(name))[3]
+);
+
+-- Users can update their own public assets
+DROP POLICY IF EXISTS "Users can update own public assets" ON storage.objects;
+CREATE POLICY "Users can update own public assets"
 ON storage.objects FOR UPDATE TO authenticated
-USING (bucket_id = 'documents' AND auth.uid()::text = (storage.foldername(name))[2]);
+USING (
+    bucket_id = 'public-assets'
+    AND auth.uid()::text = (storage.foldername(name))[3]
+);
 
-DROP POLICY IF EXISTS "Allow owner delete" ON storage.objects;
-CREATE POLICY "Allow owner delete"
+-- Users can delete their own public assets
+DROP POLICY IF EXISTS "Users can delete own public assets" ON storage.objects;
+CREATE POLICY "Users can delete own public assets"
 ON storage.objects FOR DELETE TO authenticated
-USING (bucket_id = 'documents' AND auth.uid()::text = (storage.foldername(name))[2]);
+USING (
+    bucket_id = 'public-assets'
+    AND auth.uid()::text = (storage.foldername(name))[3]
+);
+
+
+-- ===== POLICIES: private-docs =====
+
+-- Users can only view their own private docs
+DROP POLICY IF EXISTS "Users can view own private docs" ON storage.objects;
+CREATE POLICY "Users can view own private docs"
+ON storage.objects FOR SELECT TO authenticated
+USING (
+    bucket_id = 'private-docs'
+    AND (
+        auth.uid()::text = (storage.foldername(name))[3]
+        OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+    )
+);
+
+-- Authenticated users can upload private docs (folder must contain their user ID)
+DROP POLICY IF EXISTS "Users can upload private docs" ON storage.objects;
+CREATE POLICY "Users can upload private docs"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+    bucket_id = 'private-docs'
+    AND auth.uid()::text = (storage.foldername(name))[3]
+);
+
+-- Users can delete their own private docs
+DROP POLICY IF EXISTS "Users can delete own private docs" ON storage.objects;
+CREATE POLICY "Users can delete own private docs"
+ON storage.objects FOR DELETE TO authenticated
+USING (
+    bucket_id = 'private-docs'
+    AND (
+        auth.uid()::text = (storage.foldername(name))[3]
+        OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+    )
+);
 
 
 -- ==========================================

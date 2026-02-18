@@ -37,7 +37,7 @@ function DriverDashboard() {
                     setEarnings({ ...data, loading: false })
                 }
             } catch (error) {
-                console.error('Error fetching driver stats:', error)
+                if (process.env.NODE_ENV === 'development') console.error('Error fetching driver stats:', error)
                 if (mounted) {
                     setEarnings(prev => ({ ...prev, loading: false }))
                 }
@@ -55,7 +55,7 @@ function DriverDashboard() {
                     setDriverStatus(profile.status === 'suspended' || profile.status === 'rejected' ? 'suspended' : 'active')
                 }
             } catch (error) {
-                console.error('Error fetching driver profile:', error)
+                if (process.env.NODE_ENV === 'development') console.error('Error fetching driver profile:', error)
             }
         }
 
@@ -74,7 +74,7 @@ function DriverDashboard() {
                     }
                 }
             } catch (error) {
-                console.error('Error checking active order:', error)
+                if (process.env.NODE_ENV === 'development') console.error('Error checking active order:', error)
             }
         }
 
@@ -132,7 +132,7 @@ function DriverDashboard() {
                 })
             }
         } catch (error) {
-            console.error('Error checking orders:', error)
+            if (process.env.NODE_ENV === 'development') console.error('Error checking orders:', error)
         }
     }
 
@@ -165,7 +165,7 @@ function DriverDashboard() {
                                 // Poll for orders if we have location
                                 checkAvailableOrders(latitude, longitude)
                             },
-                            (error) => console.error('Location error:', error),
+                            (error) => { if (process.env.NODE_ENV === 'development') console.error('Location error:', error) },
                             { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
                         )
                     } else {
@@ -176,7 +176,7 @@ function DriverDashboard() {
                 }
             } catch (error) {
                 if (!isMounted) return
-                console.error('Error updating driver status:', error)
+                if (process.env.NODE_ENV === 'development') console.error('Error updating driver status:', error)
                 addNotification({
                     type: 'error',
                     message: 'Gagal mengupdate status driver',
@@ -258,14 +258,6 @@ function DriverDashboard() {
                             </div>
                         </div>
                         <div className="flex items-center justify-end gap-2">
-                            {/* Dev Only: Status Toggle */}
-                            <button
-                                onClick={() => setDriverStatus(prev => prev === 'active' ? 'suspended' : 'active')}
-                                className="text-[10px] px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 font-medium text-gray-600"
-                                title="Dev: Toggle Suspended"
-                            >
-                                {driverStatus === 'suspended' ? '🔴' : '🟢'}
-                            </button>
                             <button
                                 onClick={() => navigate('/driver/notifications')}
                                 className="flex items-center justify-center rounded-full size-10 bg-slate-100 text-slate-900 hover:bg-slate-200 transition-colors relative"

@@ -20,7 +20,7 @@ function DriverProfilePage() {
                 console.log('Driver profile loaded:', profile)
                 setDriverData(profile)
             } catch (error) {
-                console.error('Failed to fetch driver profile:', error)
+                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch driver profile:', error)
                 setDebugError(error.message)
             } finally {
                 setLoading(false)
@@ -31,8 +31,22 @@ function DriverProfilePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background-light">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="min-h-screen bg-background-light flex flex-col pb-24">
+                <div className="bg-primary/10 px-4 pt-14 pb-8 flex flex-col items-center gap-3">
+                    <div className="w-20 h-20 rounded-full bg-gray-200 animate-pulse" />
+                    <div className="h-5 w-36 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="px-4 pt-4 flex flex-col gap-3">
+                    {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="bg-white p-4 rounded-xl flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+                            <div className="flex-1">
+                                <div className="h-4 w-28 bg-gray-200 rounded animate-pulse" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         )
     }

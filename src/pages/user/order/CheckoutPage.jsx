@@ -40,7 +40,7 @@ function CheckoutPage() {
                 setPaymentMethods(methods)
                 setLoadingPayments(false)
             } catch (error) {
-                console.error('Error fetching payment methods:', error)
+                handleError(error, toast, { context: 'Fetch payment methods' })
                 // Fallback to basic payment methods
                 setPaymentMethods([
                     { id: 'cash', name: 'Tunai (COD)', description: 'Bayar saat pesanan tiba', icon: 'payments' }

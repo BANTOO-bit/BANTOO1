@@ -5,12 +5,16 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
     const { isAuthenticated, user } = useAuth()
     const location = useLocation()
 
+    const isAdminRoute = location.pathname.startsWith('/admin')
+    const isAdmin = user?.roles?.includes('admin')
+
     if (!isAuthenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace />
+        // Admin routes redirect to admin login, others to regular login
+        return <Navigate to={isAdminRoute ? '/admin/login' : '/login'} state={{ from: location }} replace />
     }
 
-    // Check if account is suspended
-    if (user?.status === 'suspended' || user?.merchantStatus === 'suspended' || user?.driverStatus === 'suspended') {
+    // Check if account is suspended — admin is NEVER redirected to suspended page
+    if (!isAdmin && (user?.status === 'suspended' || user?.merchantStatus === 'suspended' || user?.driverStatus === 'suspended')) {
         // Allow access to the suspended page and logout flow
         if (location.pathname !== '/account-suspended') {
             return <Navigate to="/account-suspended" replace />
@@ -20,10 +24,11 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
     // If roles are specified, check if user has required role
     if (allowedRoles.length > 0) {
         const hasRole = allowedRoles.some(role => {
-            if (role === 'admin' && user?.role === 'admin') return true
-            if (role === 'merchant' && user?.merchantStatus === 'approved') return true
-            if (role === 'driver' && user?.driverStatus === 'approved') return true
-            if (role === 'customer' && user?.role === 'customer') return true
+            if (role === 'admin' && user?.roles?.includes('admin')) return true
+            // Enforce activeRole: user must have switched to this role AND be approved
+            if (role === 'merchant' && user?.activeRole === 'merchant' && user?.merchantStatus === 'approved') return true
+            if (role === 'driver' && user?.activeRole === 'driver' && user?.driverStatus === 'approved') return true
+            if (role === 'customer' && user?.activeRole === 'customer') return true
             return false
         })
 

@@ -82,20 +82,8 @@ export const financeService = {
 
             // Upload proof if provided
             if (proofImage) {
-                const fileExt = proofImage.name.split('.').pop()
-                const fileName = `withdrawal-proof/${id}-${Date.now()}.${fileExt}`
-
-                const { error: uploadError } = await supabase.storage
-                    .from('receipts')
-                    .upload(fileName, proofImage)
-
-                if (uploadError) throw uploadError
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('receipts')
-                    .getPublicUrl(fileName)
-
-                proofUrl = publicUrl
+                const { storageService, STORAGE_PATHS } = await import('./storageService')
+                proofUrl = await storageService.upload(proofImage, STORAGE_PATHS.FINANCE_RECEIPT, id)
             }
 
             // Update status

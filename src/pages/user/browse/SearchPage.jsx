@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 import merchantService from '../../../services/merchantService'
 import { useCart } from '../../../context/CartContext'
+import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
+import useDebounce from '../../../hooks/useDebounce'
 
 // Categories for Search Page (6 main categories + Lainnya)
 // Updated to match HTML: Makanan Berat, Jajanan, Kue, Makanan Ringan, Seafood, Lainnya
@@ -97,8 +100,9 @@ function CategoryItem({ category, onClick }) {
 function SearchPage() {
     const navigate = useNavigate()
     const { cartItems } = useCart()
+    const toast = useToast()
     const [searchQuery, setSearchQuery] = useState('')
-    const [debouncedQuery, setDebouncedQuery] = useState('')
+    const debouncedQuery = useDebounce(searchQuery, 500)
     const [merchantResults, setMerchantResults] = useState([]) // Actually menu results
     const [popularMenus, setPopularMenus] = useState([])
     const [displayCategories, setDisplayCategories] = useState(searchCategories)
@@ -106,14 +110,6 @@ function SearchPage() {
     const [isLoading, setIsLoading] = useState(false)
 
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-
-    // Debounce search
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedQuery(searchQuery)
-        }, 500)
-        return () => clearTimeout(handler)
-    }, [searchQuery])
 
     // Load Initial Data
     useEffect(() => {
@@ -152,7 +148,7 @@ function SearchPage() {
                 setDisplayCategories(combinedCategories.slice(0, 9))
 
             } catch (error) {
-                console.error('Failed to load data', error)
+                handleError(error, toast, { context: 'Load search data' })
                 setDisplayCategories(searchCategories)
             }
         }
@@ -173,7 +169,7 @@ function SearchPage() {
                 const menus = await merchantService.getAllMenus({ search: debouncedQuery, limit: 50 })
                 setMerchantResults(menus)
             } catch (error) {
-                console.error(error)
+                handleError(error, toast, { context: 'Search' })
             } finally {
                 setIsLoading(false)
             }

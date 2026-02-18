@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import orderService from '../../../services/orderService'
 import { formatOrderId } from '../../../utils/orderUtils'
+import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
 
 function OrderSuccessPage() {
     const navigate = useNavigate()
     const location = useLocation()
+    const toast = useToast()
     const [order, setOrder] = useState(null)
     const [loading, setLoading] = useState(true)
 
@@ -24,7 +27,7 @@ function OrderSuccessPage() {
                         paymentMethod: { name: data.payment_method === 'wallet' ? 'Saldo Bantoo' : 'Tunai (COD)' }
                     })
                 } catch (error) {
-                    console.error('Failed to fetch order:', error)
+                    handleError(error, toast, { context: 'Fetch order success' })
                 } finally {
                     setLoading(false)
                 }

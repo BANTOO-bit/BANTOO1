@@ -10,6 +10,28 @@ import { supabase } from './supabaseClient'
  */
 export const orderService = {
     /**
+     * Check if merchant is currently open (operating hours + manual toggle)
+     * @param {string} merchantId
+     * @returns {Object} { is_open: boolean, reason: string|null }
+     */
+    async checkMerchantOpen(merchantId) {
+        const { data, error } = await supabase.rpc('check_merchant_open', {
+            p_merchant_id: merchantId
+        })
+
+        if (error) {
+            // If RPC doesn't exist yet, skip check (graceful degradation)
+            if (error.code === '42883' || error.message?.includes('does not exist')) {
+                return { is_open: true, reason: null }
+            }
+            console.warn('Operating hours check failed:', error)
+            return { is_open: true, reason: null }
+        }
+
+        return data
+    },
+
+    /**
      * Create a new order via server-side RPC
      * Prices are calculated from the database, NOT from frontend values.
      * @param {Object} orderData - Order details
@@ -17,6 +39,12 @@ export const orderService = {
     async createOrder(orderData) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
+
+        // Check operating hours before creating order
+        const merchantCheck = await this.checkMerchantOpen(orderData.merchantId)
+        if (!merchantCheck.is_open) {
+            throw new Error(merchantCheck.reason || 'Warung sedang tutup')
+        }
 
         const {
             merchantId,

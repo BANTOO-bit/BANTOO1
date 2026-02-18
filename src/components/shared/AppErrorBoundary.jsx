@@ -31,7 +31,9 @@ class AppErrorBoundary extends React.Component {
     }
 
     handleGoHome = () => {
-        window.location.href = '/'
+        // Admin stays in admin context — never redirect to customer app
+        const isAdminRoute = window.location.pathname.startsWith('/admin')
+        window.location.href = isAdminRoute ? '/admin/dashboard' : '/'
     }
 
     render() {

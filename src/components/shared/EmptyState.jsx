@@ -48,7 +48,7 @@ function EmptyState({
                 </div>
             ) : (
                 <div className={`${sizes.iconBg} bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-colors`}>
-                    <span className={`material-symbols-rounded ${sizes.iconSize} text-gray-400 dark:text-gray-500`}>
+                    <span className={`material-symbols-outlined ${sizes.iconSize} text-gray-400 dark:text-gray-500`}>
                         {icon}
                     </span>
                 </div>

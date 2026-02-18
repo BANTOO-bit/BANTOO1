@@ -8,6 +8,7 @@ import PageLoader from '../../../components/shared/PageLoader'
 import { useToast } from '../../../context/ToastContext'
 import { handleError, handleSuccess } from '../../../utils/errorHandler'
 import { supabase } from '../../../services/supabaseClient'
+import useDebounce from '../../../hooks/useDebounce'
 
 function MerchantMenuPage() {
     const navigate = useNavigate()
@@ -15,6 +16,7 @@ function MerchantMenuPage() {
     const toast = useToast()
     const [activeCategory, setActiveCategory] = useState('semua')
     const [searchQuery, setSearchQuery] = useState('')
+    const debouncedSearch = useDebounce(searchQuery, 300)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [itemToDelete, setItemToDelete] = useState(null)
 
@@ -61,7 +63,7 @@ function MerchantMenuPage() {
 
                 setMenuItems(formattedProducts)
             } catch (error) {
-                console.error('Error fetching menu:', error)
+                if (process.env.NODE_ENV === 'development') console.error('Error fetching menu:', error)
             } finally {
                 setIsLoading(false)
             }
@@ -110,7 +112,7 @@ function MerchantMenuPage() {
 
     const filteredMenus = menuItems.filter(item => {
         const matchesCategory = activeCategory === 'semua' || item.category === activeCategory
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesSearch = item.name.toLowerCase().includes(debouncedSearch.toLowerCase())
         return matchesCategory && matchesSearch
     })
 
@@ -131,7 +133,7 @@ function MerchantMenuPage() {
 
             if (error) throw error
         } catch (err) {
-            console.error('Error updating status:', err)
+            if (process.env.NODE_ENV === 'development') console.error('Error updating status:', err)
             // Revert on error
             setMenuItems(prevItems => prevItems.map(item =>
                 item.id === itemId ? { ...item, isAvailable: !newStatus } : item

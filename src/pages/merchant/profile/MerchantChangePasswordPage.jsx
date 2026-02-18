@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { authService } from '../../../services/authService'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
 
 function MerchantChangePasswordPage() {
     const navigate = useNavigate()
@@ -59,8 +60,7 @@ function MerchantChangePasswordPage() {
             const { error: verifyError } = await authService.signInWithPhone(user.phone, formData.oldPassword)
 
             if (verifyError) {
-                console.error('Password verification failed:', verifyError)
-                toast.error('Kata sandi lama salah')
+                if (process.env.NODE_ENV === 'development') console.error('Password verification failed:', verifyError)
                 setLoading(false)
                 return
             }
@@ -76,8 +76,7 @@ function MerchantChangePasswordPage() {
             navigate(-1)
 
         } catch (error) {
-            console.error('Change password failed:', error)
-            toast.error('Gagal memperbarui kata sandi')
+            handleError(error, toast, { context: 'Ganti kata sandi' })
         } finally {
             setLoading(false)
         }

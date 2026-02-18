@@ -4,9 +4,12 @@ import ProgressBar from '../../../components/partner/ProgressBar'
 import FileUploadZone from '../../../components/partner/FileUploadZone'
 import { usePartnerRegistration } from '../../../context/PartnerRegistrationContext'
 import BankSelectSheet, { getBankDisplayName } from '../../../components/shared/BankSelectSheet'
+import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
 
 function MerchantRegistrationStep2() {
     const navigate = useNavigate()
+    const toast = useToast()
     const { merchantData, saveMerchantStepData, submitMerchantRegistration } = usePartnerRegistration()
 
     const [formData, setFormData] = useState({
@@ -68,8 +71,7 @@ function MerchantRegistrationStep2() {
                 alert(result.error || 'Pendaftaran gagal. Silakan coba lagi.')
             }
         } catch (error) {
-            console.error('Submission error:', error)
-            alert('Terjadi kesalahan: ' + (error.message || 'Silakan coba lagi.'))
+            handleError(error, toast, { context: 'Pendaftaran merchant' })
         } finally {
             setIsSubmitting(false)
         }

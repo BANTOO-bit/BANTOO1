@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../services/supabaseClient'
 import { useToast } from '../../../context/ToastContext'
 import { handleError, handleSuccess } from '../../../utils/errorHandler'
+import { validateForm, hasErrors, menuItemSchema } from '../../../utils/validation'
+import ConfirmationModal from '../../../components/shared/ConfirmationModal'
 
 function MerchantEditMenuPage() {
     const navigate = useNavigate()
@@ -15,6 +17,9 @@ function MerchantEditMenuPage() {
     const [previewImage, setPreviewImage] = useState('')
     const [originalImage, setOriginalImage] = useState('')
     const [imageFile, setImageFile] = useState(null)
+    const [errors, setErrors] = useState({})
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     // Form State
     const [formData, setFormData] = useState({
@@ -88,6 +93,9 @@ function MerchantEditMenuPage() {
     const handleChange = (e) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }))
+        }
     }
 
     const handleToggle = () => {
@@ -114,8 +122,9 @@ function MerchantEditMenuPage() {
 
     const handleSubmit = async () => {
         // Validation
-        if (!formData.name || !formData.category || !formData.price) {
-            toast.warning('Mohon lengkapi Nama, Kategori, dan Harga')
+        const validationErrors = validateForm(formData, menuItemSchema)
+        if (hasErrors(validationErrors)) {
+            setErrors(validationErrors)
             return
         }
 
@@ -127,30 +136,9 @@ function MerchantEditMenuPage() {
 
             // If a new file is selected, upload it
             if (imageFile) {
-                // Get merchant ID from current user context would be better, but for now we'll use a generic folder or try to extract from path if possible, 
-                // BUT since we don't have merchantId easily available in params here without extra fetch, 
-                // we can just put it in a 'uploads' folder or try to keep it organized.
-                // Best practice: organize by merchant_id. We can get it from the product data if we selected it, or auth user.
-
                 const { data: { user } } = await supabase.auth.getUser()
-                const merchantId = user?.id // Assuming user ID maps to merchant or we use it for folder
-                // Actually `products` table has `merchant_id`. We could have fetched it.
-                // Let's use a timestamp based name for uniqueness.
-
-                const fileExt = imageFile.name.split('.').pop()
-                const fileName = `${merchantId || 'uploads'}/${Date.now()}.${fileExt}`
-
-                const { error: uploadError } = await supabase.storage
-                    .from('menu-images')
-                    .upload(fileName, imageFile)
-
-                if (uploadError) throw uploadError
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('menu-images')
-                    .getPublicUrl(fileName)
-
-                finalImage = publicUrl
+                const { storageService, STORAGE_PATHS } = await import('../../../services/storageService')
+                finalImage = await storageService.upload(imageFile, STORAGE_PATHS.MERCHANT_MENU, user?.id)
             }
 
             const updates = {
@@ -181,29 +169,56 @@ function MerchantEditMenuPage() {
         }
     }
 
-    const handleDelete = async () => {
-        if (window.confirm('Hapus menu ini? Tindakan ini tidak dapat dibatalkan.')) {
-            try {
-                const { error } = await supabase
-                    .from('menu_items')
-                    .delete()
-                    .eq('id', id)
+    const handleDelete = () => {
+        setShowDeleteConfirm(true)
+    }
 
-                if (error) throw error
+    const confirmDelete = async () => {
+        setIsDeleting(true)
+        try {
+            const { error } = await supabase
+                .from('menu_items')
+                .delete()
+                .eq('id', id)
 
-                handleSuccess('Menu berhasil dihapus', toast)
-                navigate('/merchant/menu')
-            } catch (err) {
-                console.error('Error deleting menu:', err)
-                handleError(err, toast, { context: 'Delete Menu' })
-            }
+            if (error) throw error
+
+            handleSuccess('Menu berhasil dihapus', toast)
+            navigate('/merchant/menu')
+        } catch (err) {
+            handleError(err, toast, { context: 'Delete Menu' })
+        } finally {
+            setIsDeleting(false)
+            setShowDeleteConfirm(false)
         }
     }
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
-                <span className="material-symbols-outlined text-4xl animate-spin text-primary">donut_large</span>
+            <div className="bg-background-light dark:bg-background-dark min-h-screen flex flex-col pb-[88px]">
+                <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-10 pb-4 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                        <div className="h-5 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="w-8" />
+                    </div>
+                </header>
+                <div className="px-4 pt-6 flex flex-col gap-5">
+                    {/* Image skeleton */}
+                    <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+                    {/* Input skeletons */}
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="space-y-2">
+                            <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                            <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
+                        </div>
+                    ))}
+                    {/* Toggle skeleton */}
+                    <div className="flex items-center justify-between">
+                        <div className="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="h-7 w-12 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+                    </div>
+                </div>
             </div>
         )
     }
@@ -270,16 +285,17 @@ function MerchantEditMenuPage() {
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            className="w-full rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary px-4 py-3 text-sm text-text-main dark:text-white placeholder-gray-400 shadow-sm transition-all"
+                            className={`w-full rounded-xl bg-white dark:bg-card-dark border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary px-4 py-3 text-sm text-text-main dark:text-white placeholder-gray-400 shadow-sm transition-all ${errors.name ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                             type="text"
                         />
+                        {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
                     </div>
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-text-main dark:text-gray-200">Kategori</label>
                         <div className="relative">
                             <div
                                 onClick={() => setIsCategorySheetOpen(true)}
-                                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 flex items-center justify-between cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+                                className={`w-full px-4 py-3 rounded-xl bg-white dark:bg-card-dark border flex items-center justify-between cursor-pointer active:bg-gray-50 dark:active:bg-gray-800 transition-colors ${errors.category ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                             >
                                 <span className={`text-sm ${formData.category ? 'text-text-main dark:text-white' : 'text-gray-400'}`}>
                                     {formData.category
@@ -319,6 +335,7 @@ function MerchantEditMenuPage() {
                                                     onClick={() => {
                                                         setFormData({ ...formData, category: cat.id })
                                                         setIsCategorySheetOpen(false)
+                                                        if (errors.category) setErrors(prev => ({ ...prev, category: null }))
                                                     }}
                                                     className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${formData.category === cat.id
                                                         ? 'bg-primary/10 border border-primary/20'
@@ -341,6 +358,7 @@ function MerchantEditMenuPage() {
                                 </div>
                             )}
                         </div>
+                        {errors.category && <p className="text-xs text-red-500 mt-1">{errors.category}</p>}
                     </div>
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-text-main dark:text-gray-200">Harga</label>
@@ -350,10 +368,11 @@ function MerchantEditMenuPage() {
                                 name="price"
                                 value={formData.price}
                                 onChange={handleChange}
-                                className="w-full rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary pl-10 pr-4 py-3 text-sm text-text-main dark:text-white shadow-sm transition-all"
+                                className={`w-full rounded-xl bg-white dark:bg-card-dark border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary pl-10 pr-4 py-3 text-sm text-text-main dark:text-white shadow-sm transition-all ${errors.price ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                                 placeholder="0"
                                 type="number"
                             />
+                            {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -362,9 +381,10 @@ function MerchantEditMenuPage() {
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
-                            className="w-full rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary px-4 py-3 text-sm text-text-main dark:text-white placeholder-gray-400 shadow-sm resize-none transition-all"
+                            className={`w-full rounded-xl bg-white dark:bg-card-dark border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary px-4 py-3 text-sm text-text-main dark:text-white placeholder-gray-400 shadow-sm resize-none transition-all ${errors.description ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                             rows="4"
                         />
+                        {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
                     </div>
 
                     {/* Stock Status Toggle */}
@@ -408,6 +428,20 @@ function MerchantEditMenuPage() {
                     )}
                 </button>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={confirmDelete}
+                title="Hapus Menu?"
+                message="Menu yang dihapus tidak dapat dikembalikan. Yakin ingin menghapus?"
+                confirmLabel="Hapus"
+                cancelLabel="Batal"
+                icon="delete"
+                confirmColor="red"
+                loading={isDeleting}
+            />
         </div>
     )
 }

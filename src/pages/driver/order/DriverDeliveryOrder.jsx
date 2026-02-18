@@ -58,12 +58,12 @@ function DriverDeliveryOrder() {
     useEffect(() => {
         const orderId = activeOrder.id || activeOrder.dbId
         if (orderId) {
-            const handle = startBroadcastingLocation(orderId)
+            const handle = startBroadcastingLocation(orderId, user?.id)
             return () => {
                 handle.stop()
             }
         }
-    }, [activeOrder])
+    }, [activeOrder, user?.id])
 
     const handleConfirmDelivery = async () => {
         try {
@@ -159,7 +159,10 @@ function DriverDeliveryOrder() {
                             <button className="w-12 h-12 flex-shrink-0 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors border border-blue-100">
                                 <span className="material-symbols-outlined">call</span>
                             </button>
-                            <button className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
+                            <button
+                                onClick={() => navigate(`/driver/chat/${activeOrder.id}`)}
+                                className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
+                            >
                                 <span className="material-symbols-outlined">chat</span>
                                 Chat Pelanggan
                             </button>

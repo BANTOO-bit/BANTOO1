@@ -1,45 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import BackButton from '../../../components/shared/BackButton'
-import { useToast } from '../../../context/ToastContext'
-import { handleInfo } from '../../../utils/errorHandler'
-
-// Sample chat messages
-const initialMessages = [
-    {
-        id: 1,
-        type: 'system',
-        text: 'Driver dalam perjalanan menuju restoran',
-        time: '12:30'
-    },
-    {
-        id: 2,
-        type: 'driver',
-        text: 'Halo, saya Ahmad driver Anda. Pesanan sedang diproses di restoran.',
-        time: '12:31'
-    },
-    {
-        id: 3,
-        type: 'user',
-        text: 'Baik pak, terima kasih infonya',
-        time: '12:32'
-    },
-    {
-        id: 4,
-        type: 'driver',
-        text: 'Sama-sama. Estimasi sampai sekitar 15-20 menit ya.',
-        time: '12:33'
-    }
-]
-
-const driverInfo = {
-    name: 'Ahmad Rizki',
-    phone: '+62 813 9876 5432',
-    vehicle: 'Honda Vario 125',
-    plate: 'B 1234 XYZ',
-    rating: 4.9,
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
-}
+import { useAuth } from '../../../context/AuthContext'
+import { chatService } from '../../../services/chatService'
+import { supabase } from '../../../services/supabaseClient'
 
 const quickReplies = [
     'Sudah sampai mana pak?',
@@ -51,10 +14,12 @@ const quickReplies = [
 function ChatDriverPage() {
     const { orderId } = useParams()
     const navigate = useNavigate()
-    const toast = useToast()
-    const [messages, setMessages] = useState(initialMessages)
+    const { user } = useAuth()
+    const [messages, setMessages] = useState([])
     const [inputText, setInputText] = useState('')
-    const [isTyping, setIsTyping] = useState(false)
+    const [sending, setSending] = useState(false)
+    const [driverInfo, setDriverInfo] = useState(null)
+    const [loading, setLoading] = useState(true)
     const messagesEndRef = useRef(null)
 
     const scrollToBottom = () => {
@@ -65,58 +30,101 @@ function ChatDriverPage() {
         scrollToBottom()
     }, [messages])
 
-    const handleSend = (text = inputText) => {
-        if (!text.trim()) return
+    // Fetch order info + driver details
+    useEffect(() => {
+        if (!orderId) return
 
-        const userMessage = {
-            id: Date.now(),
-            type: 'user',
-            text: text.trim(),
-            time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        const fetchOrderInfo = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select(`
+                        id, status, driver_id,
+                        drivers:driver_id (
+                            vehicle_plate, vehicle_brand,
+                            profile:user_id (full_name, avatar_url, phone)
+                        )
+                    `)
+                    .eq('id', orderId)
+                    .single()
+
+                if (!error && data?.drivers) {
+                    setDriverInfo({
+                        name: data.drivers.profile?.full_name || 'Driver',
+                        phone: data.drivers.profile?.phone || '-',
+                        avatar: data.drivers.profile?.avatar_url,
+                        vehicle: data.drivers.vehicle_brand || 'Motor',
+                        plate: data.drivers.vehicle_plate || '-'
+                    })
+                }
+            } catch (err) {
+                console.error('Error fetching order info:', err)
+            }
         }
 
-        setMessages(prev => [...prev, userMessage])
+        fetchOrderInfo()
+    }, [orderId])
+
+    // Fetch messages + subscribe to realtime
+    useEffect(() => {
+        if (!orderId || !user?.id) return
+
+        const loadMessages = async () => {
+            setLoading(true)
+            const msgs = await chatService.getMessages(orderId)
+            setMessages(msgs)
+            setLoading(false)
+
+            // Mark driver messages as read
+            await chatService.markAsRead(orderId, 'customer')
+        }
+
+        loadMessages()
+
+        // Subscribe to new messages
+        const unsubscribe = chatService.subscribeToMessages(orderId, (newMsg) => {
+            setMessages(prev => {
+                // Avoid duplicates
+                if (prev.find(m => m.id === newMsg.id)) return prev
+                return [...prev, newMsg]
+            })
+
+            // Mark as read if from driver
+            if (newMsg.sender_role === 'driver') {
+                chatService.markAsRead(orderId, 'customer')
+            }
+        })
+
+        return () => unsubscribe()
+    }, [orderId, user?.id])
+
+    const handleSend = async (text = inputText) => {
+        if (!text.trim() || sending) return
+
+        setSending(true)
         setInputText('')
 
-        // Simulate driver typing
-        setIsTyping(true)
-
-        setTimeout(() => {
-            setIsTyping(false)
-            const driverReply = {
-                id: Date.now() + 1,
-                type: 'driver',
-                text: getDriverReply(text.trim()),
-                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-            }
-            setMessages(prev => [...prev, driverReply])
-        }, 1500)
-    }
-
-    const getDriverReply = (userText) => {
-        const lowerText = userText.toLowerCase()
-        if (lowerText.includes('sampai') || lowerText.includes('mana')) {
-            return 'Sekarang masih di jalan menuju lokasi Anda. Sekitar 10 menit lagi sampai ya.'
+        try {
+            await chatService.sendMessage(orderId, text, 'customer')
+        } catch (error) {
+            console.error('Failed to send message:', error)
+            setInputText(text) // Restore on failure
+        } finally {
+            setSending(false)
         }
-        if (lowerText.includes('hubungi') || lowerText.includes('telepon')) {
-            return 'Baik, nanti saya hubungi saat sudah dekat lokasi.'
-        }
-        if (lowerText.includes('satpam') || lowerText.includes('titip')) {
-            return 'Siap, nanti saya titipkan ke satpam ya.'
-        }
-        if (lowerText.includes('terima kasih') || lowerText.includes('makasih')) {
-            return 'Sama-sama! Semoga pesanannya sesuai ya 😊'
-        }
-        return 'Baik, saya mengerti. Ada yang bisa dibantu lagi?'
-    }
-
-    const handleQuickReply = (text) => {
-        handleSend(text)
     }
 
     const handleCall = () => {
-        // In real app, this would trigger phone call
-        toast.info(`Menghubungi ${driverInfo.name} di ${driverInfo.phone}`)
+        if (driverInfo?.phone && driverInfo.phone !== '-') {
+            window.open(`tel:${driverInfo.phone}`, '_self')
+        }
+    }
+
+    const formatTime = (timestamp) => {
+        return new Date(timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+        })
     }
 
     return (
@@ -133,14 +141,18 @@ function ChatDriverPage() {
 
                     {/* Driver Info */}
                     <div className="flex items-center gap-3 flex-1">
-                        <img
-                            src={driverInfo.photo}
-                            alt={driverInfo.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                        />
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                            {driverInfo?.avatar ? (
+                                <img src={driverInfo.avatar} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="material-symbols-outlined text-primary">person</span>
+                            )}
+                        </div>
                         <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate">{driverInfo.name}</p>
-                            <p className="text-xs text-text-secondary">{driverInfo.vehicle} • {driverInfo.plate}</p>
+                            <p className="font-bold text-sm truncate">{driverInfo?.name || 'Driver'}</p>
+                            <p className="text-xs text-text-secondary">
+                                {driverInfo?.vehicle || 'Motor'} • {driverInfo?.plate || '-'}
+                            </p>
                         </div>
                     </div>
 
@@ -156,43 +168,40 @@ function ChatDriverPage() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-                {messages.map(message => (
-                    <div key={message.id}>
-                        {message.type === 'system' ? (
-                            <div className="flex justify-center">
-                                <span className="text-xs text-text-secondary bg-gray-100 px-3 py-1 rounded-full">
-                                    {message.text}
-                                </span>
-                            </div>
-                        ) : (
-                            <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] ${message.type === 'user'
+                {loading ? (
+                    <div className="flex justify-center py-8">
+                        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                    </div>
+                ) : messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
+                        <span className="material-symbols-outlined text-4xl mb-2">chat_bubble_outline</span>
+                        <p className="text-sm">Belum ada pesan</p>
+                        <p className="text-xs">Kirim pesan ke driver Anda</p>
+                    </div>
+                ) : (
+                    messages.map(msg => (
+                        <div key={msg.id}>
+                            <div className={`flex ${msg.sender_role === 'customer' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] ${msg.sender_role === 'customer'
                                     ? 'bg-primary text-white rounded-2xl rounded-br-md'
                                     : 'bg-white border border-border-color rounded-2xl rounded-bl-md'
                                     } px-4 py-3 shadow-sm`}>
-                                    <p className="text-sm">{message.text}</p>
-                                    <p className={`text-[10px] mt-1 ${message.type === 'user' ? 'text-white/70' : 'text-text-secondary'}`}>
-                                        {message.time}
-                                    </p>
+                                    <p className="text-sm">{msg.message}</p>
+                                    <div className={`flex items-center gap-1 mt-1 ${msg.sender_role === 'customer' ? 'justify-end' : ''}`}>
+                                        <p className={`text-[10px] ${msg.sender_role === 'customer' ? 'text-white/70' : 'text-text-secondary'}`}>
+                                            {formatTime(msg.created_at)}
+                                        </p>
+                                        {msg.sender_role === 'customer' && (
+                                            <span className={`material-symbols-outlined text-[12px] ${msg.is_read ? 'text-blue-200' : 'text-white/50'}`}>
+                                                done_all
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        )}
-                    </div>
-                ))}
-
-                {/* Typing Indicator */}
-                {isTyping && (
-                    <div className="flex justify-start">
-                        <div className="bg-white border border-border-color rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
-                            <div className="flex gap-1">
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                            </div>
                         </div>
-                    </div>
+                    ))
                 )}
-
                 <div ref={messagesEndRef} />
             </div>
 
@@ -202,8 +211,9 @@ function ChatDriverPage() {
                     {quickReplies.map((reply, index) => (
                         <button
                             key={index}
-                            onClick={() => handleQuickReply(reply)}
-                            className="px-3 py-1.5 bg-orange-50 text-primary text-xs font-medium rounded-full whitespace-nowrap active:scale-95 transition-transform border border-primary/20"
+                            onClick={() => handleSend(reply)}
+                            disabled={sending}
+                            className="px-3 py-1.5 bg-orange-50 text-primary text-xs font-medium rounded-full whitespace-nowrap active:scale-95 transition-transform border border-primary/20 disabled:opacity-50"
                         >
                             {reply}
                         </button>
@@ -224,10 +234,10 @@ function ChatDriverPage() {
                     />
                     <button
                         onClick={() => handleSend()}
-                        disabled={!inputText.trim()}
+                        disabled={!inputText.trim() || sending}
                         className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <span className="material-symbols-outlined">send</span>
+                        <span className="material-symbols-outlined">{sending ? 'hourglass_top' : 'send'}</span>
                     </button>
                 </div>
             </div>

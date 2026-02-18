@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import driverService from '../../../services/driverService'
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
 
 function DriverVehiclePage() {
     const navigate = useNavigate()
@@ -23,8 +24,7 @@ function DriverVehiclePage() {
                     photoUrl: profile.vehicle_photo_url
                 })
             } catch (error) {
-                console.error('Error loading vehicle:', error)
-                toast.error('Gagal memuat data kendaraan')
+                handleError(error, toast, { context: 'Load kendaraan' })
             } finally {
                 setIsLoading(false)
             }

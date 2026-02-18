@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import driverService from '../../services/driverService'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
+import { handleError } from '../../utils/errorHandler'
 
 function DriverEditProfile() {
     const navigate = useNavigate()
@@ -44,8 +45,7 @@ function DriverEditProfile() {
                     })
                 }
             } catch (error) {
-                console.error('Error loading profile:', error)
-                toast.error('Gagal memuat profil')
+                handleError(error, toast, { context: 'Load profil driver' })
             } finally {
                 setIsLoading(false)
             }
@@ -74,8 +74,7 @@ function DriverEditProfile() {
             setFormData(prev => ({ ...prev, avatar_url: publicUrl }))
             toast.success('Foto berhasil diperbarui')
         } catch (error) {
-            console.error('Upload failed:', error)
-            toast.error('Gagal mengupload foto')
+            handleError(error, toast, { context: 'Upload foto driver' })
         } finally {
             setIsSaving(false)
         }
@@ -94,8 +93,7 @@ function DriverEditProfile() {
             toast.success('Profil berhasil diperbarui')
             navigate('/driver/profile')
         } catch (error) {
-            console.error('Error saving profile:', error)
-            toast.error('Gagal menyimpan perubahan')
+            handleError(error, toast, { context: 'Simpan profil driver' })
         } finally {
             setIsSaving(false)
         }
@@ -103,8 +101,20 @@ function DriverEditProfile() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background-light">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="min-h-screen bg-background-light flex flex-col pb-24">
+                <header className="px-4 pt-12 pb-4 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+                    <div className="h-5 w-28 bg-gray-200 rounded animate-pulse" />
+                </header>
+                <div className="px-4 flex flex-col items-center gap-4 pt-4">
+                    <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse" />
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="w-full space-y-2">
+                            <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                            <div className="h-12 w-full bg-gray-200 rounded-xl animate-pulse" />
+                        </div>
+                    ))}
+                </div>
             </div>
         )
     }

@@ -7,6 +7,8 @@ import LocationFailedModal from '../../../components/shared/LocationFailedModal'
 import LeafletMapPicker from '../../../components/shared/LeafletMapPicker'
 import locationService from '../../../services/locationService'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
+import { validateForm, hasErrors, required, minLength, indonesianPhone } from '../../../utils/validation'
 
 const addressLabels = [
     { id: 'Rumah', icon: 'home' },
@@ -62,8 +64,7 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
                 }))
             }
         } catch (error) {
-            console.error('Geocoding error:', error)
-            // Optional: toast.error('Gagal mengambil detail alamat')
+            handleError(error, toast, { context: 'Geocoding' })
         } finally {
             setIsGeocoding(false)
         }
@@ -76,13 +77,16 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
         }
     }
 
+    const addressFormSchema = {
+        address: [required('Alamat lengkap wajib diisi'), minLength(10, 'Alamat minimal 10 karakter')],
+        name: [required('Nama penerima wajib diisi'), minLength(3, 'Nama minimal 3 karakter')],
+        phone: [required('Nomor telepon wajib diisi'), indonesianPhone()],
+    }
+
     const validate = () => {
-        const newErrors = {}
-        if (!form.address.trim()) newErrors.address = 'Alamat lengkap wajib diisi'
-        if (!form.name.trim()) newErrors.name = 'Nama penerima wajib diisi'
-        if (!form.phone.trim()) newErrors.phone = 'Nomor telepon wajib diisi'
+        const newErrors = validateForm(form, addressFormSchema)
         setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
+        return !hasErrors(newErrors)
     }
 
     const handleSave = async () => {
@@ -111,8 +115,7 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
                 }
             }
         } catch (error) {
-            console.error('Failed to save address:', error)
-            // toast is handled in context, but we prevent navigation here
+            handleError(error, toast, { context: 'Simpan alamat' })
         }
     }
 
@@ -130,7 +133,7 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
             setShowLocationFound(true)
             setTimeout(() => setShowLocationFound(false), 2000) // Auto hide success modal
         } catch (error) {
-            console.error('GPS Error:', error)
+            handleError(error, toast, { context: 'GPS' })
             setShowLocationFailed(true)
         } finally {
             setIsGPSLoading(false)

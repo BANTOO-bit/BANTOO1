@@ -106,8 +106,12 @@ export function AuthProvider({ children }) {
                 determinedRole = savedRole
             }
 
-            // Fallback logic
-            const activeRole = determinedRole || (roles.includes('merchant') ? 'merchant' : (roles.includes('driver') ? 'driver' : 'customer'))
+            // Fallback logic — Admin takes highest priority and is locked
+            const activeRole = determinedRole || (
+                roles.includes('admin') ? 'admin' :
+                    roles.includes('merchant') ? 'merchant' :
+                        roles.includes('driver') ? 'driver' : 'customer'
+            )
 
             // Persist the final determined role to localStorage to keep it fresh
             localStorage.setItem('user_last_active_role', activeRole)
@@ -151,6 +155,11 @@ export function AuthProvider({ children }) {
     // Switch active role
     const switchRole = async (newRole) => {
         if (!user) throw new Error('Not authenticated')
+
+        // Admin role is locked — cannot switch to any other role
+        if (user.roles.includes('admin')) {
+            throw new Error('Admin role is locked. Cannot switch roles.')
+        }
 
         // Validate user has this role
         if (!user.roles.includes(newRole)) {
@@ -237,6 +246,19 @@ export function AuthProvider({ children }) {
 
     // Logout
     const logout = async () => {
+        const isAdmin = user?.roles?.includes('admin')
+
+        // Reset role before sign out (admin stays admin, others reset to customer)
+        if (user?.id) {
+            try {
+                await supabase.from('profiles')
+                    .update({ active_role: isAdmin ? 'admin' : 'customer' })
+                    .eq('id', user.id)
+            } catch (e) {
+                console.warn('Failed to reset active_role on logout:', e)
+            }
+        }
+        localStorage.removeItem('user_last_active_role')
         const { error } = await authService.signOut()
         if (error) throw error
         // State updates handled by onAuthStateChange

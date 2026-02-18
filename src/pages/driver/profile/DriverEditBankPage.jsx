@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { driverService } from '../../../services/driverService'
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
+import { handleError } from '../../../utils/errorHandler'
+import { validateForm, hasErrors, required, numeric, minLength } from '../../../utils/validation'
 import PageLoader from '../../../components/shared/PageLoader'
 
 function DriverEditBankPage() {
@@ -16,6 +18,13 @@ function DriverEditBankPage() {
         bank_account_number: '',
         bank_account_name: ''
     })
+    const [errors, setErrors] = useState({})
+
+    const bankSchema = {
+        bank_name: [required('Pilih bank terlebih dahulu')],
+        bank_account_number: [required('Nomor rekening wajib diisi'), minLength(10, 'Nomor rekening minimal 10 digit')],
+        bank_account_name: [required('Nama pemilik rekening wajib diisi'), minLength(3, 'Nama minimal 3 karakter')],
+    }
 
     useEffect(() => {
         async function loadData() {
@@ -29,8 +38,7 @@ function DriverEditBankPage() {
                     })
                 }
             } catch (error) {
-                console.error('Error loading bank details:', error)
-                toast.error('Gagal memuat data bank')
+                handleError(error, toast, { context: 'Load data bank' })
             } finally {
                 setIsLoading(false)
             }
@@ -44,12 +52,16 @@ function DriverEditBankPage() {
             ...prev,
             [name]: value
         }))
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }))
+        }
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!formData.bank_name || !formData.bank_account_number || !formData.bank_account_name) {
-            toast.error('Mohon lengkapi semua data')
+        const validationErrors = validateForm(formData, bankSchema)
+        if (hasErrors(validationErrors)) {
+            setErrors(validationErrors)
             return
         }
 
@@ -63,8 +75,7 @@ function DriverEditBankPage() {
             toast.success('Data rekening berhasil disimpan')
             navigate('/driver/bank')
         } catch (error) {
-            console.error('Error saving bank details:', error)
-            toast.error('Gagal menyimpan perubahan')
+            handleError(error, toast, { context: 'Simpan data bank' })
         } finally {
             setIsSaving(false)
         }
@@ -98,7 +109,7 @@ function DriverEditBankPage() {
                                 name="bank_name"
                                 value={formData.bank_name}
                                 onChange={handleChange}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                className={`w-full bg-slate-50 border rounded-xl px-4 py-3 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${errors.bank_name ? 'border-red-400' : 'border-slate-200'}`}
                             >
                                 <option value="">Pilih Bank</option>
                                 <option value="BCA">BCA</option>
@@ -111,6 +122,7 @@ function DriverEditBankPage() {
                                 <option value="OVO">OVO</option>
                                 <option value="DANA">DANA</option>
                             </select>
+                            {errors.bank_name && <p className="text-xs text-red-500 mt-1">{errors.bank_name}</p>}
                         </div>
 
                         {/* Account Number */}
@@ -122,8 +134,9 @@ function DriverEditBankPage() {
                                 value={formData.bank_account_number}
                                 onChange={handleChange}
                                 placeholder="Contoh: 1234567890"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+                                className={`w-full bg-slate-50 border rounded-xl px-4 py-3 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 ${errors.bank_account_number ? 'border-red-400' : 'border-slate-200'}`}
                             />
+                            {errors.bank_account_number && <p className="text-xs text-red-500 mt-1">{errors.bank_account_number}</p>}
                         </div>
 
                         {/* Account Holder Name */}
@@ -135,8 +148,9 @@ function DriverEditBankPage() {
                                 value={formData.bank_account_name}
                                 onChange={handleChange}
                                 placeholder="Sesuai buku tabungan"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 uppercase"
+                                className={`w-full bg-slate-50 border rounded-xl px-4 py-3 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 uppercase ${errors.bank_account_name ? 'border-red-400' : 'border-slate-200'}`}
                             />
+                            {errors.bank_account_name && <p className="text-xs text-red-500 mt-1">{errors.bank_account_name}</p>}
                             <p className="text-xs text-slate-500 flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[14px]">info</span>
                                 Harus sesuai dengan nama di KTP Anda.

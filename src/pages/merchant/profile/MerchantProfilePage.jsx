@@ -18,7 +18,7 @@ function MerchantProfilePage() {
                     const data = await merchantService.getMerchantById(user.merchantId)
                     setMerchantInfo(data)
                 } catch (error) {
-                    console.error('Failed to load merchant profile', error)
+                    if (process.env.NODE_ENV === 'development') console.error('Failed to load merchant profile', error)
                 } finally {
                     setIsLoading(false)
                 }
@@ -38,7 +38,7 @@ function MerchantProfilePage() {
             await logout()
             navigate('/login')
         } catch (error) {
-            console.error('Logout failed:', error)
+            if (process.env.NODE_ENV === 'development') console.error('Logout failed:', error)
         }
     }
 

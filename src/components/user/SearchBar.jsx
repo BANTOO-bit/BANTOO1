@@ -68,9 +68,10 @@ function MenuSearchCard({ menu, onMerchantClick, onClose }) {
                 {quantity === 0 ? (
                     <button
                         onClick={handleAdd}
+                        aria-label={`Tambah ${menu.name} ke keranjang`}
                         className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform"
                     >
-                        <span className="material-symbols-outlined text-[16px]">add</span>
+                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">add</span>
                     </button>
                 ) : (
                     <div className="flex items-center gap-0.5">
@@ -176,13 +177,15 @@ function SearchBar() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Cari makanan atau restoran"
                 />
                 {searchQuery && (
                     <button
                         onClick={handleClear}
+                        aria-label="Hapus pencarian"
                         className="absolute right-3 p-1 text-text-secondary hover:text-text-main"
                     >
-                        <span className="material-symbols-outlined text-[20px]">close</span>
+                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
                     </button>
                 )}
             </div>
