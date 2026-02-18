@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AdminLayout from '../../../components/admin/AdminLayout'
 import AdminEmptyState from '../../../components/admin/AdminEmptyState'
 import { supabase } from '../../../services/supabaseClient'
 import { formatOrderId, generateOrderId } from '../../../utils/orderUtils'
+import { exportToCSV } from '../../../utils/exportCSV'
 
 // Status config with display labels and colors
 const STATUS_CONFIG = {
@@ -52,6 +53,8 @@ function getDateRange(filter) {
 
 export default function AdminOrdersPage() {
     const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const customerFilter = searchParams.get('customer')
     const [orders, setOrders] = useState([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -59,6 +62,9 @@ export default function AdminOrdersPage() {
     const [statusFilter, setStatusFilter] = useState('')
     const [dateFilter, setDateFilter] = useState('')
     const [stats, setStats] = useState({ total: 0, active: 0, completed: 0, cancelled: 0 })
+    const [customerName, setCustomerName] = useState('')
+    const [currentPage, setCurrentPage] = useState(1)
+    const ITEMS_PER_PAGE = 15
 
     // Fetch orders from Supabase
     const fetchOrders = useCallback(async () => {
@@ -79,6 +85,11 @@ export default function AdminOrdersPage() {
                 `)
                 .order('created_at', { ascending: false })
                 .limit(100)
+
+            // Apply customer filter from URL params
+            if (customerFilter) {
+                query = query.eq('customer_id', customerFilter)
+            }
 
             // Apply status filter
             if (statusFilter) {
@@ -111,7 +122,7 @@ export default function AdminOrdersPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [statusFilter, dateFilter])
+    }, [statusFilter, dateFilter, customerFilter])
 
     useEffect(() => {
         fetchOrders()
@@ -149,6 +160,13 @@ export default function AdminOrdersPage() {
         )
     })
 
+    // Pagination
+    const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE)
+    const paginatedOrders = filteredOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+
+    // Reset page when filters change
+    useEffect(() => { setCurrentPage(1) }, [searchQuery, statusFilter, dateFilter])
+
     // Format helpers
     const formatTime = (dateStr) => {
         if (!dateStr) return '-'
@@ -167,8 +185,33 @@ export default function AdminOrdersPage() {
         return { label: config.label, colorClass }
     }
 
+    // Fetch customer name when filtering
+    useEffect(() => {
+        if (!customerFilter) { setCustomerName(''); return }
+        supabase.from('profiles').select('full_name').eq('id', customerFilter).single()
+            .then(({ data }) => setCustomerName(data?.full_name || 'Pelanggan'))
+    }, [customerFilter])
+
+    const clearCustomerFilter = () => {
+        searchParams.delete('customer')
+        setSearchParams(searchParams)
+    }
+
     return (
-        <AdminLayout title="Daftar Semua Transaksi" showBack>
+        <AdminLayout title={customerFilter ? `Pesanan ${customerName}` : 'Daftar Semua Transaksi'} showBack>
+
+            {/* Customer Filter Banner */}
+            {customerFilter && customerName && (
+                <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3 mb-4">
+                    <span className="material-symbols-outlined text-blue-600 text-[20px]">filter_alt</span>
+                    <p className="text-sm text-blue-800 dark:text-blue-300 flex-1">
+                        Menampilkan pesanan dari <span className="font-bold">{customerName}</span>
+                    </p>
+                    <button onClick={clearCustomerFilter} className="text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 px-3 py-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+                        Hapus Filter
+                    </button>
+                </div>
+            )}
 
             {/* Stats Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -244,13 +287,31 @@ export default function AdminOrdersPage() {
                         </div>
                     </div>
                 </div>
-                <button
-                    onClick={fetchOrders}
-                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-primary bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
-                >
-                    <span className="material-symbols-outlined text-[18px]">refresh</span>
-                    Refresh
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => exportToCSV(filteredOrders, [
+                            { key: 'id', label: 'ID Pesanan' },
+                            { key: 'customer.full_name', label: 'Pelanggan' },
+                            { key: 'merchant.name', label: 'Warung' },
+                            { key: 'driver.full_name', label: 'Driver' },
+                            { key: 'total_amount', label: 'Total' },
+                            { key: 'payment_method', label: 'Metode Bayar' },
+                            { key: 'status', label: 'Status' },
+                            { key: 'created_at', label: 'Tanggal' },
+                        ], 'pesanan')}
+                        className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">download</span>
+                        Export CSV
+                    </button>
+                    <button
+                        onClick={fetchOrders}
+                        className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-primary bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">refresh</span>
+                        Refresh
+                    </button>
+                </div>
             </div>
 
             {/* Loading */}
@@ -298,7 +359,7 @@ export default function AdminOrdersPage() {
 
                     {/* Table Rows */}
                     <div className="divide-y divide-[#e5e7eb] dark:divide-[#2a3b4d]">
-                        {filteredOrders.map(order => {
+                        {paginatedOrders.map(order => {
                             const { label, colorClass } = getStatusBadge(order.status)
                             const paymentLabel = order.payment_method === 'cod' ? 'COD' : order.payment_method === 'wallet' ? 'Wallet' : 'Transfer'
 
@@ -306,7 +367,7 @@ export default function AdminOrdersPage() {
                                 <div
                                     key={order.id}
                                     className="grid grid-cols-2 md:grid-cols-[1fr_1.5fr_1fr_1fr_0.8fr_0.8fr] gap-2 md:gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#0d1520] cursor-pointer transition-colors items-center"
-                                    onClick={() => {/* TODO: Navigate to order detail */ }}
+                                    onClick={() => navigate(`/admin/orders/${order.id}`)}
                                 >
                                     {/* ID & Time */}
                                     <div>
@@ -365,14 +426,27 @@ export default function AdminOrdersPage() {
                         })}
                     </div>
 
-                    {/* Footer */}
+                    {/* Pagination Footer */}
                     <div className="px-4 py-3 bg-gray-50 dark:bg-[#0d1520] border-t border-[#e5e7eb] dark:border-[#2a3b4d] flex items-center justify-between">
                         <p className="text-xs text-[#617589]">
-                            Menampilkan {filteredOrders.length} dari {orders.length} pesanan
+                            Menampilkan {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredOrders.length)} dari {filteredOrders.length} pesanan
                         </p>
-                        <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-[10px] text-green-600 font-medium">Live Updates</span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-1.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] text-[#617589] hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-base">chevron_left</span>
+                            </button>
+                            <span className="text-xs font-medium text-[#111418] dark:text-white px-2">{currentPage} / {totalPages || 1}</span>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage >= totalPages}
+                                className="p-1.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] text-[#617589] hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-base">chevron_right</span>
+                            </button>
                         </div>
                     </div>
                 </div>

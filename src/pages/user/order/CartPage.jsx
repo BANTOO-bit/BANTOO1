@@ -174,6 +174,7 @@ function CartPage() {
                                             src={merchantData.image}
                                             alt={merchantName}
                                             className="w-full h-full object-cover"
+                                            loading="lazy"
                                         />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-white shadow-sm">
@@ -201,6 +202,7 @@ function CartPage() {
                                                         src={item.image}
                                                         alt={item.name}
                                                         className="w-full h-full object-cover"
+                                                        loading="lazy"
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center">

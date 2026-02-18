@@ -20,10 +20,14 @@ class AppErrorBoundary extends React.Component {
 
         this.setState({ errorInfo })
 
-        // TODO: Send to error tracking service (Sentry, LogRocket, etc.)
-        // if (import.meta.env.PROD) {
-        //     errorTrackingService.logError(error, errorInfo)
-        // }
+        // #8: Send to Sentry error tracking in production
+        if (window.Sentry) {
+            window.Sentry.captureException(error, {
+                extra: {
+                    componentStack: errorInfo?.componentStack
+                }
+            })
+        }
     }
 
     handleReload = () => {

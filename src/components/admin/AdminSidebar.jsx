@@ -6,9 +6,15 @@ export default function AdminSidebar({ isOpen, onClose }) {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
     const [expandedGroups, setExpandedGroups] = useState({})
+    const [showLogoutModal, setShowLogoutModal] = useState(false)
 
     const handleLogout = () => {
-        logout()
+        setShowLogoutModal(true)
+    }
+
+    const confirmLogout = async () => {
+        setShowLogoutModal(false)
+        await logout()
         navigate('/manage/auth')
     }
 
@@ -46,14 +52,14 @@ export default function AdminSidebar({ isOpen, onClose }) {
         {
             heading: 'Operasional',
             items: [
-                { icon: 'shopping_bag', label: 'Pesanan', path: '/admin/orders', badge: 2, badgeColor: 'blue' },
+                { icon: 'shopping_bag', label: 'Pesanan', path: '/admin/orders' },
                 { icon: 'people', label: 'Pelanggan', path: '/admin/users' },
             ]
         },
         {
             heading: 'Keuangan',
             items: [
-                { icon: 'payments', label: 'COD & Setoran', path: '/admin/cod', badge: 4, badgeColor: 'amber' },
+                { icon: 'payments', label: 'COD & Setoran', path: '/admin/cod' },
                 { icon: 'trending_up', label: 'Pendapatan', path: '/admin/revenue' },
                 { icon: 'account_balance', label: 'Penarikan Dana', path: '/admin/withdrawals' },
             ]
@@ -62,7 +68,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
             heading: 'Sistem',
             items: [
                 { icon: 'local_offer', label: 'Promo', path: '/admin/promos' },
-                { icon: 'report_problem', label: 'Laporan & Masalah', path: '/admin/issues', badge: 3, badgeColor: 'red' },
+                { icon: 'report_problem', label: 'Laporan & Masalah', path: '/admin/issues' },
                 { icon: 'settings', label: 'Pengaturan', path: '/admin/settings' },
             ]
         },
@@ -94,7 +100,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
 
             {/* Sidebar */}
             <aside className={`
-                fixed lg:static inset-y-0 left-0 z-50
+                fixed inset-y-0 left-0 z-50
                 flex flex-col w-[240px] h-screen bg-white dark:bg-[#1a2632] border-r border-[#e5e7eb] dark:border-[#2a3b4d]
                 transform transition-transform duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -207,6 +213,37 @@ export default function AdminSidebar({ isOpen, onClose }) {
                     </div>
                 </div>
             </aside>
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#111418]/60 backdrop-blur-sm">
+                    <div className="w-full max-w-[380px] bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#2a3b4d] shadow-2xl">
+                        <div className="p-6 flex flex-col items-center text-center">
+                            <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4">
+                                <span className="material-symbols-outlined text-red-500 text-3xl">logout</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-[#111418] dark:text-white mb-2">Keluar dari Panel Admin?</h3>
+                            <p className="text-sm text-[#617589] dark:text-[#94a3b8] mb-6">
+                                Anda akan keluar dari sesi admin. Pastikan semua perubahan sudah tersimpan.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3 w-full">
+                                <button
+                                    onClick={() => setShowLogoutModal(false)}
+                                    className="px-4 py-2.5 bg-[#f0f2f4] hover:bg-[#e5e7eb] dark:bg-[#2a3b4d] dark:hover:bg-[#344658] text-[#617589] dark:text-[#94a3b8] font-semibold rounded-lg transition-colors text-sm"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={confirmLogout}
+                                    className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors text-sm"
+                                >
+                                    Ya, Keluar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }

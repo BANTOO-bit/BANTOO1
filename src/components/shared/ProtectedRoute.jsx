@@ -13,6 +13,13 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
         return <Navigate to={isAdminRoute ? '/admin/login' : '/login'} state={{ from: location }} replace />
     }
 
+    // Check if account is terminated — admin is NEVER redirected
+    if (!isAdmin && (user?.merchantStatus === 'terminated' || user?.driverStatus === 'terminated')) {
+        if (location.pathname !== '/account-terminated') {
+            return <Navigate to="/account-terminated" replace />
+        }
+    }
+
     // Check if account is suspended — admin is NEVER redirected to suspended page
     if (!isAdmin && (user?.status === 'suspended' || user?.merchantStatus === 'suspended' || user?.driverStatus === 'suspended')) {
         // Allow access to the suspended page and logout flow

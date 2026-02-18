@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 
 import PageLoader from '../components/shared/PageLoader'
 import SuspendedAccountPage from '../pages/shared/SuspendedAccountPage'
+import TerminatedAccountPage from '../pages/shared/TerminatedAccountPage'
 
 import { AuthRoutes, OnboardingPage } from './authRoutes'
 import UserRoutes from './userRoutes'
@@ -53,6 +54,9 @@ export default function AppRoutes() {
                     {/* Account Suspended — admin never goes here */}
                     <Route path="/account-suspended" element={
                         isAdmin ? <Navigate to="/admin/dashboard" replace /> : <SuspendedAccountPage />
+                    } />
+                    <Route path="/account-terminated" element={
+                        isAdmin ? <Navigate to="/admin/dashboard" replace /> : <TerminatedAccountPage />
                     } />
 
                     {/* ============ ROLE-SPECIFIC ROUTES ============ */}

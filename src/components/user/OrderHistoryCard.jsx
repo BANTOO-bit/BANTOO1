@@ -40,6 +40,7 @@ function OrderHistoryCard({ order, onReorder, onViewDetail, onReview, formatDate
                             src={getMerchantImage(order)}
                             alt={order.merchantName}
                             className="w-full h-full rounded-xl object-cover"
+                            loading="lazy"
                         />
                     ) : (
                         <span className="material-symbols-outlined text-primary text-2xl">

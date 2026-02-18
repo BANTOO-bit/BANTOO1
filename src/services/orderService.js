@@ -503,7 +503,87 @@ export const orderService = {
         }
 
         return { ...promo, discount }
-    }
+    },
+
+    /**
+     * Reject order (merchant-specific cancel with metadata)
+     * @param {string} orderId
+     * @param {string} reason - Rejection reason
+     */
+    async rejectOrder(orderId, reason) {
+        // Validate: can only reject in early stages
+        const { data: order, error: fetchError } = await supabase
+            .from('orders')
+            .select('status')
+            .eq('id', orderId)
+            .single()
+
+        if (fetchError || !order) throw new Error('Pesanan tidak ditemukan')
+
+        const rejectableStatuses = ['pending', 'accepted', 'preparing']
+        if (!rejectableStatuses.includes(order.status)) {
+            throw new Error(`Pesanan tidak bisa ditolak karena sudah berstatus "${order.status}"`)
+        }
+
+        return this.updateStatus(orderId, 'cancelled', {
+            cancellation_reason: `Ditolak oleh merchant: ${reason}`
+        })
+    },
+
+    /**
+     * Check and auto-cancel expired pending orders
+     * Calls backend RPC if available, falls back to client-side check
+     * @param {number} timeoutMinutes - Minutes before auto-cancel (default 15)
+     */
+    async checkAndCancelExpiredOrders(timeoutMinutes = 15) {
+        try {
+            // Try backend RPC first
+            const { data, error } = await supabase.rpc('auto_cancel_expired_orders', {
+                p_timeout_minutes: timeoutMinutes
+            })
+
+            if (!error && data) {
+                return data
+            }
+
+            // Fallback: client-side check
+            if (error?.code === '42883' || error?.message?.includes('does not exist')) {
+                console.warn('RPC auto_cancel_expired_orders not found, using client-side fallback')
+
+                const cutoff = new Date(Date.now() - timeoutMinutes * 60 * 1000).toISOString()
+                const { data: expiredOrders, error: fetchError } = await supabase
+                    .from('orders')
+                    .select('id')
+                    .eq('status', 'pending')
+                    .lt('created_at', cutoff)
+
+                if (fetchError || !expiredOrders?.length) {
+                    return { success: true, cancelled_count: 0 }
+                }
+
+                let cancelledCount = 0
+                for (const order of expiredOrders) {
+                    try {
+                        await this.cancelOrder(order.id, `Otomatis dibatalkan — merchant tidak merespons dalam ${timeoutMinutes} menit`)
+                        cancelledCount++
+                    } catch (e) {
+                        console.warn('Failed to auto-cancel order:', order.id, e.message)
+                    }
+                }
+
+                return { success: true, cancelled_count: cancelledCount }
+            }
+
+            console.warn('auto_cancel_expired_orders RPC failed:', error?.message)
+            return { success: false, cancelled_count: 0 }
+        } catch (err) {
+            console.error('Error checking expired orders:', err)
+            return { success: false, cancelled_count: 0 }
+        }
+    },
+
+    /** Order timeout in minutes */
+    ORDER_TIMEOUT_MINUTES: 15
 }
 
 export default orderService

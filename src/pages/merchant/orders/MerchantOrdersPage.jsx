@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useNotification } from '../../../context/NotificationsContext'
@@ -67,6 +67,7 @@ function MerchantOrdersPage() {
                 id: generateOrderId(order.id),
                 dbId: order.id, // Keep database ID for updates
                 time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                created_at: order.created_at, // Raw timestamp for timeout countdown
                 payment: (order.payment_method === 'cod' || order.payment_method === 'cash') ? 'Tunai (COD)' : order.payment_method,
                 status: order.status, // Pass raw status for logic, component handles display text
                 total: order.total_amount,
@@ -106,6 +107,33 @@ function MerchantOrdersPage() {
     useEffect(() => {
         fetchOrders()
     }, [fetchOrders])
+
+    // H4: Periodically check and auto-cancel expired pending orders
+    useEffect(() => {
+        // Run immediately on mount
+        orderService.checkAndCancelExpiredOrders(orderService.ORDER_TIMEOUT_MINUTES)
+            .then(result => {
+                if (result?.cancelled_count > 0) {
+                    handleSuccess(`${result.cancelled_count} pesanan expired otomatis dibatalkan`, toast)
+                    fetchOrders()
+                }
+            })
+
+        // Then check every 60 seconds
+        const interval = setInterval(async () => {
+            try {
+                const result = await orderService.checkAndCancelExpiredOrders(orderService.ORDER_TIMEOUT_MINUTES)
+                if (result?.cancelled_count > 0) {
+                    handleSuccess(`${result.cancelled_count} pesanan expired otomatis dibatalkan`, toast)
+                    fetchOrders()
+                }
+            } catch (e) {
+                console.warn('Auto-cancel check failed:', e)
+            }
+        }, 60000)
+
+        return () => clearInterval(interval)
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Realtime subscription for new orders and status changes
     useEffect(() => {
@@ -234,12 +262,13 @@ function MerchantOrdersPage() {
         if (!rejectReason) return
 
         try {
-            // Cancel order in database
-            await orderService.cancelOrder(selectedOrder.dbId, rejectReason)
+            // H5: Use rejectOrder (adds "Ditolak oleh merchant:" prefix)
+            await orderService.rejectOrder(selectedOrder.dbId, rejectReason)
 
             // Remove from list
             setOrders(orders.filter(o => o.id !== selectedOrder.id))
             closeModal()
+            handleSuccess('Pesanan berhasil ditolak', toast)
         } catch (err) {
             console.error('Error rejecting order:', err)
             handleError(err, toast, { context: 'Reject Order' })
@@ -704,6 +733,7 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
     const isDigitalPayment = order.payment !== 'Tunai'
     const isDiproses = tab === 'diproses'
     const isSelesai = tab === 'selesai'
+    const isBaru = tab === 'baru'
     const timerDisplay = order.timer || '00:00'
 
     return (
@@ -739,6 +769,11 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                                                     'Selesai'}
                 </span>
             </div>
+
+            {/* H4: Timeout countdown for pending orders */}
+            {isBaru && order.status === 'pending' && order.created_at && (
+                <TimeoutBadge createdAt={order.created_at} timeoutMinutes={orderService.ORDER_TIMEOUT_MINUTES} />
+            )}
 
             {/* Timer for Diproses */}
             {isDiproses && (
@@ -837,6 +872,47 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                 )}
             </div>
         </article>
+    )
+}
+
+// H4: Live countdown badge for pending orders
+function TimeoutBadge({ createdAt, timeoutMinutes }) {
+    const [remaining, setRemaining] = useState('')
+    const [isUrgent, setIsUrgent] = useState(false)
+
+    useEffect(() => {
+        const update = () => {
+            const elapsed = Date.now() - new Date(createdAt).getTime()
+            const totalMs = timeoutMinutes * 60 * 1000
+            const left = totalMs - elapsed
+
+            if (left <= 0) {
+                setRemaining('00:00')
+                setIsUrgent(true)
+                return
+            }
+
+            const mins = Math.floor(left / 60000)
+            const secs = Math.floor((left % 60000) / 1000)
+            setRemaining(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`)
+            setIsUrgent(left < 3 * 60 * 1000) // Urgent when < 3 min
+        }
+
+        update()
+        const interval = setInterval(update, 1000)
+        return () => clearInterval(interval)
+    }, [createdAt, timeoutMinutes])
+
+    return (
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border w-full sm:w-fit transition-colors ${isUrgent
+                ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30'
+                : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30'
+            }`}>
+            <span className={`material-symbols-outlined text-[18px] ${isUrgent ? 'animate-pulse' : ''}`}>hourglass_top</span>
+            <span className="text-xs font-medium">
+                Batas respons: <span className="font-bold tabular-nums">{remaining}</span>
+            </span>
+        </div>
     )
 }
 

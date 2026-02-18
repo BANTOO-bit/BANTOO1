@@ -15,7 +15,7 @@ function DriverDashboard() {
     const { addNotification } = useNotification()
     const { setActiveOrder } = useOrder() // Import setActiveOrder
     const [isOnline, setIsOnline] = useState(false)
-    const [driverStatus, setDriverStatus] = useState('active') // 'active' or 'suspended'
+    const [driverStatus, setDriverStatus] = useState('active') // 'active', 'suspended', or 'terminated'
     const [earnings, setEarnings] = useState({
         todayIncome: 0,
         codFee: 0,
@@ -52,7 +52,7 @@ function DriverDashboard() {
                     setDriverProfile(profile)
                     // Sync local state with DB state
                     setIsOnline(profile.is_active)
-                    setDriverStatus(profile.status === 'suspended' || profile.status === 'rejected' ? 'suspended' : 'active')
+                    setDriverStatus(profile.status === 'terminated' ? 'terminated' : (profile.status === 'suspended' || profile.status === 'rejected') ? 'suspended' : 'active')
                 }
             } catch (error) {
                 if (process.env.NODE_ENV === 'development') console.error('Error fetching driver profile:', error)
@@ -271,8 +271,8 @@ function DriverDashboard() {
 
                 {/* Main Content */}
                 <main className="flex-1 pb-24 bg-background-light">
-                    {driverStatus === 'suspended' ? (
-                        /* Suspended State UI */
+                    {(driverStatus === 'suspended' || driverStatus === 'terminated') ? (
+                        /* Suspended/Terminated State UI */
                         <div className="flex flex-col items-center justify-center text-center px-4 pt-8">
                             {/* Disabled Toggle Card */}
                             <div className="w-full bg-gray-200 rounded-xl p-4 flex items-center justify-between mb-8 opacity-75">
@@ -293,14 +293,21 @@ function DriverDashboard() {
                                 </div>
                             </div>
 
-                            {/* Suspended Icon & Message */}
-                            <div className="w-48 h-48 bg-red-50 rounded-full flex items-center justify-center mb-6 relative">
-                                <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse" />
-                                <span className="material-symbols-outlined text-red-500 text-7xl z-10">gpp_bad</span>
+                            {/* Suspended/Terminated Icon & Message */}
+                            <div className={`w-48 h-48 rounded-full flex items-center justify-center mb-6 relative ${driverStatus === 'terminated' ? 'bg-red-50' : 'bg-red-50'}`}>
+                                {driverStatus !== 'terminated' && <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse" />}
+                                <span className={`material-symbols-outlined text-7xl z-10 ${driverStatus === 'terminated' ? 'text-red-600' : 'text-red-500'}`}>
+                                    {driverStatus === 'terminated' ? 'cancel' : 'gpp_bad'}
+                                </span>
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-3">Akun Ditangguhkan</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                                {driverStatus === 'terminated' ? 'Kemitraan Diputus' : 'Akun Ditangguhkan'}
+                            </h2>
                             <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto mb-8">
-                                Mohon maaf, Anda tidak dapat menerima pesanan saat ini karena akun sedang dalam penangguhan sementara. Silakan hubungi tim Admin untuk bantuan lebih lanjut.
+                                {driverStatus === 'terminated'
+                                    ? 'Kemitraan Anda dengan platform telah diputus secara permanen. Silakan hubungi admin untuk informasi lebih lanjut.'
+                                    : 'Mohon maaf, Anda tidak dapat menerima pesanan saat ini karena akun sedang dalam penangguhan sementara. Silakan hubungi tim Admin untuk bantuan lebih lanjut.'
+                                }
                             </p>
                             <button className="w-full max-w-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-6 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 group">
                                 <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform text-white">support_agent</span>

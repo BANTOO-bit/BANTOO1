@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../services/supabaseClient'
 import AdminLayout from '../../../components/admin/AdminLayout'
+import AdminActionMenu from '../../../components/admin/AdminActionMenu'
 
 export default function AdminPromoPage() {
+    const navigate = useNavigate()
     const [activeTab, setActiveTab] = useState('all')
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [selectedPromo, setSelectedPromo] = useState(null)
-    const [openDropdownId, setOpenDropdownId] = useState(null)
     const [promos, setPromos] = useState([])
     const [loading, setLoading] = useState(true)
+    const [activeRowId, setActiveRowId] = useState(null)
 
     const fetchPromos = async () => {
         try {
@@ -46,9 +48,7 @@ export default function AdminPromoPage() {
 
     useEffect(() => { fetchPromos() }, [])
 
-    const toggleDropdown = (id) => setOpenDropdownId(openDropdownId === id ? null : id)
-
-    const handleDeleteClick = (promo) => { setSelectedPromo(promo); setShowDeleteModal(true); setOpenDropdownId(null) }
+    const handleDeleteClick = (promo) => { setSelectedPromo(promo); setShowDeleteModal(true) }
 
     const confirmDelete = async () => {
         if (!selectedPromo) return
@@ -112,7 +112,7 @@ export default function AdminPromoPage() {
             ) : filteredPromos.length === 0 ? (
                 <div className="p-12 text-center text-[#617589] dark:text-[#94a3b8]">Tidak ada promo di tab ini</div>
             ) : (
-                <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#2a3b4d] shadow-sm overflow-visible">
+                <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#2a3b4d] shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
@@ -127,7 +127,7 @@ export default function AdminPromoPage() {
                             </thead>
                             <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3b4d]">
                                 {filteredPromos.map((promo) => (
-                                    <tr key={promo.id} className={`group hover:bg-[#f9fafb] dark:hover:bg-[#1f2b37] transition-colors ${promo.status === 'ended' ? 'opacity-60' : ''}`}>
+                                    <tr key={promo.id} className={`transition-colors ${promo.status === 'ended' ? 'opacity-60' : ''} ${activeRowId === promo.id ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-[#f9fafb] dark:hover:bg-[#1f2b37]'}`}>
                                         <td className="py-4 px-6">
                                             <span className="font-semibold text-[#111418] dark:text-white text-sm">{promo.name || promo.code}</span>
                                             <br /><span className="text-xs text-[#617589] dark:text-[#94a3b8] font-mono">KODE: {promo.code}</span>
@@ -146,20 +146,16 @@ export default function AdminPromoPage() {
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">{getStatusBadge(promo.status)}</td>
-                                        <td className="py-4 px-6 text-right relative">
-                                            <button onClick={(e) => { e.stopPropagation(); toggleDropdown(promo.id) }} className={`p-1 rounded-lg transition-colors ${openDropdownId === promo.id ? 'bg-[#f0f2f4] dark:bg-[#2a3b4d] text-primary' : 'text-[#617589] hover:text-primary dark:text-[#94a3b8]'}`}>
-                                                <span className="material-symbols-outlined text-[20px]">more_vert</span>
-                                            </button>
-                                            {openDropdownId === promo.id && (
-                                                <div className="absolute right-6 top-10 w-56 bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-lg shadow-xl z-10 text-left">
-                                                    <div className="py-1">
-                                                        <button className="flex w-full items-center px-4 py-2 text-sm text-[#111418] dark:text-white hover:bg-[#f6f7f8] dark:hover:bg-[#23303d]"><span className="material-symbols-outlined text-[20px] mr-3 text-[#617589] dark:text-[#94a3b8]">edit</span>Edit Promo</button>
-                                                    </div>
-                                                    <div className="py-1 border-t border-[#e5e7eb] dark:border-[#2a3b4d]">
-                                                        <button onClick={() => handleDeleteClick(promo)} className="flex w-full items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10"><span className="material-symbols-outlined text-[20px] mr-3">delete</span>Hapus</button>
-                                                    </div>
-                                                </div>
-                                            )}
+                                        <td className="py-4 px-6 text-right">
+                                            <AdminActionMenu
+                                                items={[
+                                                    { icon: 'edit', label: 'Edit Promo', onClick: () => navigate(`/admin/promos/edit/${promo.id}`) },
+                                                    { icon: 'content_copy', label: 'Salin Kode', onClick: () => navigator.clipboard.writeText(promo.code) },
+                                                    { separator: true },
+                                                    { icon: 'delete', label: 'Hapus', onClick: () => handleDeleteClick(promo), danger: true },
+                                                ]}
+                                                onOpenChange={(open) => setActiveRowId(open ? promo.id : null)}
+                                            />
                                         </td>
                                     </tr>
                                 ))}

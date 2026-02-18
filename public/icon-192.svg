@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8C00"/>
+      <stop offset="100%" style="stop-color:#FF5500"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="38" fill="url(#bg)"/>
+  <!-- Bowl -->
+  <ellipse cx="96" cy="110" rx="52" ry="22" fill="white" opacity="0.95"/>
+  <path d="M44 110 Q44 88 96 88 Q148 88 148 110" fill="white" opacity="0.95"/>
+  <!-- Steam lines -->
+  <path d="M72 78 Q68 68 72 58" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/>
+  <path d="M96 74 Q92 64 96 54" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <path d="M120 78 Q116 68 120 58" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/>
+  <!-- Speed lines -->
+  <line x1="28" y1="96" x2="38" y2="96" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <line x1="24" y1="108" x2="36" y2="108" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+  <line x1="28" y1="120" x2="38" y2="120" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+</svg>

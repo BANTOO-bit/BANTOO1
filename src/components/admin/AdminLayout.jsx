@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AdminSidebar from './AdminSidebar'
 import AdminHeader from './AdminHeader'
+import { AdminToastProvider } from './AdminToast'
 
 /**
  * AdminLayout — Wrapper component for all admin pages.
@@ -15,27 +16,30 @@ export default function AdminLayout({ children, title, showBack, onBackClick, br
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
     return (
-        <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
-
-            <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0">
-                <AdminHeader
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    title={title}
-                    showBack={showBack}
-                    onBackClick={onBackClick}
-                    breadcrumb={breadcrumb}
+        <AdminToastProvider>
+            <div className="flex min-h-screen w-full bg-[#f6f7f8] dark:bg-[#101922] font-display text-[#111418] dark:text-white overflow-x-hidden">
+                <AdminSidebar
+                    isOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
                 />
 
-                <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
-                    <div className="flex flex-col gap-5">
-                        {children}
+                <main className="flex-1 lg:ml-[240px] flex flex-col min-w-0">
+                    <AdminHeader
+                        onMenuClick={() => setIsSidebarOpen(true)}
+                        title={title}
+                        showBack={showBack}
+                        onBackClick={onBackClick}
+                        breadcrumb={breadcrumb}
+                    />
+
+                    <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+                        <div className="flex flex-col gap-5">
+                            {children}
+                        </div>
                     </div>
-                </div>
-            </main>
-        </div>
+                </main>
+            </div>
+        </AdminToastProvider>
     )
 }
+

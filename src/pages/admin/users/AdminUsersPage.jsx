@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../services/supabaseClient'
 import AdminLayout from '../../../components/admin/AdminLayout'
+import AdminActionMenu from '../../../components/admin/AdminActionMenu'
+import AdminPagination from '../../../components/admin/AdminPagination'
+import { exportToCSV } from '../../../utils/exportCSV'
+
+const ITEMS_PER_PAGE = 15
 
 export default function AdminUsersPage() {
+    const navigate = useNavigate()
     const [filterStatus, setFilterStatus] = useState('all')
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState({ total: 0, active: 0, newThisWeek: 0, banned: 0 })
+    const [activeRowId, setActiveRowId] = useState(null)
+    const [currentPage, setCurrentPage] = useState(1)
 
     const fetchUsers = async () => {
         try {
@@ -84,6 +93,21 @@ export default function AdminUsersPage() {
                         ))}
                     </div>
                 </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => exportToCSV(filteredUsers, [
+                            { key: 'full_name', label: 'Nama' },
+                            { key: 'phone', label: 'Telepon' },
+                            { key: 'email', label: 'Email' },
+                            { key: 'role', label: 'Role' },
+                            { key: 'created_at', label: 'Bergabung' },
+                        ], 'pelanggan')}
+                        className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">download</span>
+                        Export CSV
+                    </button>
+                </div>
             </div>
 
             {/* Users Table */}
@@ -96,34 +120,40 @@ export default function AdminUsersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#2a3b4d]">
-                            {filteredUsers.map((user, idx) => (
-                                <tr key={user.id} className="hover:bg-[#f9fafb] dark:hover:bg-[#202e3b] transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full ${avatarColors[idx % avatarColors.length]} flex items-center justify-center font-bold text-sm`}>{getInitials(user.full_name)}</div>
-                                            <div><p className="text-sm font-semibold text-[#111418] dark:text-white">{user.full_name || '-'}</p><p className="text-xs text-[#617589] dark:text-[#94a3b8]">{user.id?.substring(0, 8)}</p></div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4"><p className="text-sm text-[#111418] dark:text-white">{user.email || '-'}</p><p className="text-xs text-[#617589] dark:text-[#94a3b8]">{user.phone || '-'}</p></td>
-                                    <td className="px-6 py-4"><p className="text-sm text-[#617589] dark:text-[#94a3b8]">{user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</p></td>
-                                    <td className="px-6 py-4"><span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadge()}`}><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>Aktif</span></td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="relative inline-block text-left group">
-                                            <button className="text-[#617589] hover:text-[#111418] dark:text-[#94a3b8] dark:hover:text-white p-2 hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] rounded-lg transition-colors"><span className="material-symbols-outlined text-[20px]">more_vert</span></button>
-                                            <div className="hidden group-hover:block absolute right-0 top-full z-50 w-48 bg-white dark:bg-[#1a2632] rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] flex flex-col py-1 text-left shadow-lg">
-                                                <button className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left"><span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">person</span>Lihat Detail</button>
-                                                <button className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#2a3b4d] transition-colors w-full text-left"><span className="material-symbols-outlined text-[18px] text-[#617589] dark:text-[#94a3b8]">history</span>Riwayat Pesanan</button>
+                            {filteredUsers
+                                .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                                .map((user, idx) => (
+                                    <tr key={user.id} className={`transition-colors ${activeRowId === user.id ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-[#f9fafb] dark:hover:bg-[#202e3b]'}`}>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-full ${avatarColors[idx % avatarColors.length]} flex items-center justify-center font-bold text-sm`}>{getInitials(user.full_name)}</div>
+                                                <div><p className="text-sm font-semibold text-[#111418] dark:text-white">{user.full_name || '-'}</p><p className="text-xs text-[#617589] dark:text-[#94a3b8]">{user.id?.substring(0, 8)}</p></div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-6 py-4"><p className="text-sm text-[#111418] dark:text-white">{user.email || '-'}</p><p className="text-xs text-[#617589] dark:text-[#94a3b8]">{user.phone || '-'}</p></td>
+                                        <td className="px-6 py-4"><p className="text-sm text-[#617589] dark:text-[#94a3b8]">{user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</p></td>
+                                        <td className="px-6 py-4"><span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadge()}`}><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>Aktif</span></td>
+                                        <td className="px-6 py-4 text-right">
+                                            <AdminActionMenu
+                                                items={[
+                                                    { icon: 'person', label: 'Lihat Detail', onClick: () => navigate(`/admin/users/${user.id}`) },
+                                                    { icon: 'history', label: 'Riwayat Pesanan', onClick: () => navigate(`/admin/orders?customer=${user.id}`) },
+                                                ]}
+                                                onOpenChange={(open) => setActiveRowId(open ? user.id : null)}
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
                         </tbody>
                     </table>
                 </div>
-                <div className="px-6 py-4 border-t border-[#e5e7eb] dark:border-[#2a3b4d] flex items-center justify-between">
-                    <p className="text-sm text-[#617589] dark:text-[#94a3b8]">Menampilkan <span className="font-semibold text-[#111418] dark:text-white">1-{filteredUsers.length}</span> dari <span className="font-semibold text-[#111418] dark:text-white">{stats.total.toLocaleString()}</span> pelanggan</p>
-                </div>
+                <AdminPagination
+                    currentPage={currentPage}
+                    totalItems={filteredUsers.length}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onPageChange={setCurrentPage}
+                    label="pelanggan"
+                />
             </div>
         </AdminLayout>
     )

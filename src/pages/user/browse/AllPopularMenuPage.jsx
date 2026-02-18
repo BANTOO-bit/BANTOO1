@@ -140,6 +140,7 @@ function AllPopularMenuPage() {
                                     src={item.image}
                                     alt={item.name}
                                     className="absolute inset-0 w-full h-full object-cover"
+                                    loading="lazy"
                                 />
                             </div>
 

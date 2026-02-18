@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { supabase } from '../../../services/supabaseClient'
 import dashboardService from '../../../services/dashboardService'
 import orderService from '../../../services/orderService'
 import MerchantHeader from '../../../components/merchant/MerchantHeader'
@@ -11,6 +12,7 @@ function MerchantDashboard() {
     const navigate = useNavigate()
     const { user, isShopOpen } = useAuth()
     const [activeTab, setActiveTab] = useState('baru') // baru, diproses, selesai
+    const [merchantStatus, setMerchantStatus] = useState('approved')
     const [stats, setStats] = useState({
         todayEarnings: 0,
         totalOrders: 0,
@@ -20,6 +22,16 @@ function MerchantDashboard() {
     const [recentOrders, setRecentOrders] = useState([])
 
     useEffect(() => {
+        async function fetchMerchantStatus() {
+            if (!user?.merchantId) return
+            try {
+                const { data } = await supabase.from('merchants').select('status').eq('id', user.merchantId).single()
+                if (data) setMerchantStatus(data.status)
+            } catch (err) {
+                console.error('Error fetching merchant status:', err)
+            }
+        }
+
         async function fetchData() {
             if (!user?.merchantId) return
 
@@ -37,10 +49,9 @@ function MerchantDashboard() {
                 // Transform data for OrderCard
                 const transformedOrders = ordersData.map(order => ({
                     id: generateOrderId(order.id),
-                    // dbId: order.id, // Not strictly needed for display-only here, but good practice
                     time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     payment: order.payment_method === 'cod' ? 'Tunai' : order.payment_method,
-                    status: 'Baru', // Since we only fetch pending
+                    status: 'Baru',
                     total: `Rp ${order.total_amount.toLocaleString('id-ID')}`,
                     items: order.items?.map(item => ({
                         qty: item.quantity,
@@ -58,11 +69,46 @@ function MerchantDashboard() {
             }
         }
 
+        fetchMerchantStatus()
         fetchData()
         // Refresh every 30 seconds
         const interval = setInterval(fetchData, 30000)
         return () => clearInterval(interval)
     }, [user?.merchantId])
+
+    // Blocked screens for suspended/terminated merchants
+    if (merchantStatus === 'suspended' || merchantStatus === 'terminated') {
+        const isTerminated = merchantStatus === 'terminated'
+        return (
+            <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden">
+                <MerchantHeader />
+                <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12">
+                    <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-6 relative ${isTerminated ? 'bg-red-50' : 'bg-yellow-50'}`}>
+                        {!isTerminated && <div className="absolute inset-0 bg-yellow-100 rounded-full animate-pulse" />}
+                        <span className={`material-symbols-outlined text-7xl z-10 ${isTerminated ? 'text-red-500' : 'text-yellow-500'}`}>
+                            {isTerminated ? 'cancel' : 'pause_circle'}
+                        </span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-text-main dark:text-white mb-3">
+                        {isTerminated ? 'Kemitraan Diputus' : 'Warung Disuspend'}
+                    </h2>
+                    <p className="text-sm text-text-secondary leading-relaxed max-w-xs mx-auto mb-8">
+                        {isTerminated
+                            ? 'Kemitraan warung Anda dengan platform telah diputus secara permanen. Silakan hubungi admin untuk informasi lebih lanjut.'
+                            : 'Warung Anda sedang dalam penangguhan sementara. Anda tidak dapat menerima pesanan saat ini. Silakan hubungi tim Admin untuk bantuan.'
+                        }
+                    </p>
+                    <button
+                        onClick={() => window.open('mailto:support@bantoo.app', '_blank')}
+                        className="w-full max-w-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
+                    >
+                        <span className="material-symbols-outlined text-xl text-white">support_agent</span>
+                        Hubungi Pusat Bantuan
+                    </button>
+                </main>
+            </div>
+        )
+    }
 
     return (
         <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { authService } from '../services/authService'
 import { supabase } from '../services/supabaseClient'
+import { pushNotificationService } from '../services/pushNotificationService'
 import PageLoader from '../components/shared/PageLoader'
 
 const AuthContext = createContext()
@@ -18,6 +19,7 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
     const isRefreshing = useRef(false) // Guard against concurrent calls
+    const pushCleanupRef = useRef(null) // Push notification cleanup
 
     // Helper to fetch full user profile with roles
     const refreshProfile = async (passedUser = null) => {
@@ -147,6 +149,15 @@ export function AuthProvider({ children }) {
 
             setUser(userWithRole)
             setIsAuthenticated(true)
+
+            // #6: Auto-subscribe to push notifications on login
+            if (!pushCleanupRef.current) {
+                pushNotificationService.requestPermission().then(granted => {
+                    if (granted) {
+                        pushCleanupRef.current = pushNotificationService.subscribeToNotifications(userId)
+                    }
+                })
+            }
         } catch (err) {
             console.error('Error refreshing profile:', err)
         } finally {
@@ -261,6 +272,13 @@ export function AuthProvider({ children }) {
             }
         }
         localStorage.removeItem('user_last_active_role')
+
+        // #6: Cleanup push notification subscription on logout
+        if (pushCleanupRef.current) {
+            pushCleanupRef.current()
+            pushCleanupRef.current = null
+        }
+
         const { error } = await authService.signOut()
         if (error) throw error
         // State updates handled by onAuthStateChange

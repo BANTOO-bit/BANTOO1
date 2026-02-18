@@ -39,7 +39,7 @@ function SearchRecommendationCard({ menu, onClick }) {
         >
             <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                 {menu.image_url ? (
-                    <img src={menu.image_url} alt={menu.name} className="w-full h-full object-cover" />
+                    <img src={menu.image_url} alt={menu.name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300">
                         <span className="material-symbols-outlined text-3xl">restaurant</span>
