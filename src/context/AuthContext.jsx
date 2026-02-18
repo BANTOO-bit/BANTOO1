@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
 
             // Start fetching all data in parallel
             const [profile, userRoles, merchant, driver, wallet] = await Promise.all([
-                safeFetch(supabase.from('profiles').select('full_name, phone, avatar_url, active_role').eq('id', userId).maybeSingle(), 'profile'),
+                safeFetch(supabase.from('profiles').select('full_name, phone, avatar_url, active_role, role').eq('id', userId).maybeSingle(), 'profile'),
                 safeFetch(supabase.from('user_roles').select('role').eq('user_id', userId), 'user_roles'),
                 safeFetch(supabase.from('merchants').select('id, name, status').eq('owner_id', userId).maybeSingle(), 'merchant'),
                 safeFetch(supabase.from('drivers').select('id, status').eq('user_id', userId).maybeSingle(), 'driver'),
@@ -82,6 +82,8 @@ export function AuthProvider({ children }) {
                 roles.push('customer') // Everyone is a customer
                 if (driver.data) roles.push('driver')
                 if (merchant.data) roles.push('merchant')
+                // Check profiles.role for admin (admin role is stored in profiles table)
+                if (profile.data?.role === 'admin') roles.push('admin')
             }
 
             // Deduplicate just in case

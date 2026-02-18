@@ -21,6 +21,7 @@
 -- FIX: Only allow insert if the order belongs to the authenticated user
 
 DROP POLICY IF EXISTS "System insert order items" ON order_items;
+DROP POLICY IF EXISTS "Order owner insert items" ON order_items;
 CREATE POLICY "Order owner insert items" ON order_items FOR INSERT 
 WITH CHECK (
     EXISTS (
@@ -251,6 +252,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- FIX: Only allow self-notifications or system triggers
 
 DROP POLICY IF EXISTS "System insert notifications" ON notifications;
+DROP POLICY IF EXISTS "Notifications insert policy" ON notifications;
 CREATE POLICY "System insert notifications" ON notifications FOR INSERT 
 WITH CHECK (
     auth.uid() = user_id

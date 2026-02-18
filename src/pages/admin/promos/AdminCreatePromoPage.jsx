@@ -1,19 +1,68 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../../components/admin/AdminLayout'
+import promoService from '../../../services/promoService'
+
 export default function AdminCreatePromoPage() {
     const navigate = useNavigate()
     const [promoType, setPromoType] = useState('discount') // discount, freeshipping
     const [isOpenType, setIsOpenType] = useState(false)
+    const [saving, setSaving] = useState(false)
+    const [toast, setToast] = useState(null)
 
-    const handleSave = (e) => {
+    const handleSave = async (e) => {
         e.preventDefault()
-        // Logic to save promo would go here
-        navigate('/admin/promos')
+        setSaving(true)
+        try {
+            const form = e.target
+            const code = form.promoCode?.value?.trim()
+            const name = form.promoName?.value?.trim()
+            const value = parseFloat(form.promoValue?.value) || 0
+            const maxDiscount = parseFloat(form.maxDiscount?.value?.replace(/\D/g, '')) || null
+            const minPurchase = parseFloat(form.minPurchase?.value?.replace(/\D/g, '')) || null
+            const startDate = form.startDate?.value || null
+            const endDate = form.endDate?.value || null
+            const activateNow = form.activateNow?.checked ?? true
+
+            if (!code || !name || !value) {
+                setToast({ type: 'error', message: 'Nama, kode, dan nilai promo wajib diisi' })
+                setTimeout(() => setToast(null), 4000)
+                setSaving(false)
+                return
+            }
+
+            await promoService.createPromo({
+                code,
+                name,
+                type: promoType === 'discount' ? 'percentage' : 'flat',
+                value,
+                max_discount: maxDiscount,
+                min_order: minPurchase,
+                valid_from: startDate || null,
+                valid_until: endDate || null,
+                is_active: activateNow,
+            })
+
+            setToast({ type: 'success', message: 'Promo berhasil dibuat!' })
+            setTimeout(() => navigate('/admin/promos'), 1500)
+        } catch (err) {
+            console.error('Error creating promo:', err)
+            setToast({ type: 'error', message: 'Gagal membuat promo: ' + (err.message || 'Unknown error') })
+            setTimeout(() => setToast(null), 5000)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
         <AdminLayout title="Manajemen Promo">
+            {/* Toast */}
+            {toast && (
+                <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 ${toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                    <span className="material-symbols-outlined text-[18px]">{toast.type === 'success' ? 'check_circle' : 'error'}</span>
+                    {toast.message}
+                </div>
+            )}
 
             {/* Breadcrumbs & Title */}
             <div className="flex flex-col gap-2">
@@ -36,7 +85,22 @@ export default function AdminCreatePromoPage() {
                         <input
                             className="w-full px-4 py-2.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] bg-white dark:bg-[#101922] text-[#111418] dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400"
                             id="promoName"
+                            name="promoName"
                             placeholder="Contoh: Diskon Kemerdekaan 45%"
+                            type="text"
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="block text-sm font-medium text-[#111418] dark:text-white" htmlFor="promoCode">
+                            Kode Promo
+                        </label>
+                        <input
+                            className="w-full px-4 py-2.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] bg-white dark:bg-[#101922] text-[#111418] dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400 uppercase"
+                            id="promoCode"
+                            name="promoCode"
+                            placeholder="Contoh: MERDEKA45"
                             type="text"
                             required
                         />
@@ -102,6 +166,7 @@ export default function AdminCreatePromoPage() {
                                 <input
                                     className="w-full pl-4 pr-10 py-2.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] bg-white dark:bg-[#101922] text-[#111418] dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400"
                                     id="promoValue"
+                                    name="promoValue"
                                     placeholder="0"
                                     type="number"
                                 />
@@ -121,6 +186,7 @@ export default function AdminCreatePromoPage() {
                                 <input
                                     className="w-full pl-12 pr-4 py-2.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] bg-white dark:bg-[#101922] text-[#111418] dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400"
                                     id="maxDiscount"
+                                    name="maxDiscount"
                                     placeholder="0"
                                     type="text"
                                 />
@@ -139,6 +205,7 @@ export default function AdminCreatePromoPage() {
                             <input
                                 className="w-full pl-12 pr-4 py-2.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] bg-white dark:bg-[#101922] text-[#111418] dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400"
                                 id="minPurchase"
+                                name="minPurchase"
                                 placeholder="0"
                                 type="text"
                             />
@@ -154,6 +221,7 @@ export default function AdminCreatePromoPage() {
                                 <input
                                     className="w-full pl-4 pr-4 py-2.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] bg-white dark:bg-[#101922] text-[#111418] dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400 [color-scheme:light] dark:[color-scheme:dark]"
                                     id="startDate"
+                                    name="startDate"
                                     type="date"
                                 />
                             </div>
@@ -166,6 +234,7 @@ export default function AdminCreatePromoPage() {
                                 <input
                                     className="w-full pl-4 pr-4 py-2.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a3b4d] bg-white dark:bg-[#101922] text-[#111418] dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400 [color-scheme:light] dark:[color-scheme:dark]"
                                     id="endDate"
+                                    name="endDate"
                                     type="date"
                                 />
                             </div>
@@ -175,7 +244,7 @@ export default function AdminCreatePromoPage() {
                     <div className="pt-2 flex items-center justify-between border-t border-[#e5e7eb] dark:border-[#2a3b4d] mt-8">
                         <div className="flex items-center gap-4 mt-6">
                             <label className="relative inline-flex items-center cursor-pointer group">
-                                <input type="checkbox" className="sr-only peer" defaultChecked />
+                                <input type="checkbox" name="activateNow" className="sr-only peer" defaultChecked />
                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none dark:peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
                                 <span className="ml-3 text-sm font-medium text-[#111418] dark:text-white group-hover:text-primary transition-colors">Aktifkan Segera</span>
                             </label>
@@ -190,9 +259,11 @@ export default function AdminCreatePromoPage() {
                             </button>
                             <button
                                 type="submit"
-                                className="px-6 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium transition-colors shadow-none"
+                                disabled={saving}
+                                className="px-6 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium transition-colors shadow-none disabled:opacity-50 flex items-center gap-2"
                             >
-                                Simpan Promo
+                                {saving && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}
+                                {saving ? 'Menyimpan...' : 'Simpan Promo'}
                             </button>
                         </div>
                     </div>
