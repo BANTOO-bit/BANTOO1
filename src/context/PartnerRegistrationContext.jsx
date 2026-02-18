@@ -149,8 +149,7 @@ export function PartnerRegistrationProvider({ children }) {
             // 3. Update profile with registration info
             await supabase.from('profiles').update({
                 full_name: finalData.step1.fullName || undefined,
-                phone: finalData.step1.phoneNumber || undefined,
-                updated_at: new Date().toISOString()
+                phone: finalData.step1.phoneNumber || undefined
             }).eq('id', user.id)
 
             console.log('[Driver Reg] Registration submitted successfully!')
@@ -211,8 +210,7 @@ export function PartnerRegistrationProvider({ children }) {
 
             // 3. Update profile with merchant owner info
             await supabase.from('profiles').update({
-                full_name: finalData.step1.ownerName || undefined,
-                updated_at: new Date().toISOString()
+                full_name: finalData.step1.ownerName || undefined
             }).eq('id', user.id)
 
             console.log('[Merchant Reg] Registration submitted successfully!')

@@ -251,95 +251,96 @@ export const orderService = {
     },
 
     /**
-     * Update order status with ownership validation
-     * Validates that the caller has the right to change this order's status.
+     * Update order status via server-side RPC (timestamps computed server-side).
+     * Falls back to direct query if RPC not yet deployed.
      */
     async updateStatus(orderId, status, additionalData = {}) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
-        // Fetch the order first to validate ownership
-        const { data: order, error: fetchError } = await supabase
-            .from('orders')
-            .select('id, status, customer_id, driver_id, merchant_id')
-            .eq('id', orderId)
-            .single()
+        // Try RPC first (server-side timestamps + role validation)
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('update_order_status', {
+            p_order_id: orderId,
+            p_status: status,
+            p_additional: additionalData
+        })
 
-        if (fetchError || !order) throw new Error('Order not found')
-
-        // Validate caller has rights to update this order
-        const isCustomer = order.customer_id === user.id
-        const isDriver = order.driver_id === user.id
-
-        // Check if user is merchant owner
-        let isMerchant = false
-        if (order.merchant_id) {
-            const { data: merchant } = await supabase
-                .from('merchants')
-                .select('owner_id')
-                .eq('id', order.merchant_id)
+        if (!rpcError && rpcResult) {
+            // RPC succeeded — return fresh order data
+            const { data: freshOrder } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('id', orderId)
                 .single()
-            isMerchant = merchant?.owner_id === user.id
+            return freshOrder || rpcResult
         }
 
-        // Check if user is admin
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-        const isAdmin = profile?.role === 'admin'
+        // Fallback to direct query if RPC not deployed yet
+        if (rpcError?.code === '42883' || rpcError?.message?.includes('does not exist')) {
+            console.warn('RPC update_order_status not found, using direct query fallback')
 
-        // Validate role-based permissions for status transitions
-        const allowedTransitions = {
-            'cancelled': [isCustomer, isMerchant, isAdmin],
-            'accepted': [isMerchant, isAdmin],
-            'preparing': [isMerchant, isAdmin],
-            'ready': [isMerchant, isAdmin],
-            'pickup': [isDriver, isAdmin],
-            'picked_up': [isDriver, isAdmin],
-            'delivering': [isDriver, isAdmin],
-            'delivered': [isDriver, isAdmin],
-            'completed': [isDriver, isCustomer, isAdmin]
+            // Fetch the order first to validate ownership
+            const { data: order, error: fetchError } = await supabase
+                .from('orders')
+                .select('id, status, customer_id, driver_id, merchant_id')
+                .eq('id', orderId)
+                .single()
+
+            if (fetchError || !order) throw new Error('Order not found')
+
+            // Validate caller has rights to update this order
+            const isCustomer = order.customer_id === user.id
+            const isDriver = order.driver_id === user.id
+
+            let isMerchant = false
+            if (order.merchant_id) {
+                const { data: merchant } = await supabase
+                    .from('merchants')
+                    .select('owner_id')
+                    .eq('id', order.merchant_id)
+                    .single()
+                isMerchant = merchant?.owner_id === user.id
+            }
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single()
+            const isAdmin = profile?.role === 'admin'
+
+            const allowedTransitions = {
+                'cancelled': [isCustomer, isMerchant, isAdmin],
+                'accepted': [isMerchant, isAdmin],
+                'preparing': [isMerchant, isAdmin],
+                'ready': [isMerchant, isAdmin],
+                'pickup': [isDriver, isAdmin],
+                'picked_up': [isDriver, isAdmin],
+                'delivering': [isDriver, isAdmin],
+                'delivered': [isDriver, isAdmin],
+                'completed': [isDriver, isCustomer, isAdmin]
+            }
+
+            const permissions = allowedTransitions[status] || [isAdmin]
+            if (!permissions.some(Boolean)) {
+                throw new Error('You do not have permission to update this order status')
+            }
+
+            // Use server time via Supabase — no client timestamps
+            const updateData = { status, updated_at: new Date().toISOString(), ...additionalData }
+
+            const { data, error } = await supabase
+                .from('orders')
+                .update(updateData)
+                .eq('id', orderId)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data
         }
 
-        const permissions = allowedTransitions[status] || [isAdmin]
-        if (!permissions.some(Boolean)) {
-            throw new Error('You do not have permission to update this order status')
-        }
-
-        const updateData = { status, ...additionalData }
-
-        // Add timestamps based on status
-        switch (status) {
-            case 'accepted':
-                updateData.accepted_at = new Date().toISOString()
-                break
-            case 'pickup':
-            case 'picked_up':
-                updateData.picked_up_at = new Date().toISOString()
-                break
-            case 'completed':
-            case 'delivered':
-                updateData.delivered_at = new Date().toISOString()
-                if (!additionalData.payment_status) {
-                    updateData.payment_status = 'paid'
-                }
-                break
-            case 'cancelled':
-                updateData.cancelled_at = new Date().toISOString()
-                break
-        }
-
-        const { data, error } = await supabase
-            .from('orders')
-            .update(updateData)
-            .eq('id', orderId)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data
+        throw rpcError || new Error('Gagal update status pesanan')
     },
 
     /**
