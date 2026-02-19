@@ -236,6 +236,51 @@ export function AuthProvider({ children }) {
         return () => subscription.unsubscribe()
     }, [])
 
+    // L-1.3: Periodic role refresh (every 5 minutes)
+    // Keeps role/profile data fresh if changed from admin panel or another device
+    useEffect(() => {
+        if (!user?.id) return
+
+        const interval = setInterval(() => {
+            refreshProfile()
+        }, 5 * 60 * 1000) // 5 minutes
+
+        return () => clearInterval(interval)
+    }, [user?.id])
+
+    // L-1.2: Realtime profile changes (multi-device awareness)
+    // Detects when profile is updated from another device or by admin (e.g. suspension)
+    useEffect(() => {
+        if (!user?.id) return
+
+        const channel = supabase
+            .channel(`profile-sync-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`
+                },
+                async (payload) => {
+                    const updated = payload.new
+                    // If account was terminated/suspended, force logout
+                    if (updated.status === 'terminated' || updated.status === 'suspended') {
+                        await logout()
+                        return
+                    }
+                    // Otherwise refresh profile to sync role changes
+                    await refreshProfile()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [user?.id])
+
     // Login (using Phone/Password)
     const login = async (phone, password) => {
         const { data, error } = await authService.signInWithPhone(phone, password)
