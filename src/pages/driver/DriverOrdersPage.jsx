@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
 import EmptyState from '../../components/shared/EmptyState'
 import BackToTopButton from '../../components/shared/BackToTopButton'
 import { driverService } from '../../services/driverService'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../services/supabaseClient'
 
 function DriverOrdersPage() {
     const navigate = useNavigate()
@@ -14,20 +15,43 @@ function DriverOrdersPage() {
     const [completedOrders, setCompletedOrders] = useState([])
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        if (user?.id) {
-            fetchOrders()
-        }
+    const fetchOrdersCb = useCallback(() => {
+        if (user?.id) fetchOrders()
     }, [user?.id, activeTab])
+
+    useEffect(() => {
+        fetchOrdersCb()
+    }, [fetchOrdersCb])
+
+    // Realtime subscription for order status changes
+    useEffect(() => {
+        if (!user?.id) return
+
+        const channel = supabase
+            .channel(`driver-orders-${user.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'orders',
+                filter: `driver_id=eq.${user.id}`
+            }, () => {
+                // Refresh orders when any assigned order changes
+                fetchOrdersCb()
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [user?.id, fetchOrdersCb])
 
     const fetchOrders = async () => {
         try {
             setLoading(true)
             if (activeTab === 'active') {
-                // Fetch active orders (accepted, pickup, delivery)
-                // Note: 'ready' orders are 'available', not 'active' for a specific driver until accepted
-                // So we fetch orders assigned to this driver that are not completed/cancelled
-                const orders = await driverService.getDriverOrders(['accepted', 'pickup', 'delivery'])
+                // Fetch active orders assigned to this driver
+                // SQL statuses: pickup → picked_up → delivering
+                const orders = await driverService.getDriverOrders(['pickup', 'picked_up', 'delivering'])
 
                 // Transform to UI format
                 const formatted = orders.map(o => ({
@@ -43,7 +67,7 @@ function DriverOrdersPage() {
                 setActiveOrders(formatted)
             } else {
                 // Fetch completed orders
-                const orders = await driverService.getDriverOrders('completed')
+                const orders = await driverService.getDriverOrders(['delivered', 'completed'])
                 const formatted = orders.map(o => ({
                     id: o.id,
                     merchantName: o.merchant?.name,
@@ -65,18 +89,18 @@ function DriverOrdersPage() {
 
     const getStatusLabel = (status) => {
         switch (status) {
-            case 'accepted': return 'Menuju Warung'
-            case 'pickup': return 'Antar ke Pelanggan'
-            case 'delivery': return 'Sedang Mengantar'
+            case 'pickup': return 'Menuju Warung'
+            case 'picked_up': return 'Pesanan Diambil'
+            case 'delivering': return 'Sedang Mengantar'
             default: return status
         }
     }
 
     const getStatusIcon = (status) => {
         switch (status) {
-            case 'accepted': return 'directions_bike'
-            case 'pickup': return 'local_shipping'
-            case 'delivery': return 'near_me'
+            case 'pickup': return 'directions_bike'
+            case 'picked_up': return 'local_shipping'
+            case 'delivering': return 'near_me'
             default: return 'help'
         }
     }
@@ -157,11 +181,11 @@ function DriverOrdersPage() {
                                             </div>
                                             <button
                                                 onClick={() => {
-                                                    // Navigate based on order status (unified routes)
-                                                    if (order.statusKey === 'accepted' || order.statusKey === 'Menuju Warung') {
+                                                    // Navigate based on order status (SQL statuses)
+                                                    if (order.statusKey === 'pickup') {
                                                         navigate('/driver/order/pickup')
-                                                    } else if (order.statusKey === 'pickup' || order.statusKey === 'delivery' || order.statusKey === 'Antar ke Pelanggan') {
-                                                        navigate('/driver/order/delivery')
+                                                    } else if (['picked_up', 'delivering'].includes(order.statusKey)) {
+                                                        navigate(`/driver/order/delivery/${order.id}`)
                                                     }
                                                 }}
                                                 className="flex items-center justify-center gap-2 bg-[#0d59f2] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors"

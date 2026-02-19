@@ -57,8 +57,8 @@ function MerchantOrdersPage() {
             // Map tab to database status
             const statusMap = {
                 'baru': ['pending'],
-                'diproses': ['accepted', 'preparing', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'],
-                'selesai': ['completed', 'cancelled']
+                'diproses': ['accepted', 'preparing', 'ready', 'pickup', 'picked_up', 'delivering'],
+                'selesai': ['delivered', 'completed', 'cancelled']
             }
 
             const data = await orderService.getMerchantOrders(user.merchantId, statusMap[activeTab])
@@ -184,11 +184,12 @@ function MerchantOrdersPage() {
                 const statusMap = {
                     'pending': 'baru',
                     'accepted': 'diproses',
-                    'processing': 'diproses',
+                    'preparing': 'diproses',
                     'ready': 'diproses',
                     'pickup': 'diproses',
                     'picked_up': 'diproses',
                     'delivering': 'diproses',
+                    'delivered': 'selesai',
                     'completed': 'selesai',
                     'cancelled': 'selesai'
                 }
@@ -917,8 +918,8 @@ function TimeoutBadge({ createdAt, timeoutMinutes }) {
 
     return (
         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border w-full sm:w-fit transition-colors ${isUrgent
-                ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30'
-                : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30'
+            ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30'
+            : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30'
             }`}>
             <span className={`material-symbols-outlined text-[18px] ${isUrgent ? 'animate-pulse' : ''}`}>hourglass_top</span>
             <span className="text-xs font-medium">

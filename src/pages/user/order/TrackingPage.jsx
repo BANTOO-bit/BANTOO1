@@ -36,6 +36,7 @@ const STATUS_INDEX_MAP = {
     'delivering': 5,
     'delivered': 6,
     'completed': 6,
+    'cancelled': -1,
 }
 
 // ============================================
@@ -232,6 +233,7 @@ function TrackingPage() {
     const currentStatusIndex = STATUS_INDEX_MAP[order?.status] ?? 0
     const currentStatus = orderStatuses[currentStatusIndex]
     const isDelivered = ['delivered', 'completed'].includes(order?.status)
+    const isCancelled = order?.status === 'cancelled'
 
     // Driver info from order relation
     const driverInfo = order?.driver ? {
@@ -438,6 +440,38 @@ function TrackingPage() {
     // ============================================
     const merchantName = order.merchant?.name || order.merchantName || 'Restoran'
     const hasDriver = currentStatusIndex >= 4 && driverInfo
+
+    // Cancelled State
+    if (isCancelled) {
+        return (
+            <div className="min-h-screen flex flex-col bg-background-light">
+                <header className="sticky top-0 z-50 bg-white px-4 pt-12 pb-4 border-b border-border-color shadow-sm">
+                    <div className="relative flex items-center justify-center min-h-[40px]">
+                        <BackButton />
+                        <h1 className="text-lg font-bold">Lacak Pesanan</h1>
+                    </div>
+                </header>
+                <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="text-center">
+                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="material-symbols-outlined text-4xl text-red-500">cancel</span>
+                        </div>
+                        <p className="font-bold text-lg mb-1">Pesanan Dibatalkan</p>
+                        <p className="text-text-secondary text-sm mb-2">
+                            {order.cancellation_reason || 'Pesanan ini telah dibatalkan.'}
+                        </p>
+                        <p className="text-xs text-text-secondary mb-6">ID: {formatOrderId(order.id)}</p>
+                        <button
+                            onClick={() => navigate('/orders')}
+                            className="py-2.5 px-6 bg-primary text-white font-bold rounded-xl"
+                        >
+                            Kembali ke Pesanan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen flex flex-col bg-background-light pb-6">
