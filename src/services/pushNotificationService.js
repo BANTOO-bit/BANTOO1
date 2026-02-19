@@ -44,14 +44,17 @@ export const pushNotificationService = {
      * Show a browser notification
      * @param {string} title - Notification title
      * @param {Object} options - Notification options
+     * M-10.3: Includes throttle to prevent duplicate notifications
      */
     show(title, options = {}) {
-        if (!this.isSupported() || Notification.permission !== PERMISSION_GRANTED) {
-            return null
-        }
+        if (Notification.permission !== 'granted') return null
 
-        // Only show if tab is not focused (avoid duplicate with in-app)
-        if (document.hasFocus()) return null
+        // M-10.3: Throttle — prevent same notification within 3 seconds
+        const dedupKey = `${title}:${options.body || ''}:${options.tag || ''}`
+        if (this._recentNotifs?.has(dedupKey)) return null
+        if (!this._recentNotifs) this._recentNotifs = new Set()
+        this._recentNotifs.add(dedupKey)
+        setTimeout(() => this._recentNotifs.delete(dedupKey), 3000)
 
         const notification = new Notification(title, {
             icon: '/bantoo-logo.png',

@@ -582,7 +582,21 @@ export const orderService = {
     },
 
     /** Driver order timeout (stale check) in minutes */
-    DRIVER_TIMEOUT_MINUTES: 30
+    DRIVER_TIMEOUT_MINUTES: 30,
+
+    /**
+     * M-5.2: Send merchant heartbeat (keeps last_active_at fresh)
+     * Prevents auto-close due to inactivity
+     * @param {string} merchantId
+     */
+    async merchantHeartbeat(merchantId) {
+        if (!merchantId) return
+        try {
+            await supabase.rpc('merchant_heartbeat', { p_merchant_id: merchantId })
+        } catch (e) {
+            console.warn('Merchant heartbeat failed:', e.message)
+        }
+    }
 }
 
 export default orderService
