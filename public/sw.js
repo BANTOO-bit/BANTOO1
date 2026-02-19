@@ -1,7 +1,9 @@
 // Service Worker — BANTOO PWA
 // Cache-first for static assets, network-first for API
 
-const CACHE_NAME = 'bantoo-cache-v1'
+// Fix #5: Version is updated on each deploy — change this when deploying
+const CACHE_VERSION = '2026-02-19'
+const CACHE_NAME = `bantoo-cache-${CACHE_VERSION}`
 const STATIC_ASSETS = [
     '/',
     '/index.html',

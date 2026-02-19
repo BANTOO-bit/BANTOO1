@@ -281,20 +281,49 @@ export function AuthProvider({ children }) {
         }
     }, [user?.id])
 
+    // Fix #3: Client-side rate limiting for auth actions
+    const authAttemptsRef = useRef({ count: 0, firstAttempt: null })
+    const AUTH_MAX_ATTEMPTS = 5
+    const AUTH_WINDOW_MS = 5 * 60 * 1000 // 5 minutes
+
+    const checkRateLimit = () => {
+        const now = Date.now()
+        const tracker = authAttemptsRef.current
+        // Reset window if expired
+        if (tracker.firstAttempt && (now - tracker.firstAttempt) > AUTH_WINDOW_MS) {
+            authAttemptsRef.current = { count: 0, firstAttempt: null }
+        }
+        if (authAttemptsRef.current.count >= AUTH_MAX_ATTEMPTS) {
+            const remainingSec = Math.ceil((AUTH_WINDOW_MS - (now - authAttemptsRef.current.firstAttempt)) / 1000)
+            throw new Error(`Terlalu banyak percobaan. Coba lagi dalam ${remainingSec} detik.`)
+        }
+        if (!authAttemptsRef.current.firstAttempt) {
+            authAttemptsRef.current.firstAttempt = now
+        }
+        authAttemptsRef.current.count++
+    }
+
     // Login (using Phone/Password)
     const login = async (phone, password) => {
+        checkRateLimit()
         const { data, error } = await authService.signInWithPhone(phone, password)
         if (error) throw error
+        // Reset on success
+        authAttemptsRef.current = { count: 0, firstAttempt: null }
         return data
     }
 
     // Register (using Phone/Password)
     const register = async (name, phone, password, role = 'customer', email = null) => {
+        checkRateLimit()
         const { data, error } = await authService.signUpWithPhone(phone, password, {
             full_name: name,
             role: role
         }, email)
         if (error) throw error
+
+        // Reset on success
+        authAttemptsRef.current = { count: 0, firstAttempt: null }
 
         // Force logout so user can login manually (as requested)
         await authService.signOut()

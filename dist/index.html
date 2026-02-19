@@ -20,8 +20,8 @@
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
-  <script type="module" crossorigin src="/assets/index-ZLx9w85h.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/vendor-react-7DfBplA4.js">
+  <script type="module" crossorigin src="/assets/index-C58ty892.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-react-B52X_VYH.js">
   <link rel="stylesheet" crossorigin href="/assets/index-7lpUWZHP.css">
 </head>
 
@@ -31,18 +31,22 @@
   <!-- #8: Sentry Error Monitoring (CDN) -->
   <script src="https://browser.sentry-cdn.com/8.45.0/bundle.tracing.min.js" crossorigin="anonymous"></script>
   <script>
-    if (window.Sentry) {
+    // Sentry Error Monitoring — reads DSN from env var injected at build time
+    ;(function() {
+      if (!window.Sentry) return
+      // DSN is injected by Vite at build time from VITE_SENTRY_DSN env var
+      var dsn = '__SENTRY_DSN__'
+      if (!dsn || dsn === '__SENTRY_DSN__' || dsn.includes('YOUR_')) return // Skip if not configured
       Sentry.init({
-        dsn: 'YOUR_SENTRY_DSN', // TODO: Replace with real DSN from sentry.io
+        dsn: dsn,
         tracesSampleRate: 0.2,
         environment: location.hostname === 'localhost' ? 'development' : 'production',
-        beforeSend(event) {
-          // Don't send events in development
+        beforeSend: function(event) {
           if (location.hostname === 'localhost') return null
           return event
         }
       })
-    }
+    })()
   </script>
 
   <!-- #5: Service Worker Registration -->
