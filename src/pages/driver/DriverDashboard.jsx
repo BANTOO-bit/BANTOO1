@@ -208,15 +208,35 @@ function DriverDashboard() {
                 table: 'orders',
                 filter: 'status=eq.ready'
             }, (payload) => {
-                // When a new order becomes ready, trigger a check (if we have location)
-                // We rely on the poll/watchPosition primarily but this speeds it up
-                // Ideally we get location here too, but for now just notify generic
+                // When a new order becomes ready, refresh the list + notify
                 if (!payload.new.driver_id && payload.old.status !== 'ready') {
                     addNotification({
                         type: 'info',
                         message: 'Pesanan baru tersedia di sekitar Anda!',
                         duration: 3000
                     })
+
+                    // Refresh available orders list immediately
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => checkAvailableOrders(pos.coords.latitude, pos.coords.longitude),
+                            () => checkAvailableOrders(-6.200000, 106.816666) // fallback
+                        )
+                    } else {
+                        checkAvailableOrders(-6.200000, 106.816666)
+                    }
+                }
+            })
+            // Also listen for orders being taken (driver_id set) to remove from list
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'orders',
+                filter: 'status=eq.pickup'
+            }, (payload) => {
+                // An order was taken by a driver — remove from available list
+                if (payload.new.driver_id) {
+                    setAvailableOrders(prev => prev.filter(o => o.id !== payload.new.id))
                 }
             })
             .subscribe()

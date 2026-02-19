@@ -767,19 +767,20 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                     </div>
                 </div>
                 <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${order.status === 'pending' ? 'bg-orange-50 dark:bg-orange-900/20 text-primary dark:text-orange-300 border-orange-100 dark:border-orange-800/30' :
-                    ['accepted', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(order.status) ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800/30' :
+                    ['accepted', 'preparing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(order.status) ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800/30' :
                         order.status === 'cancelled' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 border-red-100 dark:border-red-800/30' :
                             'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 border-green-100 dark:border-green-800/30'
                     }`}>
                     {order.status === 'pending' ? 'Baru' :
                         order.status === 'accepted' ? 'Sedang Disiapkan' :
-                            order.status === 'processing' ? 'Sedang Disiapkan' :
+                            order.status === 'preparing' ? 'Sedang Dimasak' :
                                 order.status === 'ready' ? 'Menunggu Driver' :
                                     order.status === 'pickup' ? 'Driver Menuju Resto' :
                                         order.status === 'picked_up' ? 'Sedang Diantar' :
                                             order.status === 'delivering' ? 'Sedang Diantar' :
-                                                order.status === 'cancelled' ? 'Dibatalkan' :
-                                                    'Selesai'}
+                                                order.status === 'delivered' ? 'Terkirim' :
+                                                    order.status === 'cancelled' ? 'Dibatalkan' :
+                                                        'Selesai'}
                 </span>
             </div>
 
@@ -849,7 +850,7 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                 )}
                 {isDiproses && (
                     <>
-                        {['accepted', 'preparing', 'processing'].includes(order.status) && (
+                        {['accepted', 'preparing'].includes(order.status) && (
                             <button
                                 onClick={onHandover}
                                 className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
@@ -878,9 +879,9 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                     </>
                 )}
                 {isSelesai && (
-                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                        <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                        <span className="text-xs font-bold">Selesai</span>
+                    <div className={`flex items-center gap-1 ${order.status === 'cancelled' ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>
+                        <span className="material-symbols-outlined text-[18px]">{order.status === 'cancelled' ? 'cancel' : 'check_circle'}</span>
+                        <span className="text-xs font-bold">{order.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}</span>
                     </div>
                 )}
             </div>
