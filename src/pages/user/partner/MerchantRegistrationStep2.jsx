@@ -228,7 +228,7 @@ function MerchantRegistrationStep2() {
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-primary hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <span>{isSubmitting ? 'Mengirim...' : 'Kirim Pendaftaran'}</span>
                     <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform text-sm">

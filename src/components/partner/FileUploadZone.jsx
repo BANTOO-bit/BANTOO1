@@ -74,7 +74,7 @@ function FileUploadZone({
                         </span>
                     </div>
                     <div className="flex text-sm text-gray-600 dark:text-gray-400 justify-center">
-                        <span className="relative cursor-pointer rounded-md font-medium text-primary hover:text-orange-600">
+                        <span className="relative cursor-pointer rounded-md font-medium text-primary hover:text-blue-700">
                             <span>{title}</span>
                         </span>
                     </div>

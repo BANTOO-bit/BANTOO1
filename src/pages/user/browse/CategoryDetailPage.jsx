@@ -87,7 +87,7 @@ function MenuItemCard({ item, onClick }) {
                     </p>
                     <button
                         onClick={handleAdd}
-                        className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center hover:bg-orange-600 transition-colors shadow-sm active:scale-90"
+                        className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center hover:bg-blue-700 transition-colors shadow-sm active:scale-90"
                     >
                         <span className="material-symbols-outlined text-[18px]">add</span>
                     </button>

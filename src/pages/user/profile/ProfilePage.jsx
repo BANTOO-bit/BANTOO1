@@ -117,7 +117,7 @@ function ProfilePage() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{userData.phone}</p>
                         <button
                             onClick={handleEditProfile}
-                            className="text-sm font-medium text-primary hover:text-orange-600 transition-colors mt-0.5"
+                            className="text-sm font-medium text-primary hover:text-blue-700 transition-colors mt-0.5"
                         >
                             Ubah Profil
                         </button>

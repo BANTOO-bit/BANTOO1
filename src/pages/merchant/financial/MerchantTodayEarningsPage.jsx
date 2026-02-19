@@ -183,15 +183,15 @@ function MerchantTodayEarningsPage() {
                                         <line className="dark:stroke-gray-700" stroke="#EAEAEA" strokeDasharray="4" strokeWidth="1" x1="0" x2="300" y1="100" y2="100" />
                                         <defs>
                                             <linearGradient id="gradientDetails" x1="0" x2="0" y1="0" y2="1">
-                                                <stop offset="0%" stopColor="#FF6B00" stopOpacity="0.2" />
-                                                <stop offset="100%" stopColor="#FF6B00" stopOpacity="0" />
+                                                <stop offset="0%" stopColor="#2979FF" stopOpacity="0.2" />
+                                                <stop offset="100%" stopColor="#2979FF" stopOpacity="0" />
                                             </linearGradient>
                                         </defs>
                                         {/* Line */}
                                         <path
                                             d={chart.line}
                                             fill="none"
-                                            stroke="#FF6B00"
+                                            stroke="#2979FF"
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
                                             strokeWidth="3"
@@ -204,7 +204,7 @@ function MerchantTodayEarningsPage() {
                                         />
                                         {/* Data points */}
                                         {chart.points.map((p, i) => (
-                                            <circle key={i} cx={p.x} cy={p.y} fill="#FFFFFF" r="2.5" stroke="#FF6B00" strokeWidth="1.5" />
+                                            <circle key={i} cx={p.x} cy={p.y} fill="#FFFFFF" r="2.5" stroke="#2979FF" strokeWidth="1.5" />
                                         ))}
                                     </svg>
                                 ) : (

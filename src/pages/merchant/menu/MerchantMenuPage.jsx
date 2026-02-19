@@ -323,7 +323,7 @@ function MerchantMenuPage() {
                                 </button>
                                 <button
                                     onClick={confirmDelete}
-                                    className="flex-1 py-2.5 rounded-2xl bg-[#FF6B00] text-white font-semibold text-sm hover:bg-[#e65100] transition-colors"
+                                    className="flex-1 py-2.5 rounded-2xl bg-primary text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
                                 >
                                     Hapus
                                 </button>

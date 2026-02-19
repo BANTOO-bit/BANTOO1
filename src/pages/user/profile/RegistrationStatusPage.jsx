@@ -158,7 +158,7 @@ function DriverRegistrationCard({ status, rejectionReasons, onGoToProfile, onFix
                     </div>
                     <button
                         onClick={onFixRegistration}
-                        className="w-full bg-primary hover:bg-orange-600 text-white font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+                        className="w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
                     >
                         <span>Perbaiki Pendaftaran</span>
                     </button>
@@ -169,7 +169,7 @@ function DriverRegistrationCard({ status, rejectionReasons, onGoToProfile, onFix
             {status === 'none' && (
                 <button
                     onClick={onRegister}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+                    className="w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
                 >
                     <span>Daftar Sekarang</span>
                 </button>
@@ -258,7 +258,7 @@ function MerchantRegistrationCard({ status, rejectionReasons, onGoToProfile, onR
                     </div>
                     <button
                         onClick={onRegister}
-                        className="w-full bg-primary hover:bg-orange-600 text-white font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+                        className="w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
                     >
                         <span>Perbaiki Pendaftaran</span>
                     </button>
@@ -269,7 +269,7 @@ function MerchantRegistrationCard({ status, rejectionReasons, onGoToProfile, onR
             {status === 'none' && (
                 <button
                     onClick={onRegister}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+                    className="w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
                 >
                     <span>Daftar Sekarang</span>
                 </button>

@@ -148,7 +148,7 @@ function MapSelector({ location, onLocationChange, onClose }) {
                     </p>
                     <button
                         onClick={onClose}
-                        className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors active:scale-[0.98]"
+                        className="w-full bg-primary hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors active:scale-[0.98]"
                     >
                         Konfirmasi Lokasi
                     </button>

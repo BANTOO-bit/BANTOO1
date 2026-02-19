@@ -82,7 +82,7 @@ function OrderHistoryCard({ order, onReorder, onViewDetail, onReview, formatDate
                             e.stopPropagation()
                             onReorder?.(order)
                         }}
-                        className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-full shadow-md active:scale-95 transition-all hover:bg-orange-600"
+                        className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-full shadow-md active:scale-95 transition-all hover:bg-blue-700"
                     >
                         Pesan Lagi
                     </button>

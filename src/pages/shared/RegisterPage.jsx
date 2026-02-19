@@ -38,7 +38,6 @@ function RegisterPage() {
         onSubmit: async (formValues) => {
             try {
                 await register(formValues.name, formValues.phone, formValues.password, 'customer', formValues.email)
-                // Redirect to Login page with pre-filled phone
                 navigate('/login', { state: { phone: formValues.phone } })
             } catch (err) {
                 logger.error('Registration failed', err, 'RegisterPage')
@@ -52,30 +51,34 @@ function RegisterPage() {
     })
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden">
+            {/* Decorative background */}
+            <div className="absolute top-[-40px] right-[-30px] w-44 h-44 bg-primary/5 rounded-full blur-2xl"></div>
+            <div className="absolute bottom-20 left-[-40px] w-56 h-56 bg-accent/5 rounded-full blur-2xl"></div>
+
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-4 pt-12 pb-4 shadow-sm">
+            <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-4 pt-12 pb-4">
                 <div className="relative flex items-center justify-center">
                     <button
                         onClick={() => navigate(-1)}
-                        className="absolute left-0 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 active:scale-95 transition-transform"
+                        className="absolute left-0 w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100/80 text-gray-700 active:scale-95 transition-transform"
                     >
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
-                    <h1 className="text-lg font-bold text-gray-900 dark:text-white">Daftar Akun</h1>
+                    <img src="/images/bantoo-logo.png" alt="Bantoo" className="h-7 object-contain" />
                 </div>
             </header>
 
             {/* Content */}
-            <main className="flex-1 px-4 py-8 overflow-y-auto">
-                <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Buat Akun Baru</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+            <main className="flex-1 px-4 py-6 overflow-y-auto relative z-10">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-extrabold text-text-main mb-2">Buat Akun Baru</h2>
+                    <p className="text-sm text-text-secondary">
                         Isi data diri Anda untuk mulai memesan
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Name */}
                     <FormField
                         label="Nama Lengkap"
@@ -106,7 +109,7 @@ function RegisterPage() {
 
                     {/* Phone */}
                     <div>
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pl-1 mb-2 block">
+                        <label className="text-sm font-semibold text-gray-700 pl-1 mb-2 block">
                             Nomor Telepon <span className="text-red-500">*</span>
                         </label>
                         <PhoneInput
@@ -118,23 +121,26 @@ function RegisterPage() {
 
                     {/* Password */}
                     <div>
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pl-1 mb-2 block">
+                        <label className="text-sm font-semibold text-gray-700 pl-1 mb-2 block">
                             Buat Kata Sandi <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                <span className="material-symbols-outlined text-[20px]">lock</span>
+                            </div>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 value={values.password}
                                 onChange={(e) => handleChange('password', e.target.value)}
                                 onBlur={() => handleBlur('password')}
                                 placeholder="Minimal 6 karakter"
-                                className={`w-full rounded-2xl border bg-white dark:bg-gray-800 px-4 py-3.5 pr-12 text-base text-gray-900 dark:text-white placeholder:text-gray-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm
-                                    ${errors.password ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+                                className={`w-full rounded-xl border bg-white/80 backdrop-blur-sm pl-12 pr-12 py-3.5 text-base text-gray-900 placeholder:text-gray-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm
+                                    ${errors.password ? 'border-red-400' : 'border-gray-200'}`}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             >
                                 <span className="material-symbols-outlined text-[20px]">
                                     {showPassword ? 'visibility_off' : 'visibility'}
@@ -166,8 +172,8 @@ function RegisterPage() {
                                     )}
                                 </div>
                             </div>
-                            <span className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                                Saya menyetujui <button type="button" onClick={() => setShowTerms(true)} className="text-primary font-medium hover:underline">Syarat & Ketentuan</button> Bantoo!
+                            <span className="text-sm text-text-secondary leading-relaxed">
+                                Saya menyetujui <button type="button" onClick={() => setShowTerms(true)} className="text-primary font-semibold hover:underline">Syarat & Ketentuan</button> Bantoo!
                             </span>
                         </label>
                         {errors.terms && <p className="text-xs text-red-500 mt-1.5 pl-8">{errors.terms}</p>}
@@ -175,8 +181,11 @@ function RegisterPage() {
 
                     {/* General Error */}
                     {errors.general && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-                            <p className="text-sm text-red-600">{errors.general}</p>
+                        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl">
+                            <p className="text-sm text-red-600 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-sm">error</span>
+                                {errors.general}
+                            </p>
                         </div>
                     )}
 
@@ -184,21 +193,21 @@ function RegisterPage() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-[28px] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25"
                     >
                         {isSubmitting ? (
                             <ButtonLoader />
                         ) : (
                             <>
                                 Daftar Sekarang
-                                <span className="material-symbols-outlined">arrow_forward</span>
+                                <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
                             </>
                         )}
                     </button>
                 </form>
 
                 <div className="mt-8 text-center pb-8">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-text-secondary">
                         Sudah punya akun?{' '}
                         <Link to="/login" className="text-primary font-bold hover:underline">
                             Masuk

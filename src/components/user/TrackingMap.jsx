@@ -31,7 +31,7 @@ const createIcon = (iconName, color = 'blue') => new L.DivIcon({
     popupAnchor: [0, -36]
 })
 
-const merchantIcon = createIcon('storefront', '#FF6B00') // Primary Orange
+const merchantIcon = createIcon('storefront', '#2979FF') // Primary Blue
 const userIcon = createIcon('home', '#10B981') // Green
 const driverIcon = createIcon('two_wheeler', '#3B82F6') // Blue
 
@@ -130,7 +130,7 @@ function TrackingMap({
                 {/* Route Line (Merchant -> User) */}
                 <Polyline
                     positions={[merchantLocation, userLocation]}
-                    pathOptions={{ color: '#FF6B00', weight: 4, opacity: 0.6, dashArray: '10, 10' }}
+                    pathOptions={{ color: '#2979FF', weight: 4, opacity: 0.6, dashArray: '10, 10' }}
                 />
 
                 {/* Route Line (Driver -> User, if driver exists) */}

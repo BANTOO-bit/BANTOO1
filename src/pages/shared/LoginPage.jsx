@@ -30,8 +30,6 @@ function LoginPage() {
         onSubmit: async (formValues) => {
             try {
                 const { user } = await login(formValues.phone, formValues.password)
-
-                // Always navigate to Customer Home for role selection
                 navigate('/')
             } catch (err) {
                 logger.error('Login failed', err, 'LoginPage')
@@ -45,25 +43,29 @@ function LoginPage() {
     })
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden">
+            {/* Decorative background */}
+            <div className="absolute top-[-40px] right-[-30px] w-44 h-44 bg-primary/5 rounded-full blur-2xl"></div>
+            <div className="absolute bottom-20 left-[-40px] w-56 h-56 bg-accent/5 rounded-full blur-2xl"></div>
+
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-4 pt-12 pb-4 shadow-sm">
+            <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-4 pt-12 pb-4">
                 <div className="relative flex items-center justify-center">
                     <button
                         onClick={() => navigate(-1)}
-                        className="absolute left-0 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 active:scale-95 transition-transform"
+                        className="absolute left-0 w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100/80 text-gray-700 active:scale-95 transition-transform"
                     >
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
-                    <h1 className="text-lg font-bold text-gray-900 dark:text-white">Masuk</h1>
+                    <img src="/images/bantoo-logo.png" alt="Bantoo" className="h-7 object-contain" />
                 </div>
             </header>
 
             {/* Content */}
-            <main className="flex-1 px-4 py-8 overflow-y-auto">
+            <main className="flex-1 px-4 py-6 overflow-y-auto relative z-10">
                 <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Selamat Datang Kembali!</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <h2 className="text-2xl font-extrabold text-text-main mb-2">Selamat Datang Kembali!</h2>
+                    <p className="text-sm text-text-secondary">
                         Masuk untuk melanjutkan pesanan Anda
                     </p>
                 </div>
@@ -71,7 +73,7 @@ function LoginPage() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Phone Input */}
                     <div>
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pl-1 mb-2 block">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 pl-1 mb-2 block">
                             Nomor Telepon
                         </label>
                         <PhoneInput
@@ -83,23 +85,26 @@ function LoginPage() {
 
                     {/* Password Input */}
                     <div>
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pl-1 mb-2 block">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 pl-1 mb-2 block">
                             Kata Sandi
                         </label>
                         <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                <span className="material-symbols-outlined text-[20px]">lock</span>
+                            </div>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 value={values.password}
                                 onChange={(e) => handleChange('password', e.target.value)}
                                 onBlur={() => handleBlur('password')}
                                 placeholder="Masukkan kata sandi"
-                                className={`w-full rounded-2xl border bg-white dark:bg-gray-800 px-4 py-3.5 pr-12 text-base text-gray-900 dark:text-white placeholder:text-gray-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm
-                                    ${errors.password ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+                                className={`w-full rounded-xl border bg-white/80 backdrop-blur-sm pl-12 pr-12 py-3.5 text-base text-gray-900 placeholder:text-gray-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm
+                                    ${errors.password ? 'border-red-400' : 'border-gray-200'}`}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             >
                                 <span className="material-symbols-outlined text-[20px]">
                                     {showPassword ? 'visibility_off' : 'visibility'}
@@ -111,8 +116,8 @@ function LoginPage() {
 
                     {/* General Error Message */}
                     {errors.general && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl">
-                            <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+                        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl">
+                            <p className="text-sm text-red-600 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-sm">error</span>
                                 {errors.general}
                             </p>
@@ -121,7 +126,7 @@ function LoginPage() {
 
                     {/* Forgot Password */}
                     <div className="flex justify-end">
-                        <Link to="/help/account/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                        <Link to="/help/account/forgot-password" className="text-sm font-semibold text-primary hover:underline">
                             Lupa Kata Sandi?
                         </Link>
                     </div>
@@ -130,14 +135,14 @@ function LoginPage() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-[28px] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                        className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-lg shadow-primary/25"
                     >
                         {isSubmitting ? (
                             <ButtonLoader />
                         ) : (
                             <>
                                 Masuk
-                                <span className="material-symbols-outlined">login</span>
+                                <span className="material-symbols-outlined text-[20px]">login</span>
                             </>
                         )}
                     </button>
@@ -145,7 +150,7 @@ function LoginPage() {
 
                 {/* Register Link */}
                 <div className="mt-8 text-center pb-8">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-text-secondary">
                         Belum punya akun?{' '}
                         <Link to="/register" className="text-primary font-bold hover:underline">
                             Daftar Sekarang

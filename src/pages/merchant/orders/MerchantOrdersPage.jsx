@@ -619,7 +619,7 @@ function MerchantOrdersPage() {
                         <div className="flex flex-col gap-3 mt-1">
                             <button
                                 onClick={confirmHandover}
-                                className="w-full py-3.5 rounded-xl bg-[#FF6B00] hover:bg-[#e65100] text-white font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                className="w-full py-3.5 rounded-xl bg-primary hover:bg-blue-700 text-white font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                             >
                                 <span>Konfirmasi Penyerahan</span>
                             </button>

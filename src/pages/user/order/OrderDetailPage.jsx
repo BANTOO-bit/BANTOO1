@@ -397,7 +397,7 @@ function OrderDetailPage() {
                                 </button>
                                 <button
                                     onClick={handleReorder}
-                                    className="flex-1 py-3 px-2 rounded-xl bg-primary text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-orange-600 active:scale-95 transition-all shadow-sm"
+                                    className="flex-1 py-3 px-2 rounded-xl bg-primary text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-sm"
                                 >
                                     <span className="material-symbols-outlined text-[18px]">refresh</span>
                                     Pesan Lagi
@@ -424,7 +424,7 @@ function OrderDetailPage() {
                                 )}
                                 <button
                                     onClick={handleReorder}
-                                    className="flex-1 py-3 px-2 rounded-xl bg-primary text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-orange-600 active:scale-95 transition-all shadow-sm"
+                                    className="flex-1 py-3 px-2 rounded-xl bg-primary text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-sm"
                                 >
                                     <span className="material-symbols-outlined text-[18px]">refresh</span>
                                     Pesan Lagi

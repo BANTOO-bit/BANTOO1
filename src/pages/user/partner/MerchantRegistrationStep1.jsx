@@ -218,7 +218,7 @@ function MerchantRegistrationStep1() {
                                         </div>
                                         <button
                                             type="button"
-                                            className="bg-primary hover:bg-orange-600 text-white text-sm font-bold py-2.5 px-5 rounded-full shadow-lg transition-all transform active:scale-95"
+                                            className="bg-primary hover:bg-blue-700 text-white text-sm font-bold py-2.5 px-5 rounded-full shadow-lg transition-all transform active:scale-95"
                                         >
                                             Pilih Lokasi di Peta
                                         </button>
@@ -312,7 +312,7 @@ function MerchantRegistrationStep1() {
             <div className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20">
                 <button
                     onClick={handleContinue}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center gap-2 group"
+                    className="w-full bg-primary hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center gap-2 group"
                 >
                     <span>Lanjutkan</span>
                     <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>

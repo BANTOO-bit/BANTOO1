@@ -7,7 +7,8 @@ export default {
     theme: {
         extend: {
             colors: {
-                "primary": "#FF6B00",
+                "primary": "#2979FF",
+                "accent": "#2E7D32",
                 "background-light": "#F9F9F9",
                 "background-dark": "#121212",
                 "card-light": "#FFFFFF",
@@ -18,7 +19,7 @@ export default {
                 "text-main": "#2E2E2E",
                 "text-secondary": "#7A7A7A",
                 "border-color": "#EAEAEA",
-                "primary-bg": "#FFF5EB",
+                "primary-bg": "#E3F2FD",
                 "text-primary-light": "#1F2937",
                 "text-primary-dark": "#F3F4F6",
                 "text-secondary-light": "#6B7280",

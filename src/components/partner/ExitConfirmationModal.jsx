@@ -31,7 +31,7 @@ function ExitConfirmationModal({ isOpen, onClose, onConfirm }) {
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="flex-1 py-3 rounded-xl bg-primary text-white font-bold hover:bg-orange-600 transition-colors"
+                        className="flex-1 py-3 rounded-xl bg-primary text-white font-bold hover:bg-blue-700 transition-colors"
                     >
                         Ya, Keluar
                     </button>

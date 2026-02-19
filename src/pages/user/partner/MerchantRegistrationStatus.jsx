@@ -42,7 +42,7 @@ function MerchantRegistrationStatus() {
             <div className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20 flex flex-col gap-3">
                 <button
                     onClick={() => navigate('/')}
-                    className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group"
+                    className="w-full bg-primary hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group"
                 >
                     <span>Kembali ke Beranda</span>
                 </button>

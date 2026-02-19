@@ -69,7 +69,7 @@ function BackButton({
                             </button>
                             <button
                                 onClick={confirmAction}
-                                className="flex-1 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-orange-600 transition-colors"
+                                className="flex-1 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-700 transition-colors"
                             >
                                 Ya, Keluar
                             </button>
