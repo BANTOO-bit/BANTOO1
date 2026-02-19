@@ -19,12 +19,13 @@ export default defineConfig(({ mode }) => ({
       },
     },
     chunkSizeWarningLimit: 500,
-    // Fix #2: Strip console.log/warn in production builds
     minify: 'esbuild',
   },
+  // Fix #2: Strip console.log/warn in production builds only
+  // IMPORTANT: use undefined for dev to preserve Vite's default JSX transform
   esbuild: mode === 'production' ? {
     drop: ['console', 'debugger'],
-  } : {},
+  } : undefined,
   // Fix #1: Inject Sentry DSN into index.html __SENTRY_DSN__ placeholder
   define: {
     '__SENTRY_DSN__': JSON.stringify(process.env.VITE_SENTRY_DSN || ''),
