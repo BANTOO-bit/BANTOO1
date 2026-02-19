@@ -109,7 +109,7 @@ function AllCategoriesPage() {
     }
 
     return (
-        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-[88px] bg-background-light">
+        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light">
             {/* Header */}
             <header className="sticky top-0 z-20 bg-background-light/95 backdrop-blur-md px-4 pt-12 pb-4 flex flex-col gap-4 border-b border-transparent">
                 <div className="relative flex items-center justify-center w-full">

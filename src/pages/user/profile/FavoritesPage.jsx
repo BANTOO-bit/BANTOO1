@@ -8,7 +8,7 @@ function FavoritesPage({ onNavigate, onMerchantClick }) {
     const { favorites, removeFavorite } = useFavorites()
 
     return (
-        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-[88px] bg-background-light">
+        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white px-4 pt-12 pb-4 border-b border-border-color">
                 <div className="relative flex items-center justify-center min-h-[40px]">

@@ -49,7 +49,7 @@ function MerchantProfilePage() {
     return (
         <div className="bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark transition-colors duration-200 relative min-h-screen max-w-md mx-auto overflow-hidden">
 
-            <div className={`relative z-0 h-full overflow-y-auto pb-24 ${showLogoutModal ? 'opacity-40 dark:opacity-30 filter blur-[1px] pointer-events-none' : ''}`}>
+            <div className={`relative z-0 h-full overflow-y-auto pb-bottom-nav ${showLogoutModal ? 'opacity-40 dark:opacity-30 filter blur-[1px] pointer-events-none' : ''}`}>
                 <header className="pt-8 pb-4 text-center">
                     <h1 className="text-lg font-bold">Profil Warung</h1>
                 </header>

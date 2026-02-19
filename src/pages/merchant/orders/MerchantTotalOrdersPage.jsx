@@ -133,7 +133,7 @@ function MerchantTotalOrdersPage() {
 
     if (loading) {
         return (
-            <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+            <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
                 <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-border-color dark:border-gray-800">
                     <button onClick={() => navigate('/merchant/dashboard')} className="w-10 h-10 -ml-2 flex items-center justify-center text-text-main dark:text-white rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                         <span className="material-symbols-outlined">arrow_back</span>
@@ -153,7 +153,7 @@ function MerchantTotalOrdersPage() {
     }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-border-color dark:border-gray-800 transition-all">
                 <button

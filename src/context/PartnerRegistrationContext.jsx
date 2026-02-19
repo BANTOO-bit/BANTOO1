@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { supabase } from '../services/supabaseClient'
 import { storageService, STORAGE_PATHS } from '../services/storageService'
+import logger from '../utils/logger'
 
 const PartnerRegistrationContext = createContext()
 
@@ -114,13 +115,13 @@ export function PartnerRegistrationProvider({ children }) {
             }
 
             // 1. Upload Photos via storageService
-            console.log('[Driver Reg] Uploading photos...')
+            logger.debug('[Driver Reg] Uploading photos...')
             const selfieUrl = await storageService.upload(finalData.step1.selfiePhoto, STORAGE_PATHS.DRIVER_SELFIE, user.id)
             const vehiclePhotoUrl = await storageService.upload(finalData.step2.vehiclePhoto, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
             const stnkUrl = await storageService.upload(finalData.step2.stnkPhoto, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
             const idCardUrl = await storageService.upload(finalData.step3.idCardPhoto, STORAGE_PATHS.DRIVER_KTP, user.id)
             const photoWithVehicleUrl = await storageService.upload(finalData.step3.photoWithVehicle, STORAGE_PATHS.DRIVER_WITH_VEHICLE, user.id)
-            console.log('[Driver Reg] Photos uploaded successfully')
+            logger.debug('[Driver Reg] Photos uploaded successfully')
 
             // 2. Insert Driver Record
             const { error } = await supabase.from('drivers').insert({
@@ -152,7 +153,7 @@ export function PartnerRegistrationProvider({ children }) {
                 phone: finalData.step1.phoneNumber || undefined
             }).eq('id', user.id)
 
-            console.log('[Driver Reg] Registration submitted successfully!')
+            logger.debug('[Driver Reg] Registration submitted successfully!')
             clearDriverData()
 
             if (refreshProfile) await refreshProfile()
@@ -178,10 +179,10 @@ export function PartnerRegistrationProvider({ children }) {
             }
 
             // 1. Upload Photos via storageService
-            console.log('[Merchant Reg] Uploading photos...')
+            logger.debug('[Merchant Reg] Uploading photos...')
             const idCardUrl = await storageService.upload(finalData.step2.idCardPhoto, STORAGE_PATHS.MERCHANT_KTP, user.id)
             const shopPhotoUrl = await storageService.upload(finalData.step2.shopPhoto, STORAGE_PATHS.MERCHANT_LOGO, user.id)
-            console.log('[Merchant Reg] Photos uploaded:', { idCardUrl, shopPhotoUrl })
+            logger.debug('[Merchant Reg] Photos uploaded:', { idCardUrl, shopPhotoUrl })
 
             // 2. Insert Merchant Record 
             const insertData = {
@@ -199,7 +200,7 @@ export function PartnerRegistrationProvider({ children }) {
                 status: 'pending'
             }
 
-            console.log('[Merchant Reg] Inserting merchant:', insertData)
+            logger.debug('[Merchant Reg] Inserting merchant:', insertData)
 
             const { error } = await supabase.from('merchants').insert(insertData)
 
@@ -213,7 +214,7 @@ export function PartnerRegistrationProvider({ children }) {
                 full_name: finalData.step1.ownerName || undefined
             }).eq('id', user.id)
 
-            console.log('[Merchant Reg] Registration submitted successfully!')
+            logger.debug('[Merchant Reg] Registration submitted successfully!')
             clearMerchantData()
 
             if (refreshProfile) await refreshProfile()

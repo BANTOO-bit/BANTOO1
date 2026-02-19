@@ -99,7 +99,7 @@ function DriverRegistrationStep3() {
                 <div className="w-10"></div>
             </header>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar p-5 pb-32">
+            <main className="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-bottom-nav">
                 <ProgressBar currentStep={3} totalSteps={3} />
 
                 <div className="mb-6 text-center">
@@ -113,7 +113,7 @@ function DriverRegistrationStep3() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* KTP */}
-                    <div className={`bg-white dark:bg-surface-dark p-5 rounded-2xl border ${errors.idCardPhoto ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} shadow-sm`}>
+                    <div className={`bg-white dark:bg-surface-dark px-4 pt-4 rounded-2xl border ${errors.idCardPhoto ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} shadow-sm`}>
                         <div className="flex flex-col items-center gap-4 text-center">
                             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl flex items-center justify-center shrink-0">
                                 <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-3xl">
@@ -141,7 +141,7 @@ function DriverRegistrationStep3() {
                     </div>
 
                     {/* Foto Bersama Motor */}
-                    <div className={`bg-white dark:bg-surface-dark p-5 rounded-2xl border ${errors.photoWithVehicle ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} shadow-sm`}>
+                    <div className={`bg-white dark:bg-surface-dark px-4 pt-4 rounded-2xl border ${errors.photoWithVehicle ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} shadow-sm`}>
                         <div className="flex flex-col items-center gap-4 text-center">
                             <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl flex items-center justify-center shrink-0">
                                 <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-3xl">
@@ -169,7 +169,7 @@ function DriverRegistrationStep3() {
                     </div>
                 </form>
 
-                <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm mt-6">
+                <div className="bg-white dark:bg-surface-dark px-4 pt-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm mt-6">
                     <div className="flex flex-col items-center gap-4">
                         <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl flex items-center justify-center shrink-0">
                             <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-3xl">account_balance</span>
@@ -237,7 +237,7 @@ function DriverRegistrationStep3() {
                 </div>
             </main>
 
-            <div className="absolute bottom-0 left-0 right-0 p-5 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20">
+            <div className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20">
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}

@@ -76,7 +76,7 @@ function AllPopularMenuPage() {
     if (error) return <ErrorState message="Gagal Memuat Menu" detail={error} onRetry={fetchPopularMenus} />
 
     return (
-        <div className="min-h-screen flex flex-col bg-background-light pb-[88px]">
+        <div className="min-h-screen flex flex-col bg-background-light pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-30 bg-background-light/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center gap-3 border-b border-transparent">
                 <button

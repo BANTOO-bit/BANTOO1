@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== Design Tokens: Spacing & Safe Areas ===== */
+:root {
+  /* Safe area insets — fallback 0px for devices that don't support env() */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Page-level spacing tokens */
+  --page-padding-x: 1rem;          /* 16px — horizontal padding for all pages */
+  --status-bar-height: 48px;       /* fallback status bar height */
+  --bottom-nav-height: 80px;       /* height of BottomNavigation component */
+
+  /* Computed: content clearance from bottom = nav + safe area + 8px breathing */
+  --content-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 8px);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -33,9 +48,13 @@ body {
   scrollbar-width: none;
 }
 
-/* Safe area for bottom navigation */
+/* Safe area utilities */
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Toast animation */

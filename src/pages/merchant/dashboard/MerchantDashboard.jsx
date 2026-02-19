@@ -111,7 +111,7 @@ function MerchantDashboard() {
     }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
             <MerchantHeader />
 
             <main className="flex flex-col gap-6 px-4 pt-2">

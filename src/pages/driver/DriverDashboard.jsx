@@ -8,6 +8,7 @@ import driverService from '../../services/driverService'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
 
 import { useOrder } from '../../context/OrderContext'
+import logger from '../../utils/logger'
 
 function DriverDashboard() {
     const navigate = useNavigate()
@@ -65,7 +66,7 @@ function DriverDashboard() {
             try {
                 const activeOrder = await driverService.getActiveOrder()
                 if (mounted && activeOrder) {
-                    console.log('Found active order, resuming...', activeOrder)
+                    logger.debug('Found active order, resuming...', activeOrder)
 
                     if (activeOrder.status === 'pickup') {
                         navigate(`/driver/order/pickup/${activeOrder.id}`, { replace: true })
@@ -290,7 +291,7 @@ function DriverDashboard() {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 pb-24 bg-background-light">
+                <main className="flex-1 pb-bottom-nav bg-background-light">
                     {(driverStatus === 'suspended' || driverStatus === 'terminated') ? (
                         /* Suspended/Terminated State UI */
                         <div className="flex flex-col items-center justify-center text-center px-4 pt-8">

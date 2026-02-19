@@ -27,7 +27,7 @@ function DriverWithdrawalAccount() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-5 pb-24 flex flex-col gap-6 relative">
+                <main className="flex-1 px-4 pt-4 pb-bottom-nav flex flex-col gap-6 relative">
                     {/* Background Content (Blurred/Overlayed) */}
                     <div className="absolute inset-0 bg-slate-900/60 z-10 backdrop-blur-sm transition-opacity"></div>
 

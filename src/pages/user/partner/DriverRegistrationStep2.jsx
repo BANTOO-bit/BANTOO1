@@ -90,7 +90,7 @@ function DriverRegistrationStep2() {
                 />
             </div>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar p-5 pb-32">
+            <main className="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-bottom-nav">
                 <form onSubmit={handleContinue} className="space-y-6">
                     {/* Jenis Kendaraan */}
                     <div>
@@ -214,7 +214,7 @@ function DriverRegistrationStep2() {
                 </form>
             </main>
 
-            <div className="absolute bottom-0 left-0 right-0 p-5 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20">
+            <div className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20">
                 <button
                     onClick={handleContinue}
                     className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center gap-2 group"

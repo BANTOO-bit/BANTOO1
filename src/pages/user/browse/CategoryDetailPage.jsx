@@ -223,7 +223,7 @@ function CategoryDetailPage() {
             </div>
 
             {/* Menu List */}
-            <div className="flex flex-col gap-4 px-4 pb-24 flex-grow">
+            <div className="flex flex-col gap-4 px-4 pb-bottom-nav flex-grow">
                 {filteredMenus.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                         <div className="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center mb-4 ring-8 ring-orange-50/50">

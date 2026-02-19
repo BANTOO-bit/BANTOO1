@@ -19,8 +19,8 @@ function DriverDepositPage() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-4 pb-32 bg-background-light flex flex-col gap-6">
-                    <div className="w-full bg-white rounded-2xl p-6 border border-slate-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <main className="flex-1 p-4 pb-bottom-nav bg-background-light flex flex-col gap-6">
+                    <div className="w-full bg-white rounded-2xl px-4 pt-4 border border-slate-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
                         <div className="absolute top-0 w-full h-1 bg-red-500"></div>
                         <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">Total Wajib Setor</p>
                         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Rp 5.600</h1>

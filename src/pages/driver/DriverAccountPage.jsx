@@ -42,7 +42,7 @@ function DriverAccountPage() {
             <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-background-light">
 
                 {/* Header */}
-                <header className="bg-white pb-6 pt-10 px-6 rounded-b-[2rem] shadow-sm border-b border-slate-100">
+                <header className="bg-white pb-6 pt-10 px-4 rounded-b-[2rem] shadow-sm border-b border-slate-100">
                     <div className="flex flex-col items-center text-center gap-4">
                         <div className="relative">
                             <div
@@ -81,7 +81,7 @@ function DriverAccountPage() {
                     </div>
                 </header>
 
-                <main className="flex-1 px-4 py-6 flex flex-col gap-4 pb-24">
+                <main className="flex-1 px-4 py-6 flex flex-col gap-4 pb-bottom-nav">
                     {/* Menu Group 1 */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                         <button

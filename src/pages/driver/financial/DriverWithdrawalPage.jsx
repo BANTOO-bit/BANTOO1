@@ -26,7 +26,7 @@ function DriverWithdrawalPage() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-5 pb-24 flex flex-col gap-6">
+                <main className="flex-1 px-4 pt-4 pb-bottom-nav flex flex-col gap-6">
                     <div className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-100">
                         <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Saldo Tersedia</p>
                         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Rp 50.400</h1>

@@ -29,6 +29,11 @@ export default {
                 "warning": "#EAB308",
                 "success": "#22C55E",
             },
+            spacing: {
+                'page': '1rem',             // 16px — standard horizontal page padding
+                'status-bar': '3rem',       // 48px — status bar offset
+                'bottom-nav': '5.5rem',     // 88px — bottom navigation clearance
+            },
             fontFamily: {
                 "display": ["Inter", "sans-serif"],
                 "body": ["Inter", "sans-serif"],

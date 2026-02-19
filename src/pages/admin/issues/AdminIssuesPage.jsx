@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../services/supabaseClient'
 import issueService from '../../../services/issueService'
 import AdminLayout from '../../../components/admin/AdminLayout'
+import logger from '../../../utils/logger'
 
 export default function AdminIssuesPage() {
     const navigate = useNavigate()
@@ -47,7 +48,7 @@ export default function AdminIssuesPage() {
         // Realtime subscription
         const channel = supabase.channel('admin-issues')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, () => {
-                console.log('Issues changed, refreshing...')
+                logger.debug('Issues changed, refreshing...')
                 fetchIssues()
             })
             .subscribe()

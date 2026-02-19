@@ -13,7 +13,7 @@ function DriverDepositVerification() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-6 pb-32 bg-background-light flex flex-col items-center pt-10">
+                <main className="flex-1 px-4 pt-4 pb-bottom-nav bg-background-light flex flex-col items-center pt-10">
                     <div className="relative w-28 h-28 bg-blue-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-blue-50/50">
                         <span className="material-symbols-outlined text-[#0d59f2] text-[48px] filled">hourglass_top</span>
                         <div className="absolute -right-2 -top-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center border-4 border-white">

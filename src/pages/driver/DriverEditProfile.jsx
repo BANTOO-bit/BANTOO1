@@ -101,7 +101,7 @@ function DriverEditProfile() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-background-light flex flex-col pb-24">
+            <div className="min-h-screen bg-background-light flex flex-col pb-bottom-nav">
                 <header className="px-4 pt-12 pb-4 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
                     <div className="h-5 w-28 bg-gray-200 rounded animate-pulse" />
@@ -131,7 +131,7 @@ function DriverEditProfile() {
         <div className="font-display bg-background-light text-slate-900 antialiased min-h-screen">
             <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-background-light">
                 {/* Header */}
-                <header className="bg-white pt-12 pb-4 px-6 sticky top-0 z-30 flex items-center justify-between border-b border-slate-100 shadow-sm">
+                <header className="bg-white pt-12 pb-4 px-4 sticky top-0 z-30 flex items-center justify-between border-b border-slate-100 shadow-sm">
                     <div className="w-16">
                         <button
                             onClick={() => navigate('/driver/profile')}
@@ -152,9 +152,9 @@ function DriverEditProfile() {
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto pb-32">
+                <main className="flex-1 overflow-y-auto pb-bottom-nav">
                     {/* Profile Photo Edit */}
-                    <div className="flex flex-col items-center pt-8 pb-8 px-6 bg-white border-b border-slate-100 mb-4">
+                    <div className="flex flex-col items-center pt-8 pb-8 px-4 bg-white border-b border-slate-100 mb-4">
                         <div className="relative group cursor-pointer">
                             <label htmlFor="avatar-upload" className="cursor-pointer">
                                 <div

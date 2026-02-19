@@ -50,7 +50,7 @@ export const merchantService = {
                 .eq('is_available', true)
                 .eq('category', targetCategory)
 
-            console.log(`[DEBUG] GetMenusByCategory: ${targetCategory}, Found: ${data?.length}`)
+            logger.debug(`[DEBUG] GetMenusByCategory: ${targetCategory}, Found: ${data?.length}`)
 
             if (error) throw error
 

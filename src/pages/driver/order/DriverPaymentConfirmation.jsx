@@ -112,7 +112,7 @@ function DriverPaymentConfirmation() {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col pb-24 bg-background-light px-4 pt-4">
+            <main className="flex-1 flex flex-col pb-bottom-nav bg-background-light px-4 pt-4">
                 {/* Customer Info */}
                 <div className="flex gap-3 mb-4 items-center">
                     <div className="bg-blue-50 text-blue-600 rounded-full size-10 shrink-0 flex items-center justify-center border border-blue-100">

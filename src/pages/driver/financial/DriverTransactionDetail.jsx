@@ -41,7 +41,7 @@ function DriverTransactionDetail() {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 p-4 pb-24 bg-background-light flex flex-col gap-4">
+                <main className="flex-1 p-4 pb-bottom-nav bg-background-light flex flex-col gap-4">
                     {/* Status Card */}
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
                         <div className="flex justify-between items-start">
@@ -73,7 +73,7 @@ function DriverTransactionDetail() {
                     </div>
 
                     {/* Route Card */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <div className="bg-white rounded-2xl px-4 pt-4 shadow-sm border border-slate-100">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Rute Pengiriman</h4>
                         <div className="relative pl-2">
                             <div className="absolute left-[11px] top-3 bottom-8 w-0.5 bg-slate-100 border-l border-dashed border-slate-300"></div>
@@ -104,7 +104,7 @@ function DriverTransactionDetail() {
                     </div>
 
                     {/* Financial Details */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <div className="bg-white rounded-2xl px-4 pt-4 shadow-sm border border-slate-100">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Rincian Pembayaran</h4>
 
                         {/* COD Warning/Info Card */}
@@ -131,7 +131,7 @@ function DriverTransactionDetail() {
                     </div>
 
                     {/* Proof of Payment */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <div className="bg-white rounded-2xl px-4 pt-4 shadow-sm border border-slate-100">
                         <div className="flex justify-between items-center mb-3">
                             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bukti Pembayaran</h4>
                             <span className="text-[10px] text-slate-400 font-medium bg-slate-50 px-2 py-0.5 rounded-full">{transaction.proofTime}</span>

@@ -177,7 +177,7 @@ function DriverNotificationDetailPage() {
                     </header>
 
                     {/* Main Content */}
-                    <main className="flex-grow flex flex-col items-center px-6 pt-8 pb-24 text-center">
+                    <main className="flex-grow flex flex-col items-center px-6 pt-8 pb-bottom-nav text-center">
                         <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mb-6">
                             <span className="material-symbols-outlined text-purple-600 text-5xl">security</span>
                         </div>

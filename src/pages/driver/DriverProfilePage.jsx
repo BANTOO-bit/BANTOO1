@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import driverService from '../../services/driverService'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
+import logger from '../../utils/logger'
 
 function DriverProfilePage() {
     const navigate = useNavigate()
@@ -15,9 +16,9 @@ function DriverProfilePage() {
         const fetchDriverData = async () => {
             if (!user?.id) return
             try {
-                console.log('Fetching driver profile...')
+                logger.debug('Fetching driver profile...')
                 const profile = await driverService.getProfile()
-                console.log('Driver profile loaded:', profile)
+                logger.debug('Driver profile loaded:', profile)
                 setDriverData(profile)
             } catch (error) {
                 if (process.env.NODE_ENV === 'development') console.error('Failed to fetch driver profile:', error)
@@ -31,7 +32,7 @@ function DriverProfilePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background-light flex flex-col pb-24">
+            <div className="min-h-screen bg-background-light flex flex-col pb-bottom-nav">
                 <div className="bg-primary/10 px-4 pt-14 pb-8 flex flex-col items-center gap-3">
                     <div className="w-20 h-20 rounded-full bg-gray-200 animate-pulse" />
                     <div className="h-5 w-36 bg-gray-200 rounded animate-pulse" />
@@ -87,7 +88,7 @@ function DriverProfilePage() {
         <div className="font-display bg-background-light text-slate-900 antialiased min-h-screen">
             <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-background-light">
                 {/* Header */}
-                <header className="bg-white pt-12 pb-4 px-6 sticky top-0 z-30 flex items-center gap-4 border-b border-slate-100 shadow-sm">
+                <header className="bg-white pt-12 pb-4 px-4 sticky top-0 z-30 flex items-center gap-4 border-b border-slate-100 shadow-sm">
                     <button
                         onClick={() => navigate('/driver/account')}
                         className="flex items-center justify-center w-8 h-8 -ml-2 rounded-full text-slate-700 hover:bg-slate-50"
@@ -113,7 +114,7 @@ function DriverProfilePage() {
                     */}
 
                     {/* Profile Photo Section */}
-                    <div className="flex flex-col items-center pt-8 pb-8 px-6 bg-white border-b border-slate-100 mb-4">
+                    <div className="flex flex-col items-center pt-8 pb-8 px-4 bg-white border-b border-slate-100 mb-4">
                         <div className="relative">
                             <div
                                 className="bg-center bg-no-repeat bg-cover rounded-full size-32 ring-4 ring-slate-50 shadow-xl"

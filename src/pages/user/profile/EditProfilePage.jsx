@@ -115,7 +115,7 @@ function EditProfilePage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-background-light pb-[100px]">
+        <div className="min-h-screen flex flex-col bg-background-light pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-card-light px-4 pt-12 pb-4 border-b border-border-color shadow-sm">
                 <div className="relative flex items-center justify-center min-h-[44px]">

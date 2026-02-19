@@ -5,6 +5,7 @@ import AdminWithdrawalModal from '../../../components/admin/AdminWithdrawalModal
 import { financeService } from '../../../services/financeService'
 import { exportService } from '../../../services/exportService'
 import { useAuth } from '../../../context/AuthContext'
+import logger from '../../../utils/logger'
 
 export default function AdminWithdrawalsPage() {
     const [activeTab, setActiveTab] = useState('pending') // 'pending', 'approved', 'rejected'
@@ -21,7 +22,7 @@ export default function AdminWithdrawalsPage() {
         // Realtime subscription
         const channel = supabase.channel('admin-withdrawals')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
-                console.log('Withdrawals changed, refreshing...')
+                logger.debug('Withdrawals changed, refreshing...')
                 fetchWithdrawals()
             })
             .subscribe()

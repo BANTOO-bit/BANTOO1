@@ -96,7 +96,7 @@ function MerchantRegistrationStep2() {
                 </h1>
             </header>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar p-5 pb-32">
+            <main className="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-bottom-nav">
                 <ProgressBar currentStep={2} totalSteps={2} />
 
                 <div className="mb-6">
@@ -224,7 +224,7 @@ function MerchantRegistrationStep2() {
                 </form>
             </main>
 
-            <div className="absolute bottom-0 left-0 right-0 p-5 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20">
+            <div className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20">
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}

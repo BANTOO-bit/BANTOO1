@@ -20,7 +20,7 @@ function DriverWithdrawalConfirm() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-5 pb-24 flex flex-col gap-6">
+                <main className="flex-1 px-4 pt-4 pb-bottom-nav flex flex-col gap-6">
                     <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
                         <div className="p-8 flex flex-col items-center border-b border-slate-100 bg-slate-50/50">
                             <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Total Penarikan</p>

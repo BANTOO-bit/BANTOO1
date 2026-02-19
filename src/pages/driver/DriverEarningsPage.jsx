@@ -206,7 +206,7 @@ function DriverEarningsPage() {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 p-4 pb-24 bg-background-light flex flex-col gap-4">
+                <main className="flex-1 p-4 pb-bottom-nav bg-background-light flex flex-col gap-4">
                     {/* Driver Earnings Card */}
                     <div className="w-full rounded-2xl bg-[#0d59f2] text-white p-5 shadow-lg shadow-[#0d59f2]/20 relative overflow-hidden">
                         <div className="absolute -right-4 -top-4 opacity-10">

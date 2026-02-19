@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { reviewService } from '../../../services/reviewService'
 import merchantService from '../../../services/merchantService'
+import logger from '../../../utils/logger'
 
 function MerchantReviewsPage() {
     const navigate = useNavigate()
@@ -56,7 +57,7 @@ function MerchantReviewsPage() {
     }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center justify-center relative border-b border-gray-200 dark:border-gray-800">
                 <button
@@ -207,7 +208,7 @@ function MerchantReviewsPage() {
                                         onClick={() => {
                                             // Handle reply logic - maybe open modal
                                             // For now just console log
-                                            console.log('Reply to', review.id)
+                                            logger.debug('Reply to', review.id)
                                         }}
                                         className="self-end mt-2 px-4 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-primary hover:bg-orange-100 transition-colors text-xs font-bold flex items-center gap-1"
                                     >

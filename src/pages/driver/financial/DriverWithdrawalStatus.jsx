@@ -13,7 +13,7 @@ function DriverWithdrawalStatus() {
                     </div>
                 </header>
 
-                <main className="flex-1 p-6 pb-24 flex flex-col items-center justify-center text-center gap-8">
+                <main className="flex-1 px-4 pt-4 pb-bottom-nav flex flex-col items-center justify-center text-center gap-8">
                     <div className="relative w-32 h-32 flex items-center justify-center bg-blue-50 rounded-full mb-2">
                         <div className="absolute w-full h-full rounded-full border-4 border-blue-100 animate-pulse"></div>
                         <span className="material-symbols-outlined text-[#0d59f2] text-6xl">hourglass_top</span>

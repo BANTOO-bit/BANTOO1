@@ -39,7 +39,7 @@ function RegistrationStatusPage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-background-light dark:bg-background-dark relative pb-24">
+        <div className="min-h-screen flex flex-col bg-background-light dark:bg-background-dark relative pb-bottom-nav">
             {/* Header */}
             <header className="bg-white dark:bg-card-dark px-4 pt-12 pb-4 sticky top-0 z-20 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
                 <button

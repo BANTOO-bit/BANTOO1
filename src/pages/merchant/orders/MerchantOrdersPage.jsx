@@ -13,6 +13,7 @@ import OrderCardSkeleton from '../../../components/shared/OrderCardSkeleton'
 import EmptyState from '../../../components/shared/EmptyState'
 import { useToast } from '../../../context/ToastContext'
 import { handleError, handleSuccess } from '../../../utils/errorHandler'
+import logger from '../../../utils/logger'
 
 function MerchantOrdersPage() {
     const navigate = useNavigate()
@@ -149,13 +150,13 @@ function MerchantOrdersPage() {
                 table: 'orders',
                 filter: `merchant_id=eq.${user.merchantId}`
             }, (payload) => {
-                console.log('New order received:', payload.new)
+                logger.debug('New order received:', payload.new)
 
                 // Show notification for new order
                 if (payload.new.status === 'pending') {
                     // Play notification sound
                     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')
-                    audio.play().catch(e => console.log('Audio play failed:', e))
+                    audio.play().catch(e => logger.debug('Audio play failed:', e))
 
                     addNotification({
                         type: 'success',
@@ -178,7 +179,7 @@ function MerchantOrdersPage() {
                 table: 'orders',
                 filter: `merchant_id=eq.${user.merchantId}`
             }, (payload) => {
-                console.log('Order updated:', payload.new)
+                logger.debug('Order updated:', payload.new)
 
                 // Refresh current tab if order status changed
                 const statusMap = {
@@ -382,7 +383,7 @@ function MerchantOrdersPage() {
     }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center justify-between border-b border-transparent dark:border-gray-800">
                 <div className="w-8"></div>

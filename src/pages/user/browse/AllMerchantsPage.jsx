@@ -82,7 +82,7 @@ function AllMerchantsPage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-background-light pb-[88px]">
+        <div className="min-h-screen flex flex-col bg-background-light pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-20 bg-background-light/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center justify-between border-b border-border-color">
                 <button

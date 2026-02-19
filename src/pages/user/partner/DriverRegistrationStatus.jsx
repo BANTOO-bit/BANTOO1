@@ -11,7 +11,7 @@ function DriverRegistrationStatus() {
                 </h1>
             </header>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col items-center justify-center pb-32">
+            <main className="flex-1 overflow-y-auto no-scrollbar px-4 pt-4 flex flex-col items-center justify-center pb-bottom-nav">
                 {/* Animated Illustration */}
                 <div className="relative w-48 h-48 mb-8 flex items-center justify-center">
                     <div className="absolute inset-0 bg-primary/5 rounded-full animate-pulse"></div>
@@ -39,7 +39,7 @@ function DriverRegistrationStatus() {
                 <div className="mt-8 w-16 h-1 bg-gray-100 dark:bg-gray-800 rounded-full"></div>
             </main>
 
-            <div className="absolute bottom-0 left-0 right-0 p-5 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20 flex flex-col gap-3">
+            <div className="absolute bottom-0 left-0 right-0 px-4 pt-4 bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-20 flex flex-col gap-3">
                 <button
                     onClick={() => navigate('/')}
                     className="w-full bg-primary hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl active:shadow-none active:scale-[0.99] transition-all flex items-center justify-center group"

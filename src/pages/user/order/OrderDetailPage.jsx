@@ -6,6 +6,7 @@ import { useCart } from '../../../context/CartContext'
 import { useNotification } from '../../../context/NotificationsContext'
 import { supabase } from '../../../services/supabaseClient'
 import orderService from '../../../services/orderService'
+import logger from '../../../utils/logger'
 import { formatOrderId, generateOrderId } from '../../../utils/orderUtils'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 
@@ -76,7 +77,7 @@ function OrderDetailPage() {
 
                 setOrder(transformedOrder)
             } catch (err) {
-                console.error('Error fetching order:', err)
+                logger.error('Error fetching order', err, 'OrderDetailPage')
                 setError(err.message || 'Gagal memuat detail pesanan')
             } finally {
                 setIsLoading(false)
@@ -90,7 +91,7 @@ function OrderDetailPage() {
     useEffect(() => {
         if (!order?.dbId) return
 
-        console.log('Subscribing to order updates:', order.dbId)
+        logger.debug('Subscribing to order updates:', order.dbId)
 
         // Subscribe to this specific order
         const channel = supabase
@@ -101,7 +102,7 @@ function OrderDetailPage() {
                 table: 'orders',
                 filter: `id=eq.${order.dbId}`
             }, (payload) => {
-                console.log('Order status updated:', payload.new)
+                logger.debug('Order status updated:', payload.new)
 
                 // Status change messages
                 const statusMessages = {
@@ -136,7 +137,7 @@ function OrderDetailPage() {
 
         // Cleanup subscription
         return () => {
-            console.log('Unsubscribing from order:', order.dbId)
+            logger.debug('Unsubscribing from order:', order.dbId)
             channel.unsubscribe()
         }
     }, [order?.dbId, addNotification])

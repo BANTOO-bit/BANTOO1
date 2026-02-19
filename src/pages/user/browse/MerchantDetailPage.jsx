@@ -189,7 +189,7 @@ function MerchantDetailPage() {
     const isShopOpen = currentMerchant?.isOpen
 
     return (
-        <div className="relative min-h-screen flex flex-col bg-background-light pb-24">
+        <div className="relative min-h-screen flex flex-col bg-background-light pb-bottom-nav">
             {/* Hero Image with Back Button */}
             <div className="relative h-48 w-full">
                 <img

@@ -59,7 +59,7 @@ function ProfilePage() {
         phone: user.phone || user.user_metadata?.phone || '-',
         avatar: user.user_metadata?.avatar_url || "https://ui-avatars.com/api/?name=" + (user.user_metadata?.full_name || 'User') + "&background=random",
         ...user // Include other props like merchantStatus
-    } : null // Don't show mock data if user is null (e.g. during logout)
+    } : null // Return null during logout to avoid rendering stale data
 
     const handleEditProfile = () => {
         navigate('/profile/edit')
@@ -99,7 +99,7 @@ function ProfilePage() {
 
 
     return (
-        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-[100px] bg-background-light">
+        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light">
             {/* Header with Profile Info */}
             <header className="px-4 pt-12 pb-4">
                 <div className="flex items-center gap-4">
@@ -145,7 +145,7 @@ function ProfilePage() {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto w-full p-5 flex flex-col gap-8 pb-32">
+            <main className="flex-1 overflow-y-auto w-full px-4 pt-4 flex flex-col gap-8 pb-bottom-nav">
                 {/* Aktivitas Saya */}
                 <div>
                     <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 pl-1">

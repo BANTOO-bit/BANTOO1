@@ -103,7 +103,7 @@ function MerchantAddBankAccountPage() {
                 </button>
             </header>
 
-            <main className="flex flex-col gap-6 px-4 pt-6 pb-32">
+            <main className="flex flex-col gap-6 px-4 pt-6 pb-bottom-nav">
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-text-main dark:text-gray-200">Bank atau E-Wallet</label>

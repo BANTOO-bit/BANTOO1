@@ -182,7 +182,7 @@ function MerchantMenuPage() {
     // Empty State
     if (!isLoading && menuItems.length === 0) {
         return (
-            <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+            <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
                 <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 flex flex-col gap-4 border-b border-transparent dark:border-gray-800">
                     <div className="flex items-center justify-center relative">
                         <h1 className="text-xl font-bold text-text-main dark:text-white leading-tight text-center">Kelola Menu</h1>
@@ -219,7 +219,7 @@ function MerchantMenuPage() {
     }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-10 pb-4 flex flex-col gap-4 border-b border-transparent dark:border-gray-800">
                 <div className="flex items-center justify-between relative">

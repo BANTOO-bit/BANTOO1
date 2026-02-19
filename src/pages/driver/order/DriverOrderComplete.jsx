@@ -31,7 +31,7 @@ function DriverOrderComplete() {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col pb-32 bg-background-light px-5 pt-10">
+            <main className="flex-1 flex flex-col pb-bottom-nav bg-background-light px-5 pt-10">
                 {/* Success Icon */}
                 <div className="flex flex-col items-center justify-center mb-10 text-center">
                     <div className="bg-green-100 rounded-full p-4 mb-4 ring-4 ring-green-50">

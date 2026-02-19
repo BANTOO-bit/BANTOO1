@@ -16,7 +16,7 @@ function HomePage() {
     }
 
     return (
-        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-[88px] bg-background-light">
+        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light">
             <Header />
             <AddressSelector />
             <SearchBar />

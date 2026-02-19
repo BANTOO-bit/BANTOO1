@@ -43,7 +43,7 @@ function MerchantAccountInfoPage() {
     }, [user])
 
     if (loading) return (
-        <div className="bg-background-light dark:bg-background-dark min-h-screen flex flex-col pb-[88px]">
+        <div className="bg-background-light dark:bg-background-dark min-h-screen flex flex-col pb-bottom-nav">
             <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 border-b border-transparent dark:border-gray-800">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
@@ -72,7 +72,7 @@ function MerchantAccountInfoPage() {
     }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
             <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center justify-between border-b border-transparent dark:border-gray-800">
                 <button
                     onClick={() => navigate(-1)}

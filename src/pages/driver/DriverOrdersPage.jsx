@@ -146,7 +146,7 @@ function DriverOrdersPage() {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 bg-background-light px-4 py-4 pb-24">
+                <main className="flex-1 bg-background-light px-4 py-4 pb-bottom-nav">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20">
                             <div className="w-8 h-8 border-4 border-slate-200 border-t-[#0d59f2] rounded-full animate-spin mb-4"></div>

@@ -188,7 +188,7 @@ function DriverIncomingOrder() {
             </header>
 
             {/* Main Content (Blurred) */}
-            <main className="flex-1 pb-24 bg-background-light opacity-50 blur-[2px] pointer-events-none select-none">
+            <main className="flex-1 pb-bottom-nav bg-background-light opacity-50 blur-[2px] pointer-events-none select-none">
                 <div className="p-4 pb-2">
                     <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-green-200 bg-green-50/60 p-5 shadow-none">
                         <div className="flex w-full items-center justify-between">

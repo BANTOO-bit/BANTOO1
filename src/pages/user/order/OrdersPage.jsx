@@ -184,7 +184,7 @@ function OrdersPage() {
     }
 
     return (
-        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-[100px] bg-background-light dark:bg-background-dark">
+        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light dark:bg-background-dark">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-card-light dark:bg-card-dark px-4 pt-12 pb-4 border-b border-border-color dark:border-gray-800">
                 <div className="relative flex items-center justify-center min-h-[40px]">

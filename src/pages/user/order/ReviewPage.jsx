@@ -131,7 +131,7 @@ function ReviewPage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-background-light pb-32">
+        <div className="min-h-screen flex flex-col bg-background-light pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white px-4 pt-12 pb-4 border-b border-border-color">
                 <div className="relative flex items-center justify-center min-h-[40px]">

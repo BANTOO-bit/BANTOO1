@@ -176,7 +176,7 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto pb-24 scroll-smooth">
+            <main className="flex-1 overflow-y-auto pb-bottom-nav scroll-smooth">
                 {/* Map Preview Section - Now Interactive */}
                 <div className="relative w-full h-[40vh] min-h-[300px] bg-slate-200">
 

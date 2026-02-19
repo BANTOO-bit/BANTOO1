@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../services/supabaseClient'
 import AdminLayout from '../../../components/admin/AdminLayout'
+import logger from '../../../utils/logger'
 
 export default function AdminDriversEditPage() {
     const { id } = useParams()

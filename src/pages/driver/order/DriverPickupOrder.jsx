@@ -120,7 +120,7 @@ function DriverPickupOrder() {
                 </div>
             </header>
 
-            <main className="flex-1 pb-32 bg-background-light px-4 pt-4 flex flex-col gap-4">
+            <main className="flex-1 pb-bottom-nav bg-background-light px-4 pt-4 flex flex-col gap-4">
                 {/* Map: Route to Merchant */}
                 <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: '200px' }}>
                     <TrackingMap

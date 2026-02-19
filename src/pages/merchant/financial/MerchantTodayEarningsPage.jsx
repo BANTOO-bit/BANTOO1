@@ -107,7 +107,7 @@ function MerchantTodayEarningsPage() {
 
     if (loading) {
         return (
-            <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+            <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
                 <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center border-b border-transparent dark:border-gray-800">
                     <div className="relative w-full flex items-center justify-center">
                         <button onClick={() => navigate('/merchant/dashboard')} className="absolute left-0 p-2 -ml-2 text-text-main dark:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
@@ -128,7 +128,7 @@ function MerchantTodayEarningsPage() {
     }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-[88px]">
+        <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav">
             {/* Header */}
             <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center border-b border-transparent dark:border-gray-800">
                 <div className="relative w-full flex items-center justify-center">
