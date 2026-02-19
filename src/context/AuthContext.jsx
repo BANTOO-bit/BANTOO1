@@ -273,6 +273,11 @@ export function AuthProvider({ children }) {
         }
         localStorage.removeItem('user_last_active_role')
 
+        // H-1.1: Clear cart data on logout to prevent stale items
+        localStorage.removeItem('bantoo_cart')
+        localStorage.removeItem('bantoo_cart_merchant')
+        localStorage.removeItem('bantoo_merchant_notes')
+
         // #6: Cleanup push notification subscription on logout
         if (pushCleanupRef.current) {
             pushCleanupRef.current()

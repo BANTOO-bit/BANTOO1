@@ -67,28 +67,41 @@ export const orderService = {
             notes: item.notes || null
         }))
 
-        // Try RPC first (server-side price calculation)
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('create_order', {
-            p_merchant_id: merchantId,
-            p_items: orderItems,
-            p_delivery_address: deliveryAddress,
-            p_delivery_detail: deliveryDetail || null,
-            p_customer_name: customerName,
-            p_customer_phone: customerPhone,
-            p_customer_lat: customerLat || null,
-            p_customer_lng: customerLng || null,
-            p_payment_method: paymentMethod,
-            p_promo_code: promoCode,
-            p_notes: notes
-        })
+        // H-2.2: Timeout guard (15 seconds) for order creation
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-        if (rpcError) {
-            // RPC failed — do not fallback to client-side
-            console.error('RPC create_order failed:', rpcError)
-            throw new Error(rpcError.message || 'Gagal membuat pesanan. Silakan coba lagi.')
+        try {
+            // Server-side price calculation via RPC
+            const { data: rpcResult, error: rpcError } = await supabase.rpc('create_order', {
+                p_merchant_id: merchantId,
+                p_items: orderItems,
+                p_delivery_address: deliveryAddress,
+                p_delivery_detail: deliveryDetail || null,
+                p_customer_name: customerName,
+                p_customer_phone: customerPhone,
+                p_customer_lat: customerLat || null,
+                p_customer_lng: customerLng || null,
+                p_payment_method: paymentMethod,
+                p_promo_code: promoCode,
+                p_notes: notes
+            })
+
+            if (rpcError) {
+                clearTimeout(timeoutId)
+                console.error('RPC create_order failed:', rpcError)
+                throw new Error(rpcError.message || 'Gagal membuat pesanan. Silakan coba lagi.')
+            }
+
+            clearTimeout(timeoutId)
+            return rpcResult
+        } catch (err) {
+            clearTimeout(timeoutId)
+            if (err.name === 'AbortError') {
+                throw new Error('Koneksi timeout. Periksa jaringan Anda dan coba lagi.')
+            }
+            throw err
         }
-
-        return rpcResult
     },
 
     /**
@@ -520,7 +533,56 @@ export const orderService = {
     },
 
     /** Order timeout in minutes */
-    ORDER_TIMEOUT_MINUTES: 15
+    ORDER_TIMEOUT_MINUTES: 15,
+
+    /**
+     * H-6.2: Reassign stale driver orders (driver inactive too long)
+     * @param {number} timeoutMinutes - Minutes before order is considered stale
+     */
+    async reassignStaleDriverOrders(timeoutMinutes = 30) {
+        try {
+            const { data, error } = await supabase.rpc('auto_reassign_stale_driver_orders', {
+                p_timeout_minutes: timeoutMinutes
+            })
+            if (error) {
+                console.warn('Stale driver reassign RPC failed:', error.message)
+                return { success: false, reassigned_count: 0 }
+            }
+            return data
+        } catch (err) {
+            console.error('Error reassigning stale driver orders:', err)
+            return { success: false, reassigned_count: 0 }
+        }
+    },
+
+    /**
+     * C2/H-4.2: Confirm COD payment (driver confirms cash received)
+     * @param {string} orderId
+     */
+    async confirmCodPayment(orderId) {
+        const { data, error } = await supabase.rpc('confirm_cod_payment', {
+            p_order_id: orderId
+        })
+        if (error) throw new Error(error.message || 'Gagal konfirmasi pembayaran COD')
+        return data
+    },
+
+    /**
+     * H-4.2: Raise a dispute for an order
+     * @param {string} orderId
+     * @param {string} reason
+     */
+    async raiseDispute(orderId, reason) {
+        const { data, error } = await supabase.rpc('raise_order_dispute', {
+            p_order_id: orderId,
+            p_reason: reason
+        })
+        if (error) throw new Error(error.message || 'Gagal mengajukan dispute')
+        return data
+    },
+
+    /** Driver order timeout (stale check) in minutes */
+    DRIVER_TIMEOUT_MINUTES: 30
 }
 
 export default orderService

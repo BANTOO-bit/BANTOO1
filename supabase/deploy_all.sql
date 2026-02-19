@@ -1018,6 +1018,10 @@ BEGIN
     IF p_status = 'cancelled' AND v_order.status NOT IN ('pending', 'accepted', 'preparing') THEN
         RETURN jsonb_build_object('success', false, 'message', 'Pesanan sudah tidak bisa dibatalkan');
     END IF;
+    -- H-9.1: completed only from delivered
+    IF p_status = 'completed' AND v_order.status != 'delivered' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Pesanan harus berstatus delivered untuk diselesaikan');
+    END IF;
 
     -- Apply update with server-side timestamps
     IF p_status = 'accepted' THEN
@@ -1051,6 +1055,10 @@ BEGIN
                 UPDATE public.orders SET payment_status = 'refunded' WHERE id = p_order_id;
             END IF;
         END IF;
+    ELSIF p_status = 'completed' THEN
+        -- H-9.1: Mark as completed
+        UPDATE public.orders SET status = 'completed', updated_at = NOW()
+        WHERE id = p_order_id;
     ELSE
         -- Generic update for other statuses (driver statuses handled by driver_update_order_status)
         UPDATE public.orders SET status = p_status, updated_at = NOW() WHERE id = p_order_id;
@@ -1870,6 +1878,21 @@ USING (
     )
 );
 
+
+-- ==========================================
+-- H-12.2: PERFORMANCE INDEXES
+-- ==========================================
+
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_merchant_id ON public.orders(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_orders_driver_id ON public.orders(driver_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON public.orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_status_created ON public.orders(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_menu_items_merchant_id ON public.menu_items(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_drivers_user_id ON public.drivers(user_id);
+CREATE INDEX IF NOT EXISTS idx_drivers_active ON public.drivers(is_active) WHERE is_active = true;
 
 -- ==========================================
 -- DEPLOYMENT COMPLETE!
