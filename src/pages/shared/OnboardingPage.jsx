@@ -6,110 +6,92 @@ const onboardingData = [
         title: "Makanan Segar Diantar",
         description: "Temukan restoran terbaik di sekitarmu dan nikmati makanan segar langsung ke depan pintu.",
         image: "/images/onboarding-food.jpg",
-        gradient: "from-blue-600/90 to-blue-800/90"
+        badge: "1000+ Restoran Partner",
+        badgeIcon: "verified"
     },
     {
         id: 2,
         title: "Lacak Pesananmu",
         description: "Update real-time status pengiriman. Kamu selalu tahu di mana pesananmu berada.",
         image: null,
-        isMapIllustration: true,
-        gradient: "from-sky-50 to-blue-50"
+        isMapSlide: true,
+        badge: null,
+        badgeIcon: null
     },
     {
         id: 3,
         title: "Bayar Mudah & Aman",
         description: "Nikmati kemudahan pembayaran dengan berbagai metode. Keamananmu prioritas kami.",
         image: "/images/onboarding-payment.jpg",
-        gradient: "from-emerald-600/90 to-emerald-800/90"
+        badge: "100% Transaksi Aman",
+        badgeIcon: "verified_user"
     }
 ]
 
 function MapIllustration() {
     return (
-        <div className="w-full aspect-[4/3] relative overflow-hidden rounded-3xl shadow-2xl shadow-primary/20 bg-gradient-to-br from-blue-50 to-sky-50 border border-white/80 ring-1 ring-black/5">
-            <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-                <rect className="fill-blue-50/80" height="300" width="400"></rect>
-                <path className="fill-emerald-500/8" d="M 280 160 L 450 160 L 450 350 L 280 350 Z"></path>
-                <circle className="fill-blue-500/5" cx="20" cy="20" r="100"></circle>
-                <g className="stroke-white" strokeLinecap="round" strokeWidth="26">
-                    <line x1="120" x2="120" y1="-20" y2="350"></line>
-                    <line x1="280" x2="280" y1="-20" y2="350"></line>
-                    <line x1="-20" x2="450" y1="100" y2="100"></line>
-                    <line x1="-20" x2="450" y1="230" y2="230"></line>
-                </g>
-                <path className="drop-shadow-sm" d="M 120 350 L 120 230 Q 120 100 280 100 L 340 100" fill="none" stroke="#2979FF" strokeDasharray="10 6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="5"></path>
+        <div className="w-full aspect-[4/3] relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 border border-blue-100/50 shadow-lg">
+            {/* Grid pattern */}
+            <svg className="absolute inset-0 w-full h-full opacity-40" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Horizontal streets */}
+                <line x1="0" y1="80" x2="400" y2="80" stroke="#CBD5E1" strokeWidth="20" />
+                <line x1="0" y1="160" x2="400" y2="160" stroke="#CBD5E1" strokeWidth="20" />
+                <line x1="0" y1="240" x2="400" y2="240" stroke="#CBD5E1" strokeWidth="20" />
+                {/* Vertical streets */}
+                <line x1="100" y1="0" x2="100" y2="300" stroke="#CBD5E1" strokeWidth="20" />
+                <line x1="200" y1="0" x2="200" y2="300" stroke="#CBD5E1" strokeWidth="20" />
+                <line x1="300" y1="0" x2="300" y2="300" stroke="#CBD5E1" strokeWidth="20" />
+                {/* Buildings (light rectangles) */}
+                <rect x="30" y="20" width="40" height="30" rx="4" fill="#E2E8F0" />
+                <rect x="130" y="100" width="40" height="30" rx="4" fill="#DBEAFE" />
+                <rect x="230" y="20" width="40" height="30" rx="4" fill="#E2E8F0" />
+                <rect x="330" y="180" width="40" height="30" rx="4" fill="#DBEAFE" />
+                <rect x="30" y="180" width="40" height="30" rx="4" fill="#DBEAFE" />
+                <rect x="130" y="260" width="40" height="20" rx="4" fill="#E2E8F0" />
+                {/* Route dashed line */}
+                <path d="M 100 280 L 100 160 Q 100 140 120 140 L 280 140 Q 300 140 300 120 L 300 80" stroke="#2979FF" strokeWidth="4" strokeDasharray="8 6" strokeLinecap="round" fill="none" />
             </svg>
 
-            {/* Driver Icon */}
-            <div className="absolute top-[33.3%] left-[55%] transform -translate-x-1/2 -translate-y-1/2 z-20">
+            {/* Driver marker */}
+            <div className="absolute z-10" style={{ top: '45%', left: '42%' }}>
                 <div className="relative">
-                    <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center border-4 border-white text-white shadow-lg shadow-primary/30">
-                        <span className="material-symbols-outlined text-[24px]">two_wheeler</span>
+                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center border-3 border-white text-white shadow-lg shadow-primary/30">
+                        <span className="material-symbols-outlined text-xl">two_wheeler</span>
                     </div>
-                    <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-30"></div>
+                    <div className="absolute inset-0 rounded-full border-2 border-primary/40 animate-ping"></div>
                 </div>
-                <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-md border border-black/5">
-                    <p className="text-[10px] font-bold text-gray-800 whitespace-nowrap tracking-wide">Dalam perjalanan</p>
+                {/* Label */}
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded-lg shadow-md whitespace-nowrap">
+                    <p className="text-[10px] font-bold text-gray-700">Dalam perjalanan</p>
                 </div>
             </div>
 
-            {/* Location Pin */}
-            <div className="absolute top-[33.3%] left-[85%] transform -translate-x-1/2 -translate-y-[85%] z-20">
-                <span className="material-symbols-outlined text-5xl text-accent drop-shadow-xl relative z-10">location_on</span>
-                <div className="absolute top-[18px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rounded-full z-20"></div>
+            {/* Destination pin */}
+            <div className="absolute z-10" style={{ top: '18%', left: '72%' }}>
+                <span className="material-symbols-outlined text-4xl text-accent drop-shadow-lg" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
             </div>
 
-            {/* Live Badge */}
-            <div className="absolute bottom-4 left-4">
-                <div className="h-8 px-3 bg-white/90 backdrop-blur-sm rounded-lg flex items-center gap-2 border border-white/40 shadow-sm">
+            {/* Start pin */}
+            <div className="absolute z-10" style={{ top: '82%', left: '22%' }}>
+                <div className="w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
+            </div>
+
+            {/* Live badge */}
+            <div className="absolute bottom-3 left-3 z-10">
+                <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-                    <span className="text-[10px] font-semibold text-gray-600">Live</span>
+                    <span className="text-[10px] font-semibold text-gray-600">Live Tracking</span>
                 </div>
             </div>
-        </div>
-    )
-}
 
-function OnboardingScreen({ data, isActive }) {
-    const isImageSlide = !data.isMapIllustration && data.image
-
-    return (
-        <div className={`flex-1 w-full flex flex-col items-center justify-center px-4 transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-0'}`}>
-            {/* Image Container */}
-            <div className="w-full flex justify-center mb-10">
-                {data.isMapIllustration ? (
-                    <MapIllustration />
-                ) : (
-                    <div className="relative w-full aspect-[4/3] max-h-[35vh] rounded-3xl overflow-hidden shadow-2xl shadow-primary/20">
-                        <div
-                            className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-                            style={{ backgroundImage: `url("${data.image}")` }}
-                        ></div>
-                        <div className={`absolute inset-0 bg-gradient-to-t ${data.gradient}`}></div>
-                        {/* Overlay content badge */}
-                        <div className="absolute bottom-4 left-4 right-4">
-                            <div className="bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/20">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-white text-sm">verified</span>
-                                    <span className="text-white text-xs font-medium">
-                                        {data.id === 1 ? '1000+ Restoran Partner' : '100% Transaksi Aman'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Text Content */}
-            <div className="w-full flex flex-col items-center text-center space-y-3">
-                <h1 className="text-[28px] font-extrabold leading-tight tracking-tight text-text-main">
-                    {data.title}
-                </h1>
-                <p className="text-[15px] font-normal leading-relaxed text-text-secondary max-w-[300px]">
-                    {data.description}
-                </p>
+            {/* ETA badge */}
+            <div className="absolute bottom-3 right-3 z-10">
+                <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-sm">
+                    <span className="material-symbols-outlined text-primary text-sm">schedule</span>
+                    <span className="text-[10px] font-semibold text-gray-600">5 menit</span>
+                </div>
             </div>
         </div>
     )
@@ -122,7 +104,6 @@ function OnboardingPage({ onComplete }) {
     // Swipe gesture
     const touchStartX = useRef(0)
     const touchEndX = useRef(0)
-    const minSwipeDistance = 50
 
     const handleNext = useCallback(() => {
         if (isLastScreen) {
@@ -133,78 +114,103 @@ function OnboardingPage({ onComplete }) {
     }, [isLastScreen, onComplete])
 
     const handlePrev = useCallback(() => {
-        if (currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1)
-        }
+        if (currentIndex > 0) setCurrentIndex(prev => prev - 1)
     }, [currentIndex])
-
-    const handleSkip = () => onComplete?.()
 
     const onTouchStart = (e) => {
         touchStartX.current = e.targetTouches[0].clientX
         touchEndX.current = e.targetTouches[0].clientX
     }
-    const onTouchMove = (e) => {
-        touchEndX.current = e.targetTouches[0].clientX
-    }
+    const onTouchMove = (e) => { touchEndX.current = e.targetTouches[0].clientX }
     const onTouchEnd = () => {
         const distance = touchStartX.current - touchEndX.current
-        if (Math.abs(distance) >= minSwipeDistance) {
+        if (Math.abs(distance) >= 50) {
             distance > 0 ? handleNext() : handlePrev()
         }
     }
 
+    const slide = onboardingData[currentIndex]
+
     return (
         <div
-            className="relative min-h-screen flex flex-col bg-gradient-to-b from-white via-blue-50/30 to-white overflow-hidden"
+            className="min-h-screen flex flex-col bg-white"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
         >
-            {/* Decorative background shapes */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-32 left-0 w-48 h-48 bg-accent/5 rounded-full -translate-x-1/2"></div>
-
-            {/* Top bar: Logo + Skip */}
-            <div className="flex items-center justify-between px-4 pt-12 pb-2 z-10">
-                <img src="/images/bantoo-logo.png" alt="Bantoo" className="h-8 object-contain" />
+            {/* Top bar */}
+            <div className="flex items-center justify-between px-5 pt-12 pb-3">
+                <img src="/images/bantoo-logo.png" alt="Bantoo" className="h-10 object-contain" />
                 <button
-                    onClick={handleSkip}
-                    className="text-sm font-semibold text-text-secondary hover:text-primary transition-colors px-3 py-1.5 rounded-full hover:bg-primary/5"
+                    onClick={() => onComplete?.()}
+                    className="text-sm font-medium text-gray-400 hover:text-primary transition-colors px-3 py-1.5 rounded-lg"
                 >
                     Lewati
                 </button>
             </div>
 
-            {/* Current Screen */}
-            <OnboardingScreen
-                data={onboardingData[currentIndex]}
-                isActive={true}
-            />
+            {/* Slide Content */}
+            <div className="flex-1 flex flex-col items-center px-5">
+                {/* Image / Map */}
+                <div className="w-full mt-4 mb-8">
+                    {slide.isMapSlide ? (
+                        <MapIllustration />
+                    ) : (
+                        <div className="w-full aspect-[4/3] relative rounded-3xl overflow-hidden shadow-lg">
+                            <img
+                                src={slide.image}
+                                alt={slide.title}
+                                className="w-full h-full object-cover"
+                            />
+                            {/* Soft gradient overlay at bottom for badge readability */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                            {/* Badge */}
+                            {slide.badge && (
+                                <div className="absolute bottom-4 left-4 right-4">
+                                    <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/30">
+                                        <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>{slide.badgeIcon}</span>
+                                        <span className="text-white text-xs font-semibold">{slide.badge}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
 
-            {/* Bottom Section */}
-            <div className="w-full flex flex-col items-center px-4 pb-12 z-10">
+                {/* Text */}
+                <div className="w-full text-center mb-auto">
+                    <h1 className="text-[26px] font-extrabold text-gray-900 mb-3 leading-tight">
+                        {slide.title}
+                    </h1>
+                    <p className="text-[15px] text-gray-500 leading-relaxed max-w-[300px] mx-auto">
+                        {slide.description}
+                    </p>
+                </div>
+            </div>
+
+            {/* Bottom: Dots + Button */}
+            <div className="px-5 pb-10 pt-6">
                 {/* Pagination Dots */}
-                <div className="flex flex-row items-center justify-center gap-2.5 mb-8">
-                    {onboardingData.map((_, index) => (
+                <div className="flex items-center justify-center gap-2 mb-6">
+                    {onboardingData.map((_, i) => (
                         <button
-                            key={index}
-                            onClick={() => setCurrentIndex(index)}
-                            className={`rounded-full transition-all duration-300 ${index === currentIndex
-                                ? 'w-8 h-2.5 bg-primary shadow-md shadow-primary/30'
-                                : 'w-2.5 h-2.5 bg-gray-300 hover:bg-gray-400'
+                            key={i}
+                            onClick={() => setCurrentIndex(i)}
+                            className={`rounded-full transition-all duration-300 ${i === currentIndex
+                                ? 'w-7 h-2.5 bg-primary'
+                                : 'w-2.5 h-2.5 bg-gray-200'
                                 }`}
                         ></button>
                     ))}
                 </div>
 
-                {/* Action Button */}
+                {/* CTA */}
                 <button
                     onClick={handleNext}
-                    className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary active:scale-[0.98] text-white text-base font-bold flex items-center justify-center transition-all rounded-2xl gap-2 shadow-lg shadow-primary/25"
+                    className="w-full h-14 bg-primary hover:bg-blue-700 active:scale-[0.98] text-white text-base font-bold flex items-center justify-center transition-all rounded-2xl gap-2 shadow-md shadow-primary/20"
                 >
                     {isLastScreen ? 'Mulai Sekarang' : 'Selanjutnya'}
-                    <span className="material-symbols-outlined text-[20px]">
+                    <span className="material-symbols-outlined text-xl">
                         {isLastScreen ? 'rocket_launch' : 'arrow_forward'}
                     </span>
                 </button>
