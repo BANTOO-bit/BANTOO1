@@ -1,7 +1,10 @@
 import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import TermsModal from '../../components/shared/TermsModal'
 
 function WelcomePage() {
     const navigate = useNavigate()
+    const [showTerms, setShowTerms] = useState(false)
 
     return (
         <div className="min-h-screen flex flex-col bg-background-light">
@@ -13,15 +16,30 @@ function WelcomePage() {
                     <p className="text-center text-sm text-text-secondary mt-1">Pesan Makanan, Lebih Mudah</p>
                 </div>
 
-                {/* Illustration */}
-                <div className="relative w-full max-w-[300px] aspect-square mb-8">
-                    <div
-                        className="absolute inset-0 bg-cover bg-center bg-no-repeat rounded-3xl shadow-xl"
-                        style={{
-                            backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAKaMnuzw6OCaQob-yCG0cAWzpkdkBKnNcPBouWzAkv-6Jku60d_1TZUgjk0Z4dHfUUt-ZObkmne78hquQP4qYoVjtiNX8WkHASpFbsszhnIbshY31ArlsTCGTmuPsdjHGzaAWWZuv7DqRJqLk2pitY0q4wP1Mh-mXEI8lPe_VPun3jBVx0Ol4QBOen8kD4-bo4r8RLtZiZ4si0Jk9qe_vxiOKK16OiGJDE0qvl-nff6aa0iVoJiPCW94nPieco6SV11AI7AcF8xb7p")'
-                        }}
-                    ></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent rounded-3xl"></div>
+                {/* Illustration — unique SVG for Welcome (food delivery on motorbike) */}
+                <div className="relative w-full max-w-[280px] aspect-square mb-8">
+                    <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/10 dark:to-orange-900/20 border border-orange-100 dark:border-orange-900/30 shadow-xl flex items-center justify-center">
+                        {/* Delivery motorbike illustration */}
+                        <div className="relative">
+                            <div className="w-28 h-28 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span className="material-symbols-outlined text-primary text-[72px]">two_wheeler</span>
+                            </div>
+                            {/* Food bag */}
+                            <div className="absolute -top-2 -right-2 w-14 h-14 bg-primary rounded-2xl flex items-center justify-center shadow-lg transform rotate-12">
+                                <span className="material-symbols-outlined text-white text-3xl">shopping_bag</span>
+                            </div>
+                            {/* Speed lines */}
+                            <div className="absolute left-[-30px] top-1/2 -translate-y-1/2 space-y-2">
+                                <div className="w-6 h-0.5 bg-primary/30 rounded-full"></div>
+                                <div className="w-8 h-0.5 bg-primary/20 rounded-full"></div>
+                                <div className="w-5 h-0.5 bg-primary/30 rounded-full"></div>
+                            </div>
+                            {/* Location pin */}
+                            <div className="absolute -bottom-4 right-[-20px]">
+                                <span className="material-symbols-outlined text-red-500 text-3xl">location_on</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Welcome Text */}
@@ -56,11 +74,18 @@ function WelcomePage() {
                 {/* Terms Text */}
                 <p className="text-xs text-center text-text-secondary pt-4">
                     Dengan melanjutkan, Anda menyetujui{' '}
-                    <span className="text-primary font-medium">Syarat & Ketentuan</span>
+                    <button onClick={() => setShowTerms(true)} className="text-primary font-medium hover:underline">
+                        Syarat & Ketentuan
+                    </button>
                     {' '}dan{' '}
-                    <span className="text-primary font-medium">Kebijakan Privasi</span>
+                    <button onClick={() => setShowTerms(true)} className="text-primary font-medium hover:underline">
+                        Kebijakan Privasi
+                    </button>
                 </p>
             </div>
+
+            {/* Terms Modal */}
+            {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
         </div>
     )
 }

@@ -1,26 +1,26 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 const onboardingData = [
     {
         id: 1,
-        title: "Fresh Meals Delivered",
-        description: "Discover the best local restaurants and get fresh meals delivered right to your doorstep.",
-        image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAKaMnuzw6OCaQob-yCG0cAWzpkdkBKnNcPBouWzAkv-6Jku60d_1TZUgjk0Z4dHfUUt-ZObkmne78hquQP4qYoVjtiNX8WkHASpFbsszhnIbshY31ArlsTCGTmuPsdjHGzaAWWZuv7DqRJqLk2pitY0q4wP1Mh-mXEI8lPe_VPun3jBVx0Ol4QBOen8kD4-bo4r8RLtZiZ4si0Jk9qe_vxiOKK16OiGJDE0qvl-nff6aa0iVoJiPCW94nPieco6SV11AI7AcF8xb7p",
+        title: "Makanan Segar Diantar",
+        description: "Temukan restoran terbaik di sekitarmu dan nikmati makanan segar langsung ke depan pintu.",
+        image: "/images/onboarding-food.jpg",
         bgColor: "bg-[#FF6B00]"
     },
     {
         id: 2,
-        title: "Track Your Order",
-        description: "Real-time updates on your delivery status. Never wonder where your dinner is again.",
-        image: null, // Will use custom SVG map illustration
+        title: "Lacak Pesananmu",
+        description: "Update real-time status pengiriman. Kamu selalu tahu di mana pesananmu berada.",
+        image: null,
         bgColor: "bg-[#fff8f2]",
         isMapIllustration: true
     },
     {
         id: 3,
-        title: "Easy & Secure Payment",
-        description: "Enjoy hassle-free payments with multiple gateways. Your security is our top priority.",
-        image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBzyl7pdLnnnw5iv5GVM77jryzEAWQ0A9eyXVfyN7nNECDqOg8dVD4UahFNU_b8_o3C92vCd3lqaNz882fs7lgbzIAio3JZsd-TIuHoukHtU0sH7OYehIbCm7VH1amCM2YjnFYGs7CTPlPw0sy53Nv21iVn3jvahIaK2JcuFiIqabgoMb_RQjbkJ2dYAPlgQfAqR1h8om_IBKjGM_p60wynGL2sxCmsxTdp9of0ZEQ2brMPFYsSCjpSOiDHyy5fXTgoBzXld8zGxk3B",
+        title: "Bayar Mudah & Aman",
+        description: "Nikmati kemudahan pembayaran dengan berbagai metode. Keamananmu prioritas kami.",
+        image: "/images/onboarding-payment.jpg",
         bgColor: "bg-[#8CC9B8]"
     }
 ]
@@ -50,7 +50,7 @@ function MapIllustration() {
                     <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-30"></div>
                 </div>
                 <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-sm border border-black/5">
-                    <p className="text-[10px] font-bold text-gray-800 whitespace-nowrap tracking-wide">On the way</p>
+                    <p className="text-[10px] font-bold text-gray-800 whitespace-nowrap tracking-wide">Dalam perjalanan</p>
                 </div>
             </div>
 
@@ -71,7 +71,7 @@ function MapIllustration() {
     )
 }
 
-function OnboardingScreen({ data, currentIndex, totalScreens }) {
+function OnboardingScreen({ data }) {
     return (
         <div className="flex-1 w-full flex flex-col items-center justify-center px-4">
             {/* Image Container */}
@@ -106,20 +106,59 @@ function OnboardingPage({ onComplete }) {
     const [currentIndex, setCurrentIndex] = useState(0)
     const isLastScreen = currentIndex === onboardingData.length - 1
 
-    const handleNext = () => {
+    // Swipe gesture state
+    const touchStartX = useRef(0)
+    const touchEndX = useRef(0)
+    const minSwipeDistance = 50
+
+    const handleNext = useCallback(() => {
         if (isLastScreen) {
             onComplete?.()
         } else {
             setCurrentIndex(prev => prev + 1)
         }
-    }
+    }, [isLastScreen, onComplete])
+
+    const handlePrev = useCallback(() => {
+        if (currentIndex > 0) {
+            setCurrentIndex(prev => prev - 1)
+        }
+    }, [currentIndex])
 
     const handleSkip = () => {
         onComplete?.()
     }
 
+    // Touch handlers for swipe gesture
+    const onTouchStart = (e) => {
+        touchStartX.current = e.targetTouches[0].clientX
+        touchEndX.current = e.targetTouches[0].clientX
+    }
+
+    const onTouchMove = (e) => {
+        touchEndX.current = e.targetTouches[0].clientX
+    }
+
+    const onTouchEnd = () => {
+        const distance = touchStartX.current - touchEndX.current
+        if (Math.abs(distance) >= minSwipeDistance) {
+            if (distance > 0) {
+                // Swiped left → next
+                handleNext()
+            } else {
+                // Swiped right → prev
+                handlePrev()
+            }
+        }
+    }
+
     return (
-        <div className="relative min-h-screen flex flex-col bg-background-light overflow-hidden">
+        <div
+            className="relative min-h-screen flex flex-col bg-background-light overflow-hidden"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
             {/* Skip Button */}
             <button
                 onClick={handleSkip}
@@ -131,8 +170,6 @@ function OnboardingPage({ onComplete }) {
             {/* Current Screen */}
             <OnboardingScreen
                 data={onboardingData[currentIndex]}
-                currentIndex={currentIndex}
-                totalScreens={onboardingData.length}
             />
 
             {/* Bottom Section */}
@@ -142,9 +179,10 @@ function OnboardingPage({ onComplete }) {
                     {onboardingData.map((_, index) => (
                         <div
                             key={index}
-                            className={`h-2 rounded-full transition-all duration-300 ${index === currentIndex
+                            onClick={() => setCurrentIndex(index)}
+                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${index === currentIndex
                                 ? 'w-6 bg-primary'
-                                : 'w-2 bg-gray-300'
+                                : 'w-2 bg-gray-300 hover:bg-gray-400'
                                 }`}
                         ></div>
                     ))}
@@ -153,9 +191,12 @@ function OnboardingPage({ onComplete }) {
                 {/* Action Button */}
                 <button
                     onClick={handleNext}
-                    className="w-full h-14 bg-primary hover:opacity-90 active:scale-[0.98] text-white text-base font-medium flex items-center justify-center transition-all rounded-[28px]"
+                    className="w-full h-14 bg-primary hover:opacity-90 active:scale-[0.98] text-white text-base font-medium flex items-center justify-center transition-all rounded-[28px] gap-2"
                 >
-                    {isLastScreen ? 'Mulai' : 'Selanjutnya'}
+                    {isLastScreen ? 'Mulai Sekarang' : 'Selanjutnya'}
+                    <span className="material-symbols-outlined text-[20px]">
+                        {isLastScreen ? 'rocket_launch' : 'arrow_forward'}
+                    </span>
                 </button>
             </div>
         </div>

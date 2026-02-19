@@ -47,7 +47,7 @@ function LoginPage() {
     return (
         <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-4 pt-4 pb-4 shadow-sm">
+            <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-4 pt-12 pb-4 shadow-sm">
                 <div className="relative flex items-center justify-center">
                     <button
                         onClick={() => navigate(-1)}
@@ -60,7 +60,7 @@ function LoginPage() {
             </header>
 
             {/* Content */}
-            <main className="flex-1 px-6 py-8 overflow-y-auto">
+            <main className="flex-1 px-4 py-8 overflow-y-auto">
                 <div className="mb-8">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Selamat Datang Kembali!</h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400">

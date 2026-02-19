@@ -6,6 +6,7 @@ import useForm from '../../hooks/useForm'
 import { registerSchema } from '../../utils/validation'
 import FormField from '../../components/shared/FormField'
 import ButtonLoader from '../../components/shared/ButtonLoader'
+import TermsModal from '../../components/shared/TermsModal'
 import logger from '../../utils/logger'
 
 function RegisterPage() {
@@ -13,6 +14,7 @@ function RegisterPage() {
     const { register } = useAuth()
     const [showPassword, setShowPassword] = useState(false)
     const [acceptTerms, setAcceptTerms] = useState(false)
+    const [showTerms, setShowTerms] = useState(false)
 
     const {
         values,
@@ -52,7 +54,7 @@ function RegisterPage() {
     return (
         <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-4 pt-4 pb-4 shadow-sm">
+            <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-4 pt-12 pb-4 shadow-sm">
                 <div className="relative flex items-center justify-center">
                     <button
                         onClick={() => navigate(-1)}
@@ -165,7 +167,7 @@ function RegisterPage() {
                                 </div>
                             </div>
                             <span className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                                Saya menyetujui <span className="text-primary font-medium">Syarat & Ketentuan</span> Bantoo!
+                                Saya menyetujui <button type="button" onClick={() => setShowTerms(true)} className="text-primary font-medium hover:underline">Syarat & Ketentuan</button> Bantoo!
                             </span>
                         </label>
                         {errors.terms && <p className="text-xs text-red-500 mt-1.5 pl-8">{errors.terms}</p>}
@@ -204,6 +206,9 @@ function RegisterPage() {
                     </p>
                 </div>
             </main>
+
+            {/* Terms Modal */}
+            {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
         </div>
     )
 }
