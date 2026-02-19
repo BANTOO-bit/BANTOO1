@@ -74,6 +74,17 @@ function CheckoutPage() {
         setIsProcessing(true)
 
         try {
+            // C4: Validate cart items are still available before creating order
+            const validation = await orderService.validateCartItems(
+                cartItems.map(item => ({ productId: item.id, name: item.name }))
+            )
+            if (!validation.valid) {
+                const names = validation.unavailable_items.map(i => i.name).join(', ')
+                toast.error(`Beberapa item tidak tersedia: ${names}. Hapus dari keranjang dan coba lagi.`)
+                setIsProcessing(false)
+                return
+            }
+
             // Prepare order data
             const orderData = {
                 merchantId: effectiveMerchantId,

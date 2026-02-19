@@ -91,6 +91,35 @@ export const orderService = {
         return rpcResult
     },
 
+    /**
+     * C4: Validate cart items exist and are available before checkout.
+     * Calls server-side RPC to check against actual DB state.
+     * @param {Array} items - Array of { productId, name } from cart
+     * @returns {Object} { valid: boolean, unavailable_items: Array }
+     */
+    async validateCartItems(items) {
+        const rpcItems = items.map(item => ({
+            menu_item_id: item.productId || item.id,
+            name: item.name || 'Unknown'
+        }))
+
+        const { data, error } = await supabase.rpc('validate_cart_items', {
+            p_items: rpcItems
+        })
+
+        if (error) {
+            // If RPC not deployed, skip validation (graceful degradation)
+            if (error.code === '42883' || error.message?.includes('does not exist')) {
+                console.warn('RPC validate_cart_items not found, skipping validation')
+                return { valid: true, unavailable_items: [] }
+            }
+            console.warn('Cart validation failed:', error)
+            return { valid: true, unavailable_items: [] }
+        }
+
+        return data
+    },
+
 
 
     /**
@@ -252,144 +281,52 @@ export const orderService = {
 
     /**
      * Update order status via server-side RPC (timestamps computed server-side).
-     * Falls back to direct query if RPC not yet deployed.
+     * C5: No fallback — RPC must be deployed.
      */
     async updateStatus(orderId, status, additionalData = {}) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
-        // Try RPC first (server-side timestamps + role validation)
+        // Server-side timestamps + role validation via RPC
         const { data: rpcResult, error: rpcError } = await supabase.rpc('update_order_status', {
             p_order_id: orderId,
             p_status: status,
             p_additional: additionalData
         })
 
-        if (!rpcError && rpcResult) {
-            // RPC succeeded — return fresh order data
-            const { data: freshOrder } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('id', orderId)
-                .single()
-            return freshOrder || rpcResult
+        if (rpcError) {
+            console.error('RPC update_order_status failed:', rpcError)
+            throw new Error(rpcError.message || 'Gagal update status pesanan')
         }
 
-        // Fallback to direct query if RPC not deployed yet
-        if (rpcError?.code === '42883' || rpcError?.message?.includes('does not exist')) {
-            console.warn('RPC update_order_status not found, using direct query fallback')
-
-            // Fetch the order first to validate ownership
-            const { data: order, error: fetchError } = await supabase
-                .from('orders')
-                .select('id, status, customer_id, driver_id, merchant_id')
-                .eq('id', orderId)
-                .single()
-
-            if (fetchError || !order) throw new Error('Order not found')
-
-            // Validate caller has rights to update this order
-            const isCustomer = order.customer_id === user.id
-            const isDriver = order.driver_id === user.id
-
-            let isMerchant = false
-            if (order.merchant_id) {
-                const { data: merchant } = await supabase
-                    .from('merchants')
-                    .select('owner_id')
-                    .eq('id', order.merchant_id)
-                    .single()
-                isMerchant = merchant?.owner_id === user.id
-            }
-
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single()
-            const isAdmin = profile?.role === 'admin'
-
-            const allowedTransitions = {
-                'cancelled': [isCustomer, isMerchant, isAdmin],
-                'accepted': [isMerchant, isAdmin],
-                'preparing': [isMerchant, isAdmin],
-                'ready': [isMerchant, isAdmin],
-                'pickup': [isDriver, isAdmin],
-                'picked_up': [isDriver, isAdmin],
-                'delivering': [isDriver, isAdmin],
-                'delivered': [isDriver, isAdmin],
-                'completed': [isDriver, isCustomer, isAdmin]
-            }
-
-            const permissions = allowedTransitions[status] || [isAdmin]
-            if (!permissions.some(Boolean)) {
-                throw new Error('You do not have permission to update this order status')
-            }
-
-            // Use server time via Supabase — no client timestamps
-            const updateData = { status, updated_at: new Date().toISOString(), ...additionalData }
-
-            const { data, error } = await supabase
-                .from('orders')
-                .update(updateData)
-                .eq('id', orderId)
-                .select()
-                .single()
-
-            if (error) throw error
-            return data
-        }
-
-        throw rpcError || new Error('Gagal update status pesanan')
+        // Fetch fresh order data after update
+        const { data: freshOrder } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', orderId)
+            .single()
+        return freshOrder || rpcResult
     },
 
     /**
-     * Accept order (for driver) — uses RPC for atomic acceptance, falls back to direct query
+     * Accept order (for driver) — uses RPC for atomic acceptance.
+     * C5: No fallback — RPC must be deployed.
      */
     async acceptOrder(orderId) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
-        // Try RPC first (atomic — prevents race conditions)
+        // Atomic RPC — prevents race conditions via FOR UPDATE row lock
         const { data: rpcResult, error: rpcError } = await supabase.rpc('driver_accept_order', {
             p_order_id: orderId
         })
 
-        if (!rpcError && rpcResult) {
-            return rpcResult
+        if (rpcError) {
+            console.error('RPC driver_accept_order failed:', rpcError)
+            throw new Error(rpcError.message || 'Gagal menerima pesanan')
         }
 
-        // Fallback to direct query if RPC not deployed yet
-        if (rpcError?.code === '42883' || rpcError?.message?.includes('does not exist')) {
-            console.warn('RPC driver_accept_order not found, using direct query fallback')
-
-            const { data: order, error: fetchError } = await supabase
-                .from('orders')
-                .select('id, status, driver_id')
-                .eq('id', orderId)
-                .single()
-
-            if (fetchError || !order) throw new Error('Order not found')
-            if (order.driver_id) throw new Error('Pesanan sudah diambil driver lain')
-            if (order.status !== 'ready') throw new Error('Pesanan tidak tersedia untuk pickup')
-
-            const { data, error } = await supabase
-                .from('orders')
-                .update({
-                    driver_id: user.id,
-                    status: 'pickup',
-                    picked_up_at: new Date().toISOString()
-                })
-                .eq('id', orderId)
-                .is('driver_id', null)
-                .select()
-                .single()
-
-            if (error) throw new Error('Gagal menerima pesanan — mungkin sudah diambil')
-            return data
-        }
-
-        throw rpcError || new Error('Gagal menerima pesanan')
+        return rpcResult
     },
 
     /**

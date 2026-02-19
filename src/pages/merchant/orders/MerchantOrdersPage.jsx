@@ -35,6 +35,7 @@ function MerchantOrdersPage() {
     const [rejectReason, setRejectReason] = useState('')
     const [showSuccess, setShowSuccess] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [actionLoading, setActionLoading] = useState(false) // C1: Double-submit guard
 
     // Real data from Supabase
     const [orders, setOrders] = useState([])
@@ -239,7 +240,8 @@ function MerchantOrdersPage() {
     }
 
     const confirmAcceptOrder = async () => {
-        if (!prepTime) return
+        if (!prepTime || actionLoading) return // C1: guard
+        setActionLoading(true)
 
         try {
             // Update order status — set to 'preparing' so customer sees "Sedang Dimasak"
@@ -255,11 +257,14 @@ function MerchantOrdersPage() {
         } catch (err) {
             console.error('Error accepting order:', err)
             handleError(err, toast, { context: 'Accept Order' })
+        } finally {
+            setActionLoading(false)
         }
     }
 
     const confirmRejectOrder = async () => {
-        if (!rejectReason) return
+        if (!rejectReason || actionLoading) return // C1: guard
+        setActionLoading(true)
 
         try {
             // H5: Use rejectOrder (adds "Ditolak oleh merchant:" prefix)
@@ -272,10 +277,15 @@ function MerchantOrdersPage() {
         } catch (err) {
             console.error('Error rejecting order:', err)
             handleError(err, toast, { context: 'Reject Order' })
+        } finally {
+            setActionLoading(false)
         }
     }
 
     const confirmHandover = async () => {
+        if (actionLoading) return // C1: guard
+        setActionLoading(true)
+
         try {
             // Update order status to 'ready' (ready for driver pickup)
             await orderService.updateStatus(selectedOrder.dbId, 'ready')
@@ -290,6 +300,8 @@ function MerchantOrdersPage() {
         } catch (err) {
             console.error('Error handing over order:', err)
             handleError(err, toast, { context: 'Handover Order' })
+        } finally {
+            setActionLoading(false)
         }
     }
 

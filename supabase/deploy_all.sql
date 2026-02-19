@@ -454,7 +454,14 @@ CREATE POLICY "Order items viewable by participants" ON order_items FOR SELECT U
 );
 
 DROP POLICY IF EXISTS "System insert order items" ON order_items;
-CREATE POLICY "System insert order items" ON order_items FOR INSERT WITH CHECK (true);
+CREATE POLICY "System insert order items" ON order_items FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM orders WHERE id = order_items.order_id
+        AND customer_id = auth.uid()
+    )
+    OR
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
 
 -- === WALLETS ===
 DROP POLICY IF EXISTS "Users view own wallet" ON wallets;
@@ -928,8 +935,11 @@ BEGIN
              RETURN jsonb_build_object('success', false, 'message', 'Pesanan belum diambil');
         END IF;
 
+        -- C2 FIX: Only set delivery status + timestamp.
+        -- Payment status handled separately by confirm_cod_payment (for COD)
+        -- or was already 'paid' at order creation (for wallet).
         UPDATE public.orders 
-        SET status = 'delivered', delivered_at = NOW(), payment_status = 'paid', updated_at = NOW()
+        SET status = 'delivered', delivered_at = NOW(), updated_at = NOW()
         WHERE id = p_order_id;
         
     ELSE
