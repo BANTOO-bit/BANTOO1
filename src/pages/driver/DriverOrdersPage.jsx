@@ -50,7 +50,7 @@ function DriverOrdersPage() {
             setLoading(true)
             if (activeTab === 'active') {
                 // Fetch active orders assigned to this driver
-                // SQL statuses: pickup → picked_up → delivering
+                // SQL statuses: pickup â†’ picked_up â†’ delivering
                 const orders = await driverService.getDriverOrders(['pickup', 'picked_up', 'delivering'])
 
                 // Transform to UI format
@@ -81,7 +81,7 @@ function DriverOrdersPage() {
                 setCompletedOrders(formatted)
             }
         } catch (error) {
-            if (process.env.NODE_ENV === 'development') console.error('Failed to fetch orders:', error)
+            if (import.meta.env.DEV) console.error('Failed to fetch orders:', error)
         } finally {
             setLoading(false)
         }

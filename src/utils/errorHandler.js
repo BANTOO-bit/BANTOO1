@@ -94,7 +94,7 @@ export function handleError(error, toast, options = {}) {
     } = options
 
     // Log to console in development
-    if (logToConsole && process.env.NODE_ENV === 'development') {
+    if (logToConsole && import.meta.env.DEV) {
         console.error(`[Error${context ? ` - ${context}` : ''}]:`, error)
     }
 

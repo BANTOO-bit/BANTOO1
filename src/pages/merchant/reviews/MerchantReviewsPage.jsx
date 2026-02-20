@@ -33,7 +33,7 @@ function MerchantReviewsPage() {
                 setReviews(reviewsData || [])
                 setMerchantRating(ratingData)
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch reviews:', error)
+                if (import.meta.env.DEV) console.error('Failed to fetch reviews:', error)
             } finally {
                 setLoading(false)
             }
@@ -152,7 +152,7 @@ function MerchantReviewsPage() {
                                                     ))}
                                                 </div>
                                                 <span className="text-[10px] text-text-secondary">
-                                                    • {new Date(review.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                    â€¢ {new Date(review.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })}
                                                 </span>
                                             </div>
                                         </div>

@@ -86,7 +86,7 @@ function DriverEarningsPage() {
 
                 setAllTransactions(mapped)
             } catch (err) {
-                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch driver orders:', err)
+                if (import.meta.env.DEV) console.error('Failed to fetch driver orders:', err)
             } finally {
                 setLoadingData(false)
             }
@@ -154,7 +154,7 @@ function DriverEarningsPage() {
         setShowFilter(false)
     }
 
-    // Filter Logic — data is already filtered by Supabase query, use directly
+    // Filter Logic â€” data is already filtered by Supabase query, use directly
     const filteredTransactions = allTransactions
 
     // Calculate totals
@@ -280,7 +280,7 @@ function DriverEarningsPage() {
                                                 </div>
                                                 <div>
                                                     <h4 className="text-slate-900 text-sm font-bold">#{trx.id}</h4>
-                                                    <p className="text-slate-400 text-[10px] font-medium">Selesai • {trx.time} WIB • {trx.date}</p>
+                                                    <p className="text-slate-400 text-[10px] font-medium">Selesai â€¢ {trx.time} WIB â€¢ {trx.date}</p>
                                                     <div className="flex items-center gap-1.5 mt-1">
                                                         <span className={`material-symbols-outlined text-[14px] ${trx.method_icon_color}`}>{trx.method_icon}</span>
                                                         <span className={`text-[10px] font-bold ${trx.method_color}`}>{trx.method}</span>

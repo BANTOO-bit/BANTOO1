@@ -1,3 +1,4 @@
+import { HelmetProvider } from 'react-helmet-async'
 import { CartProvider } from './context/CartContext'
 import { AddressProvider } from './context/AddressContext'
 import { FavoritesProvider } from './context/FavoritesContext'
@@ -17,26 +18,28 @@ import AppRoutes from './routes'
 
 function App() {
     return (
-        <AppErrorBoundary >
-            <ToastProvider>
-                <AuthProvider>
-                    <CartProvider>
-                        <AddressProvider>
-                            <FavoritesProvider>
-                                <NotificationsProvider>
-                                    <PartnerRegistrationProvider>
-                                        <OrderProvider>
-                                            <AppRoutes />
-                                            <ToastNotification />
-                                        </OrderProvider>
-                                    </PartnerRegistrationProvider>
-                                </NotificationsProvider>
-                            </FavoritesProvider>
-                        </AddressProvider>
-                    </CartProvider>
-                </AuthProvider>
-            </ToastProvider>
-        </AppErrorBoundary >
+        <HelmetProvider>
+            <AppErrorBoundary >
+                <ToastProvider>
+                    <AuthProvider>
+                        <CartProvider>
+                            <AddressProvider>
+                                <FavoritesProvider>
+                                    <NotificationsProvider>
+                                        <PartnerRegistrationProvider>
+                                            <OrderProvider>
+                                                <AppRoutes />
+                                                <ToastNotification />
+                                            </OrderProvider>
+                                        </PartnerRegistrationProvider>
+                                    </NotificationsProvider>
+                                </FavoritesProvider>
+                            </AddressProvider>
+                        </CartProvider>
+                    </AuthProvider>
+                </ToastProvider>
+            </AppErrorBoundary >
+        </HelmetProvider>
     )
 }
 

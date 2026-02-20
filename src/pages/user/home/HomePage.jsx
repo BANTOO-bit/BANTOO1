@@ -7,6 +7,7 @@ import MerchantList from '../../../components/user/MerchantList'
 import HelpButton from '../../../components/user/HelpButton'
 import CTASection from '../../../components/shared/CTASection'
 import BottomNavigation from '../../../components/user/BottomNavigation'
+import SEO from '../../../components/shared/SEO'
 
 function HomePage() {
     const navigate = useNavigate()
@@ -17,6 +18,7 @@ function HomePage() {
 
     return (
         <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light">
+            <SEO />
             <Header />
             <AddressSelector />
             <SearchBar />

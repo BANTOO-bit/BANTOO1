@@ -57,7 +57,7 @@ function MerchantOperatingHoursPage() {
                     setSchedule(merchantData.operating_hours)
                 }
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Error fetching operating hours:', error)
+                if (import.meta.env.DEV) console.error('Error fetching operating hours:', error)
             } finally {
                 setIsLoading(false)
             }

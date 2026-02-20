@@ -18,7 +18,7 @@ function MerchantProfilePage() {
                     const data = await merchantService.getMerchantById(user.merchantId)
                     setMerchantInfo(data)
                 } catch (error) {
-                    if (process.env.NODE_ENV === 'development') console.error('Failed to load merchant profile', error)
+                    if (import.meta.env.DEV) console.error('Failed to load merchant profile', error)
                 } finally {
                     setIsLoading(false)
                 }
@@ -38,7 +38,7 @@ function MerchantProfilePage() {
             await logout()
             navigate('/login')
         } catch (error) {
-            if (process.env.NODE_ENV === 'development') console.error('Logout failed:', error)
+            if (import.meta.env.DEV) console.error('Logout failed:', error)
         }
     }
 
@@ -70,7 +70,7 @@ function MerchantProfilePage() {
                     </div>
                     <h2 className="text-xl font-bold mb-1">{merchantInfo?.name || user?.merchantName || 'Nama Warung'}</h2>
                     <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-6">
-                        {merchantInfo?.category || 'Kategori'} • {merchantInfo?.address || 'Lokasi'}
+                        {merchantInfo?.category || 'Kategori'} â€¢ {merchantInfo?.address || 'Lokasi'}
                     </p>
                     <button
                         onClick={handleEditProfile}

@@ -21,7 +21,7 @@ function DriverProfilePage() {
                 logger.debug('Driver profile loaded:', profile)
                 setDriverData(profile)
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch driver profile:', error)
+                if (import.meta.env.DEV) console.error('Failed to fetch driver profile:', error)
                 setDebugError(error.message)
             } finally {
                 setLoading(false)

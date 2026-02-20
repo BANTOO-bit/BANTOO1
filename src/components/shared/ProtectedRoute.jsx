@@ -49,7 +49,7 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
             }
 
             // Redirect to appropriate dashboard based on their actual status or home
-            if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />
+            if (user?.isAdmin) return <Navigate to="/admin/dashboard" replace />
             if (user?.merchantStatus === 'approved') return <Navigate to="/merchant/dashboard" replace />
             if (user?.driverStatus === 'approved') return <Navigate to="/driver/dashboard" replace />
 

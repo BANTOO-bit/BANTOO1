@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => ({
     globals: true,
     environment: 'jsdom',
     setupFiles: [],
+    exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
   },
   build: {
     sourcemap: false,
@@ -26,8 +27,4 @@ export default defineConfig(({ mode }) => ({
   esbuild: mode === 'production' ? {
     drop: ['console', 'debugger'],
   } : undefined,
-  // Fix #1: Inject Sentry DSN into index.html __SENTRY_DSN__ placeholder
-  define: {
-    '__SENTRY_DSN__': JSON.stringify(process.env.VITE_SENTRY_DSN || ''),
-  },
 }))

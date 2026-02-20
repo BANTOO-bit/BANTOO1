@@ -37,11 +37,15 @@ export function AddressProvider({ children }) {
             // If we have addresses but none selected (or selected one is gone), select the default one
             if (data.length > 0) {
                 const defaultAddr = data.find(a => a.is_default)
-                const currentSelected = data.find(a => a.id === selectedAddressId)
 
-                if (!currentSelected) {
-                    setSelectedAddressId(defaultAddr ? defaultAddr.id : data[0].id)
-                }
+                // Use functional state update to avoid depending on selectedAddressId directly in useCallback
+                setSelectedAddressId(prevId => {
+                    const currentSelected = data.find(a => a.id === prevId)
+                    if (!currentSelected) {
+                        return defaultAddr ? defaultAddr.id : data[0].id
+                    }
+                    return prevId
+                })
             }
         } catch (error) {
             console.error('Failed to fetch addresses:', error)
@@ -49,7 +53,7 @@ export function AddressProvider({ children }) {
         } finally {
             setIsLoading(false)
         }
-    }, [user, selectedAddressId])
+    }, [user])
 
     useEffect(() => {
         fetchAddresses()

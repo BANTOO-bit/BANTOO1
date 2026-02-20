@@ -63,7 +63,7 @@ function MerchantOrderHistoryPage() {
 
             setOrders(formattedOrders)
         } catch (error) {
-            if (process.env.NODE_ENV === 'development') console.error('Failed to fetch order history:', error)
+            if (import.meta.env.DEV) console.error('Failed to fetch order history:', error)
         } finally {
             setIsLoading(false)
         }

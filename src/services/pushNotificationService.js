@@ -41,6 +41,27 @@ export const pushNotificationService = {
     },
 
     /**
+     * Subscribe to Web Push API via Service Worker (Future FCM/VAPID Integration)
+     * @param {string} vapidPublicKey - Server VAPID public key
+     */
+    async subscribeToPushAPI(vapidPublicKey) {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: vapidPublicKey
+            });
+            // TODO: Send subscription to backend to save it
+            console.log('Push API Subscribed:', subscription);
+            return subscription;
+        } catch (error) {
+            console.error('Failed to subscribe to Push API:', error);
+            return null;
+        }
+    },
+
+    /**
      * Show a browser notification
      * @param {string} title - Notification title
      * @param {Object} options - Notification options

@@ -5,6 +5,7 @@ import merchantService from '../../../services/merchantService'
 import LoadingState from '../../../components/shared/LoadingState'
 import ErrorState from '../../../components/shared/ErrorState'
 import EmptyState from '../../../components/shared/EmptyState'
+import SEO from '../../../components/shared/SEO'
 
 // Menu categories for filtering
 // Menu categories are now derived dynamically from the data
@@ -190,6 +191,11 @@ function MerchantDetailPage() {
 
     return (
         <div className="relative min-h-screen flex flex-col bg-background-light pb-bottom-nav">
+            <SEO
+                title={currentMerchant?.name}
+                description={`Pesan menu favorit dari ${currentMerchant?.name} di BANTOO. ${currentMerchant?.category}`}
+                image={currentMerchant?.image}
+            />
             {/* Hero Image with Back Button */}
             <div className="relative h-48 w-full">
                 <img

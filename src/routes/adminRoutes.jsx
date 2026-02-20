@@ -66,16 +66,16 @@ export default function AdminRoutes() {
             <Route path="/admin/orders" element={<ProtectedRoute allowedRoles={['admin']}><AdminOrdersPage /></ProtectedRoute>} />
             <Route path="/admin/orders/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminOrderDetailPage /></ProtectedRoute>} />
             <Route path="/admin/merchants" element={<ProtectedRoute allowedRoles={['admin']}><AdminMerchantsPage /></ProtectedRoute>} />
-            <Route path="/admin/merchants/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminMerchantDetailPage /></ProtectedRoute>} />
             <Route path="/admin/merchants/verification" element={<ProtectedRoute allowedRoles={['admin']}><AdminMerchantsVerificationPage /></ProtectedRoute>} />
             <Route path="/admin/merchants/verification/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminMerchantsReviewPage /></ProtectedRoute>} />
+            <Route path="/admin/merchants/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminMerchantDetailPage /></ProtectedRoute>} />
             <Route path="/admin/merchants/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminMerchantsEditPage /></ProtectedRoute>} />
             <Route path="/admin/drivers" element={<ProtectedRoute allowedRoles={['admin']}><AdminDriversPage /></ProtectedRoute>} />
-            <Route path="/admin/drivers/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminDriverDetailPage /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsersPage /></ProtectedRoute>} />
             <Route path="/admin/users/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminUserDetailPage /></ProtectedRoute>} />
             <Route path="/admin/drivers/verification" element={<ProtectedRoute allowedRoles={['admin']}><AdminDriversVerificationPage /></ProtectedRoute>} />
             <Route path="/admin/drivers/verification/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminDriversReviewPage /></ProtectedRoute>} />
+            <Route path="/admin/drivers/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminDriverDetailPage /></ProtectedRoute>} />
             <Route path="/admin/drivers/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminDriversEditPage /></ProtectedRoute>} />
             <Route path="/admin/cod" element={<ProtectedRoute allowedRoles={['admin']}><AdminCODPage /></ProtectedRoute>} />
             <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><AdminRevenuePage /></ProtectedRoute>} />

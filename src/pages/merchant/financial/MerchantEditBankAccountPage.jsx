@@ -42,7 +42,7 @@ function MerchantEditBankAccountPage() {
                     })
                 }
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Error fetching bank data:', error)
+                if (import.meta.env.DEV) console.error('Error fetching bank data:', error)
             } finally {
                 setIsLoading(false)
             }

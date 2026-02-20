@@ -13,19 +13,25 @@ export function useCart() {
 
 export function CartProvider({ children }) {
     const [cartItems, setCartItems] = useState(() => {
-        const saved = localStorage.getItem('bantoo_cart')
-        return saved ? JSON.parse(saved) : []
+        try {
+            const saved = localStorage.getItem('bantoo_cart')
+            return saved ? JSON.parse(saved) : []
+        } catch { return [] }
     })
 
     const [merchantInfo, setMerchantInfo] = useState(() => {
-        const saved = localStorage.getItem('bantoo_cart_merchant')
-        return saved ? JSON.parse(saved) : null
+        try {
+            const saved = localStorage.getItem('bantoo_cart_merchant')
+            return saved ? JSON.parse(saved) : null
+        } catch { return null }
     })
 
     // Merchant notes (per-merchant, not per-item)
     const [merchantNotes, setMerchantNotes] = useState(() => {
-        const saved = localStorage.getItem('bantoo_merchant_notes')
-        return saved ? JSON.parse(saved) : {}
+        try {
+            const saved = localStorage.getItem('bantoo_merchant_notes')
+            return saved ? JSON.parse(saved) : {}
+        } catch { return {} }
     })
 
     // Dynamic delivery fee state

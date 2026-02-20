@@ -63,7 +63,7 @@ function MerchantMenuPage() {
 
                 setMenuItems(formattedProducts)
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Error fetching menu:', error)
+                if (import.meta.env.DEV) console.error('Error fetching menu:', error)
             } finally {
                 setIsLoading(false)
             }
@@ -133,7 +133,7 @@ function MerchantMenuPage() {
 
             if (error) throw error
         } catch (err) {
-            if (process.env.NODE_ENV === 'development') console.error('Error updating status:', err)
+            if (import.meta.env.DEV) console.error('Error updating status:', err)
             // Revert on error
             setMenuItems(prevItems => prevItems.map(item =>
                 item.id === itemId ? { ...item, isAvailable: !newStatus } : item

@@ -60,7 +60,7 @@ function MerchantChangePasswordPage() {
             const { error: verifyError } = await authService.signInWithPhone(user.phone, formData.oldPassword)
 
             if (verifyError) {
-                if (process.env.NODE_ENV === 'development') console.error('Password verification failed:', verifyError)
+                if (import.meta.env.DEV) console.error('Password verification failed:', verifyError)
                 setLoading(false)
                 return
             }

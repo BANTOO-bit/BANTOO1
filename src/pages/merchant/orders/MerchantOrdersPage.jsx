@@ -99,7 +99,7 @@ function MerchantOrdersPage() {
 
             setOrders(transformedOrders)
         } catch (err) {
-            if (process.env.NODE_ENV === 'development') console.error('Error fetching merchant orders:', err)
+            if (import.meta.env.DEV) console.error('Error fetching merchant orders:', err)
             setError(err.message || 'Gagal memuat pesanan')
         } finally {
             setIsLoading(false)
@@ -246,7 +246,7 @@ function MerchantOrdersPage() {
         setActionLoading(true)
 
         try {
-            // Update order status — set to 'preparing' so customer sees "Sedang Dimasak"
+            // Update order status â€” set to 'preparing' so customer sees "Sedang Dimasak"
             await orderService.updateStatus(selectedOrder.dbId, 'preparing', { prep_time: prepTime })
 
             // Refresh orders

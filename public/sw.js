@@ -1,8 +1,8 @@
 // Service Worker — BANTOO PWA
 // Cache-first for static assets, network-first for API
 
-// Fix #5: Version auto-generated — cache invalidates on every new deploy
-const CACHE_VERSION = 'v' + new Date().toISOString().slice(0, 10).replace(/-/g, '')
+// Fix #5: Static versioning so cache isn't unnecessarily invalidated every day
+const CACHE_VERSION = 'v1.0.0'
 const CACHE_NAME = `bantoo-cache-${CACHE_VERSION}`
 const STATIC_ASSETS = [
     '/',

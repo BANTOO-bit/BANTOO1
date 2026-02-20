@@ -74,7 +74,7 @@ function MerchantRegistrationStep1() {
                 }
             }
         } catch (error) {
-            if (process.env.NODE_ENV === 'development') console.error("Geocoding error:", error)
+            if (import.meta.env.DEV) console.error("Geocoding error:", error)
         } finally {
             setIsAddressLoading(false)
         }

@@ -64,7 +64,7 @@ function MerchantDashboard() {
                 setRecentOrders(transformedOrders)
 
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Error fetching merchant dashboard data:', error)
+                if (import.meta.env.DEV) console.error('Error fetching merchant dashboard data:', error)
                 setStats(prev => ({ ...prev, loading: false }))
             }
         }
@@ -303,7 +303,7 @@ function OrderCard({ id, time, payment, status, total, items, note }) {
             <div className="flex justify-between items-start">
                 <div className="flex flex-col">
                     <span className="text-xs text-text-secondary font-medium">Order ID #{id}</span>
-                    <span className="text-[10px] text-text-secondary mt-0.5">{time} • {payment}</span>
+                    <span className="text-[10px] text-text-secondary mt-0.5">{time} â€¢ {payment}</span>
                 </div>
                 <span className="px-2 py-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-[10px] font-bold uppercase tracking-wider">{status}</span>
             </div>

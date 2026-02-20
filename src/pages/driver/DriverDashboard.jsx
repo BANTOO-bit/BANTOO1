@@ -38,7 +38,7 @@ function DriverDashboard() {
                     setEarnings({ ...data, loading: false })
                 }
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Error fetching driver stats:', error)
+                if (import.meta.env.DEV) console.error('Error fetching driver stats:', error)
                 if (mounted) {
                     setEarnings(prev => ({ ...prev, loading: false }))
                 }
@@ -56,7 +56,7 @@ function DriverDashboard() {
                     setDriverStatus(profile.status === 'terminated' ? 'terminated' : (profile.status === 'suspended' || profile.status === 'rejected') ? 'suspended' : 'active')
                 }
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Error fetching driver profile:', error)
+                if (import.meta.env.DEV) console.error('Error fetching driver profile:', error)
             }
         }
 
@@ -75,7 +75,7 @@ function DriverDashboard() {
                     }
                 }
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') console.error('Error checking active order:', error)
+                if (import.meta.env.DEV) console.error('Error checking active order:', error)
             }
         }
 
@@ -133,7 +133,7 @@ function DriverDashboard() {
                 })
             }
         } catch (error) {
-            if (process.env.NODE_ENV === 'development') console.error('Error checking orders:', error)
+            if (import.meta.env.DEV) console.error('Error checking orders:', error)
         }
     }
 
@@ -166,7 +166,7 @@ function DriverDashboard() {
                                 // Poll for orders if we have location
                                 checkAvailableOrders(latitude, longitude)
                             },
-                            (error) => { if (process.env.NODE_ENV === 'development') console.error('Location error:', error) },
+                            (error) => { if (import.meta.env.DEV) console.error('Location error:', error) },
                             { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
                         )
                     } else {
@@ -177,7 +177,7 @@ function DriverDashboard() {
                 }
             } catch (error) {
                 if (!isMounted) return
-                if (process.env.NODE_ENV === 'development') console.error('Error updating driver status:', error)
+                if (import.meta.env.DEV) console.error('Error updating driver status:', error)
                 addNotification({
                     type: 'error',
                     message: 'Gagal mengupdate status driver',
@@ -235,7 +235,7 @@ function DriverDashboard() {
                 table: 'orders',
                 filter: 'status=eq.pickup'
             }, (payload) => {
-                // An order was taken by a driver — remove from available list
+                // An order was taken by a driver â€” remove from available list
                 if (payload.new.driver_id) {
                     setAvailableOrders(prev => prev.filter(o => o.id !== payload.new.id))
                 }

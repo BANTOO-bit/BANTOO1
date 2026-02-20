@@ -5,6 +5,7 @@ import merchantService from '../../../services/merchantService'
 import { useCart } from '../../../context/CartContext'
 import LoadingState from '../../../components/shared/LoadingState'
 import ErrorState from '../../../components/shared/ErrorState'
+import SEO from '../../../components/shared/SEO'
 
 // Sub-categories mapping for each main category
 const subCategoriesMap = {
@@ -170,6 +171,10 @@ function CategoryDetailPage() {
 
     return (
         <div className="relative flex h-full min-h-screen w-full flex-col overflow-hidden mx-auto max-w-md bg-background-light shadow-2xl">
+            <SEO
+                title={`Kategori ${categoryName}`}
+                description={`Temukan berbagai menu makanan dan minuman terbaik di kategori ${categoryName} melalui BANTOO.`}
+            />
             {/* Status Bar Space */}
             <div className="h-12 w-full bg-white shrink-0"></div>
 

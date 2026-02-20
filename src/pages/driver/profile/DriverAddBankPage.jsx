@@ -43,7 +43,7 @@ function DriverAddBankPage() {
                 })
             }
         } catch (error) {
-            if (process.env.NODE_ENV === 'development') console.error('Error fetching bank details:', error)
+            if (import.meta.env.DEV) console.error('Error fetching bank details:', error)
         } finally {
             setInitialLoading(false)
         }

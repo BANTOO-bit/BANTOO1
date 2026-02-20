@@ -47,7 +47,7 @@ function DriverNotificationDetailPage() {
                     })
                 }
             } catch (err) {
-                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch notification:', err)
+                if (import.meta.env.DEV) console.error('Failed to fetch notification:', err)
             } finally {
                 setLoading(false)
             }

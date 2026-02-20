@@ -133,15 +133,15 @@ export default function UserRoutes({ logout }) {
             <Route path="/chat-driver/:orderId" element={<RoleLockRedirect><ChatDriverPage /></RoleLockRedirect>} />
 
             {/* Profile & Settings */}
-            <Route path="/profile" element={<ProfilePage onLogout={logout} />} />
-            <Route path="/profile/edit" element={<EditProfilePage />} />
-            <Route path="/address" element={<AddressListPage />} />
-            <Route path="/address/add" element={<AddAddressPage />} />
-            <Route path="/address/edit" element={<AddAddressPage />} />
-            <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/payment-methods" element={<PaymentMethodsPage />} />
-            <Route path="/security" element={<SecurityPage />} />
+            <Route path="/profile" element={<RoleLockRedirect><ProfilePage onLogout={logout} /></RoleLockRedirect>} />
+            <Route path="/profile/edit" element={<RoleLockRedirect><EditProfilePage /></RoleLockRedirect>} />
+            <Route path="/address" element={<RoleLockRedirect><AddressListPage /></RoleLockRedirect>} />
+            <Route path="/address/add" element={<RoleLockRedirect><AddAddressPage /></RoleLockRedirect>} />
+            <Route path="/address/edit" element={<RoleLockRedirect><AddAddressPage /></RoleLockRedirect>} />
+            <Route path="/favorites" element={<RoleLockRedirect><FavoritesPage /></RoleLockRedirect>} />
+            <Route path="/notifications" element={<RoleLockRedirect><NotificationsPage /></RoleLockRedirect>} />
+            <Route path="/payment-methods" element={<RoleLockRedirect><PaymentMethodsPage /></RoleLockRedirect>} />
+            <Route path="/security" element={<RoleLockRedirect><SecurityPage /></RoleLockRedirect>} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/registration-status" element={<RegistrationStatusPage />} />

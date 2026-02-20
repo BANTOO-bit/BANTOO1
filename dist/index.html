@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/icon-192.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#2979FF" />
   <meta name="description"
     content="BANTOO — Aplikasi pesan antar makanan terlengkap. Pesan dari warung favorit kamu, antar cepat sampai." />
@@ -19,8 +20,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
-  <script type="module" crossorigin src="/assets/index-CEorBsmG.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <script type="module" crossorigin src="/assets/index-Bi7gEbsq.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/vendor-react-B52X_VYH.js">
   <link rel="stylesheet" crossorigin href="/assets/index-tdgwiB0e.css">
 </head>
@@ -32,16 +33,16 @@
   <script src="https://browser.sentry-cdn.com/8.45.0/bundle.tracing.min.js" crossorigin="anonymous"></script>
   <script>
     // Sentry Error Monitoring — reads DSN from env var injected at build time
-    ;(function() {
+    ; (function () {
       if (!window.Sentry) return
       // DSN is injected by Vite at build time from VITE_SENTRY_DSN env var
-      var dsn = '__SENTRY_DSN__'
-      if (!dsn || dsn === '__SENTRY_DSN__' || dsn.includes('YOUR_')) return // Skip if not configured
+      var dsn = '%VITE_SENTRY_DSN%'
+      if (!dsn || dsn === '%VITE_SENTRY_DSN%' || dsn.includes('YOUR_')) return // Skip if not configured
       Sentry.init({
         dsn: dsn,
         tracesSampleRate: 0.2,
         environment: location.hostname === 'localhost' ? 'development' : 'production',
-        beforeSend: function(event) {
+        beforeSend: function (event) {
           if (location.hostname === 'localhost') return null
           return event
         }

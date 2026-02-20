@@ -25,7 +25,8 @@ const ORDER_STATUSES = [
 ]
 
 export function OrderProvider({ children }) {
-    const { user, activeRole } = useAuth()
+    const { user } = useAuth()
+    const activeRole = user?.activeRole
     const [activeOrder, setActiveOrder] = useState(null)
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(false)

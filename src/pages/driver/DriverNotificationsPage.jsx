@@ -23,7 +23,7 @@ function DriverNotificationsPage() {
             const data = await driverService.getNotifications(user.id)
             setNotifications(data)
         } catch (error) {
-            if (process.env.NODE_ENV === 'development') console.error('Failed to load notifications:', error)
+            if (import.meta.env.DEV) console.error('Failed to load notifications:', error)
         } finally {
             setLoading(false)
         }
