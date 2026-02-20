@@ -1,0 +1,5 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]: "{ \"name\": \"BANTOO — Pesan Makanan Online\", \"short_name\": \"BANTOO\", \"description\": \"Aplikasi pesan antar makanan terlengkap. Pesan dari warung favorit kamu, antar cepat sampai.\", \"start_url\": \"/\", \"display\": \"standalone\", \"background_color\": \"#ffffff\", \"theme_color\": \"#2979FF\", \"orientation\": \"portrait-primary\", \"icons\": [ { \"src\": \"/icon-192.svg\", \"sizes\": \"192x192\", \"type\": \"image/svg+xml\", \"purpose\": \"any\" }, { \"src\": \"/icon-192.svg\", \"sizes\": \"192x192\", \"type\": \"image/svg+xml\", \"purpose\": \"maskable\" }, { \"src\": \"/icon-512.svg\", \"sizes\": \"512x512\", \"type\": \"image/svg+xml\", \"purpose\": \"any\" }, { \"src\": \"/icon-512.svg\", \"sizes\": \"512x512\", \"type\": \"image/svg+xml\", \"purpose\": \"maskable\" } ], \"categories\": [ \"food\", \"shopping\", \"lifestyle\" ] }"
+```
