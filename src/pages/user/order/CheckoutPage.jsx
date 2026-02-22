@@ -102,7 +102,7 @@ function CheckoutPage() {
                 customerLat: selectedAddress.lat || null,
                 customerLng: selectedAddress.lng || null,
                 paymentMethod: selectedPayment,
-                deliveryFee: deliveryFee || 8000,
+                deliveryFee: typeof deliveryFee === 'number' ? deliveryFee : 8000,
                 notes: null
             }
 

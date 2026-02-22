@@ -6,8 +6,12 @@ import { useAuth } from '../../../context/AuthContext'
 import { useOrder } from '../../../context/OrderContext'
 import { useToast } from '../../../context/ToastContext'
 import { handleError } from '../../../utils/errorHandler'
+import { formatId } from '../../../utils/formatters'
 import orderService from '../../../services/orderService'
 import { startBroadcastingLocation, stopBroadcasting } from '../../../services/driverLocationService'
+import { useWakeLock } from '../../../hooks/useWakeLock'
+import SlideToConfirm from '../../../components/shared/SlideToConfirm'
+import DriverIssueModal from '../../../components/driver/DriverIssueModal'
 
 function DriverDeliveryOrder() {
     const navigate = useNavigate()
@@ -17,6 +21,20 @@ function DriverDeliveryOrder() {
     const { orders } = useOrder()
     const toast = useToast()
     const [isConfirming, setIsConfirming] = useState(false)
+    const [showIssueModal, setShowIssueModal] = useState(false)
+
+    const hasArrived = activeOrder?.hasArrivedAtCustomer || false
+    const handleArriveAtCustomer = () => {
+        setActiveOrder({ ...activeOrder, hasArrivedAtCustomer: true })
+    }
+
+    const handleReportIssue = async (reason) => {
+        setShowIssueModal(false)
+        stopBroadcasting()
+        toast.info(`Laporan kendala "${reason}" terkirim. Pesanan dibatalkan.`)
+        setActiveOrder(null)
+        navigate('/driver/dashboard')
+    }
 
     // Protected route: redirect if no active order
     useEffect(() => {
@@ -54,6 +72,21 @@ function DriverDeliveryOrder() {
     const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
     const isCOD = paymentMethod === 'COD' || paymentMethod === 'cod'
 
+    // Wake Lock to keep screen awake
+    const { requestWakeLock } = useWakeLock({
+        onVisibilityChangeWarning: () => {
+            toast.warning('Aplikasi berjalan di latar. Mohon jaga layar tetap menyala agar GPS akurat.', {
+                duration: 6000,
+                icon: 'screen_lock_portrait'
+            });
+        }
+    });
+
+    useEffect(() => {
+        // Automatically request wake lock when entering delivery mode
+        requestWakeLock();
+    }, []);
+
     // Start broadcasting GPS location for live tracking
     useEffect(() => {
         const orderId = activeOrder.id || activeOrder.dbId
@@ -68,6 +101,33 @@ function DriverDeliveryOrder() {
     const handleConfirmDelivery = async () => {
         try {
             setIsConfirming(true)
+
+            // Dapatkan lokasi GPS akurat sebelum memperbolehkan delivery (radius check)
+            let lat = null, lng = null;
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 10000
+                    });
+                });
+                lat = position.coords.latitude;
+                lng = position.coords.longitude;
+            } catch (gpsError) {
+                console.warn('Gagal mendapatkan GPS instan, mencoba fallback...', gpsError);
+                // Fallback ke tracking GPS terakhir jika ada
+                if (activeOrder.driverCoords && activeOrder.driverCoords.length === 2) {
+                    lat = activeOrder.driverCoords[0];
+                    lng = activeOrder.driverCoords[1];
+                    console.log('Menggunakan fallback (lokasi terakhir):', lat, lng);
+                } else {
+                    toast.warning('GPS sulit dilacak. Pastikan sinyal GPS Anda kuat.', {
+                        duration: 5000,
+                        icon: 'gps_off'
+                    });
+                }
+            }
 
             // Stop broadcasting GPS since delivery is complete
             stopBroadcasting()
@@ -86,7 +146,7 @@ function DriverDeliveryOrder() {
                 // Wallet: Update status to delivered/completed via Driver Service
                 // This marks it as paid and done
                 const { driverService } = await import('../../../services/driverService')
-                await driverService.updateOrderStatus(orderId, 'delivered')
+                await driverService.updateOrderStatus(orderId, 'delivered', lat, lng)
 
                 // Wallet: Skip cash verification, go directly to completion
                 navigate(`/driver/order/complete/${orderId}`)
@@ -109,12 +169,15 @@ function DriverDeliveryOrder() {
                     </button>
                     <div>
                         <h1 className="text-lg font-bold leading-tight">Antar Pesanan</h1>
-                        <p className="text-xs font-medium text-slate-500">Order ID #{activeOrder.id?.slice(0, 8)}</p>
+                        <p className="text-xs font-medium text-slate-500">Order ID {formatId(activeOrder.id)}</p>
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center transition-colors hover:bg-slate-200">
-                        <span className="material-symbols-outlined text-slate-900">help_outline</span>
+                    <button
+                        onClick={() => setShowIssueModal(true)}
+                        className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center transition-colors hover:bg-red-100 text-red-600"
+                    >
+                        <span className="material-symbols-outlined text-[24px]">warning</span>
                     </button>
                 </div>
             </header>
@@ -153,6 +216,17 @@ function DriverDeliveryOrder() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Navigasi Maps Ke Customer */}
+                        <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${customerCoords.join(',')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full py-2.5 px-4 bg-blue-50 text-blue-600 font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-[20px] rotate-45">navigation</span>
+                            Buka di Google Maps
+                        </a>
 
                         {/* Action Buttons */}
                         <div className="flex gap-3 w-full items-center">
@@ -193,19 +267,34 @@ function DriverDeliveryOrder() {
                         </p>
 
                         {/* Complete Button */}
-                        <button
-                            onClick={handleConfirmDelivery}
-                            disabled={isConfirming}
-                            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
-                        >
-                            <span className="material-symbols-outlined">{isConfirming ? 'refresh' : 'check_circle'}</span>
-                            {isConfirming ? 'MEMPROSES...' : 'SAYA SUDAH SAMPAI'}
-                        </button>
+                        {!hasArrived ? (
+                            <button
+                                onClick={handleArriveAtCustomer}
+                                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors"
+                            >
+                                <span className="material-symbols-outlined">location_on</span>
+                                SAYA SUDAH DI LOKASI
+                            </button>
+                        ) : (
+                            <SlideToConfirm
+                                onConfirm={handleConfirmDelivery}
+                                isConfirming={isConfirming}
+                                text="GESER JIKA SUDAH SAMPAI"
+                                processingText="MENCARI LOKASI GPS AKURAT..."
+                            />
+                        )}
                     </div>
                 </div>
             </main>
 
             <DriverBottomNavigation activeTab="orders" />
+
+            <DriverIssueModal
+                isOpen={showIssueModal}
+                onClose={() => setShowIssueModal(false)}
+                onSubmit={handleReportIssue}
+                type="delivery"
+            />
         </div>
     )
 }

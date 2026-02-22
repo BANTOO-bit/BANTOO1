@@ -134,8 +134,8 @@ function DriverNotificationsPage() {
                                     <div
                                         key={notification.id}
                                         onClick={() => {
-                                            if (notification.type === 'order') {
-                                                navigate('/driver/order/pickup')
+                                            if (notification.type === 'order' && notification.orderId) {
+                                                navigate(`/driver/order/incoming/${notification.orderId}`)
                                             }
                                         }}
                                         className={`relative p-4 rounded-xl border transition-all duration-200 ${styles.container} ${notification.type === 'order' ? 'cursor-pointer active:scale-[0.98]' : ''}`}

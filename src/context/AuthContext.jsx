@@ -335,14 +335,25 @@ export function AuthProvider({ children }) {
     const logout = async () => {
         const isAdmin = user?.roles?.includes('admin')
 
+        // Helper to prevent hanging on network issues
+        const withTimeout = (promise, ms = 5000) => {
+            let timeoutId;
+            const timeout = new Promise((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error('Logout network timeout')), ms);
+            });
+            return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+        };
+
         // Reset role before sign out (admin stays admin, others reset to customer)
         if (user?.id) {
             try {
-                await supabase.from('profiles')
-                    .update({ active_role: isAdmin ? 'admin' : 'customer' })
-                    .eq('id', user.id)
+                await withTimeout(
+                    supabase.from('profiles')
+                        .update({ active_role: isAdmin ? 'admin' : 'customer' })
+                        .eq('id', user.id)
+                );
             } catch (e) {
-                console.warn('Failed to reset active_role on logout:', e)
+                console.warn('Failed to reset active_role on logout (network issue):', e)
             }
         }
         localStorage.removeItem('user_last_active_role')
@@ -358,9 +369,20 @@ export function AuthProvider({ children }) {
             pushCleanupRef.current = null
         }
 
-        const { error } = await authService.signOut()
-        if (error) throw error
-        // State updates handled by onAuthStateChange
+        try {
+            await withTimeout(authService.signOut());
+        } catch (e) {
+            console.warn('Backend signout timed out or failed, forcing local logout:', e);
+            // Force local state clear since network failed
+            setUser(null);
+            setIsAuthenticated(false);
+            // Also need to clear Supabase local storage tokens directly as a last resort
+            const supabaseProjectRef = "qjahjizblrrdhlllymoe"; // from env
+            localStorage.removeItem(`sb-${supabaseProjectRef}-auth-token`);
+        }
+        
+        // State updates usually handled by onAuthStateChange, but if forced above, 
+        // it's already handled locally.
     }
 
     // Shop Status (for merchant)

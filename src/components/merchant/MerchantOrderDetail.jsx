@@ -83,6 +83,13 @@ function MerchantOrderDetail({ order, onBack }) {
                         {order.items.map((item, idx) => (
                             <div key={idx} className="flex justify-between items-start">
                                 <div className="flex gap-3">
+                                    {item.image ? (
+                                        <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-100 dark:border-gray-800" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
+                                            <span className="material-symbols-outlined text-gray-400">restaurant</span>
+                                        </div>
+                                    )}
                                     <span className="w-6 h-6 rounded bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-[10px] font-bold text-primary border border-orange-100 dark:border-orange-800/30 shrink-0">
                                         {item.qty}x
                                     </span>

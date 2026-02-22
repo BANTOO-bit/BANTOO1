@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { useOrder } from '../../../context/OrderContext'
 import { useToast } from '../../../context/ToastContext'
 import { handleError } from '../../../utils/errorHandler'
+import { formatId } from '../../../utils/formatters'
 import PhotoPickerModal from '../../../components/shared/PhotoPickerModal'
 import orderService from '../../../services/orderService'
 
@@ -101,7 +102,7 @@ function DriverPaymentConfirmation() {
                         </button>
                         <div>
                             <h1 className="text-xl font-bold text-slate-900 leading-none">Konfirmasi Bayar</h1>
-                            <span className="text-xs font-semibold text-slate-500">Order ID #{activeOrder.id.split('-')[2]}</span>
+                            <span className="text-xs font-semibold text-slate-500">Order ID {formatId(activeOrder.id)}</span>
                         </div>
                     </div>
                     <div className="flex gap-2">

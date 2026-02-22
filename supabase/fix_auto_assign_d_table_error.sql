@@ -1,13 +1,9 @@
 -- ==========================================
--- AUTO-ASSIGN NEAREST DRIVER
+-- FIX FOR "missing FROM-clause entry for table 'd'"
 -- ==========================================
--- When an order becomes 'ready', automatically attempt to assign
--- the nearest online driver within a reasonable radius.
+-- This script fixes a bug in auto_assign_nearest_driver where it failed
+-- to calculate distance because the alias "d" was out of scope.
 
--- Add max concurrent orders column to drivers
-ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS max_concurrent_orders INT DEFAULT 2;
-
--- RPC: Auto-assign nearest available driver to an order
 CREATE OR REPLACE FUNCTION auto_assign_nearest_driver(p_order_id UUID)
 RETURNS JSONB AS $$
 DECLARE
@@ -105,23 +101,3 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- Trigger: Auto-assign driver when order becomes 'ready'
-CREATE OR REPLACE FUNCTION on_order_ready_auto_assign()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Only fire when status changes to 'ready'
-    IF NEW.status = 'ready' AND (OLD.status IS DISTINCT FROM 'ready') AND NEW.driver_id IS NULL THEN
-        PERFORM auto_assign_nearest_driver(NEW.id);
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS trg_order_ready_auto_assign ON orders;
-CREATE TRIGGER trg_order_ready_auto_assign
-    AFTER UPDATE ON orders
-    FOR EACH ROW
-    WHEN (NEW.status = 'ready' AND OLD.status IS DISTINCT FROM 'ready')
-    EXECUTE FUNCTION on_order_ready_auto_assign();

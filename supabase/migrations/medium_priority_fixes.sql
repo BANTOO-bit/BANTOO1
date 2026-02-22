@@ -46,7 +46,7 @@ BEGIN
     -- M-3.4: Validate merchant is open (server-side)
     SELECT is_open INTO v_merchant_open
     FROM public.merchants
-    WHERE id = p_merchant_id AND status = 'active';
+    WHERE id = p_merchant_id AND status IN ('active', 'approved');
     
     IF v_merchant_open IS NULL THEN
         RAISE EXCEPTION 'Merchant tidak ditemukan atau belum aktif';
@@ -148,7 +148,7 @@ BEGIN
         SELECT price, name INTO v_price, v_product_name
         FROM menu_items WHERE id = (v_item->>'menu_item_id')::UUID;
         
-        INSERT INTO order_items (order_id, menu_item_id, name, price, quantity, notes)
+        INSERT INTO order_items (order_id, product_id, product_name, price_at_time, quantity, notes)
         VALUES (
             v_order_id,
             (v_item->>'menu_item_id')::UUID,
@@ -365,7 +365,7 @@ BEGIN
     SET is_open = FALSE, updated_at = NOW()
     WHERE is_open = TRUE
     AND last_active_at < v_cutoff
-    AND status = 'active';
+    AND status IN ('active', 'approved');
 
     GET DIAGNOSTICS v_count = ROW_COUNT;
 

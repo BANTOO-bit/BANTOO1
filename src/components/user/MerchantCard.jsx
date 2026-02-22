@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useFavorites } from '../../context/FavoritesContext'
 
 function MerchantCard({ merchant, onClick, showFavoriteButton = true }) {
@@ -14,12 +15,12 @@ function MerchantCard({ merchant, onClick, showFavoriteButton = true }) {
             onClick={() => onClick?.(merchant)}
             className={`relative flex items-center p-3 gap-3 rounded-xl bg-card-light shadow-soft border border-border-color active:bg-gray-50 transition-colors cursor-pointer ${!merchant.is_open ? 'opacity-80' : ''}`}
         >
-            <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+            <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                 <div
                     className="w-full h-full bg-cover bg-center"
                     style={{
                         backgroundImage: `url('${merchant.image}')`,
-                        filter: !merchant.is_open ? 'grayscale(100%)' : 'none'
+                        filter: !merchant.is_open ? 'grayscale(100%) blur(1px)' : 'none'
                     }}
                 />
             </div>
@@ -68,4 +69,13 @@ function MerchantCard({ merchant, onClick, showFavoriteButton = true }) {
     )
 }
 
-export default MerchantCard
+// Custom comparison function: only re-render if merchant data changes
+// (ignoring fresh onClick reference from parent unless critical data changes)
+export default memo(MerchantCard, (prevProps, nextProps) => {
+    return (
+        prevProps.merchant.id === nextProps.merchant.id &&
+        prevProps.merchant.is_open === nextProps.merchant.is_open &&
+        prevProps.merchant.rating === nextProps.merchant.rating &&
+        prevProps.showFavoriteButton === nextProps.showFavoriteButton
+    )
+})

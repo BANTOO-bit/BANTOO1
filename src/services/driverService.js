@@ -15,9 +15,15 @@ export const driverService = {
                 p_radius_km: radius
             })
 
-            if (!error) return data
+            const rejected = JSON.parse(localStorage.getItem('rejected_orders') || '[]')
 
-            console.warn('RPC "get_available_orders" failed, falling back to standard query:', error.message)
+            console.log('--- DB RPC get_available_orders output ---', data, error)
+
+            if (!error && data !== null) {
+                return data.filter(o => !rejected.includes(o.id))
+            }
+
+            console.warn('RPC "get_available_orders" failed or returned null, falling back to standard query:', error?.message)
 
             // Fallback: Standard Query (No Radius Filter, just status)
             // This ensures drivers see orders even if GIS functions are missing
@@ -43,7 +49,7 @@ export const driverService = {
             if (fallbackError) throw fallbackError
 
             // Map standard query result to match RPC output format
-            return fallbackData.map(o => {
+            return fallbackData.filter(o => !rejected.includes(o.id)).map(o => {
                 // approximate distance calc (Haversine)
                 let distance = null
                 if (lat && lng && o.merchants?.latitude && o.merchants?.longitude) {
@@ -98,24 +104,64 @@ export const driverService = {
     },
 
     /**
+     * Reject an order
+     * @param {string} orderId 
+     */
+    async rejectOrder(orderId) {
+        try {
+            // First store in localStorage to immediately hide it
+            const rejected = JSON.parse(localStorage.getItem('rejected_orders') || '[]')
+            if (!rejected.includes(orderId)) {
+                rejected.push(orderId)
+                localStorage.setItem('rejected_orders', JSON.stringify(rejected))
+            }
+
+            // Attempt RPC (if backend supports soft-reject/re-broadcasting)
+            const { error } = await supabase.rpc('driver_reject_order', {
+                p_order_id: orderId
+            })
+            // Ignore RPC failure if API is not yet implemented
+            if (error) console.warn('RPC driver_reject_order ignored:', error.message)
+
+            return { success: true }
+        } catch (error) {
+            console.error('Error rejecting order:', error)
+            throw error
+        }
+    },
+
+    /**
      * Update order status (pickup, delivering, delivered)
      * @param {string} orderId 
      * @param {string} status 
+     * @param {number} [lat] - Optional latitude for radius validation
+     * @param {number} [lng] - Optional longitude for radius validation
      */
-    async updateOrderStatus(orderId, status) {
-        try {
-            const { data, error } = await supabase.rpc('driver_update_order_status', {
-                p_order_id: orderId,
-                p_status: status
-            })
+    async updateOrderStatus(orderId, status, lat = null, lng = null) {
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                const { data, error } = await supabase.rpc('driver_update_order_status', {
+                    p_order_id: orderId,
+                    p_status: status,
+                    p_lat: lat,
+                    p_lng: lng
+                })
 
-            if (error) throw error
-            if (!data.success) throw new Error(data.message)
+                if (error) throw error
+                if (!data.success) throw new Error(data.message)
 
-            return data
-        } catch (error) {
-            console.error('Error updating status:', error)
-            throw error
+                return data
+            } catch (error) {
+                retries--;
+                if (retries === 0) {
+                    console.error('Error updating status after retries:', error)
+                    throw error
+                }
+                console.warn(`Retry updating status (${3 - retries}/3)...`)
+                // Wait for 1 second before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
         }
     },
 

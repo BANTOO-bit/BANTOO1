@@ -139,7 +139,7 @@ export default function UserRoutes({ logout }) {
             <Route path="/address/add" element={<RoleLockRedirect><AddAddressPage /></RoleLockRedirect>} />
             <Route path="/address/edit" element={<RoleLockRedirect><AddAddressPage /></RoleLockRedirect>} />
             <Route path="/favorites" element={<RoleLockRedirect><FavoritesPage /></RoleLockRedirect>} />
-            <Route path="/notifications" element={<RoleLockRedirect><NotificationsPage /></RoleLockRedirect>} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/payment-methods" element={<RoleLockRedirect><PaymentMethodsPage /></RoleLockRedirect>} />
             <Route path="/security" element={<RoleLockRedirect><SecurityPage /></RoleLockRedirect>} />
             <Route path="/about" element={<AboutPage />} />

@@ -110,6 +110,7 @@ function MapSelector({ location, onLocationChange, onClose }) {
                         zoom={15}
                         style={{ height: '100%', width: '100%' }}
                         scrollWheelZoom={true}
+                        attributionControl={false}
                     >
                         <TileLayer
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

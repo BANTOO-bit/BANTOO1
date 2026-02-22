@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { supabase } from '../../../services/supabaseClient'
 import dashboardService from '../../../services/dashboardService'
+import merchantService from '../../../services/merchantService'
 import orderService from '../../../services/orderService'
 import MerchantHeader from '../../../components/merchant/MerchantHeader'
 import MerchantBottomNavigation from '../../../components/merchant/MerchantBottomNavigation'
@@ -13,6 +14,7 @@ function MerchantDashboard() {
     const { user, isShopOpen } = useAuth()
     const [activeTab, setActiveTab] = useState('baru') // baru, diproses, selesai
     const [merchantStatus, setMerchantStatus] = useState('approved')
+    const [availableDriversCount, setAvailableDriversCount] = useState(0)
     const [stats, setStats] = useState({
         todayEarnings: 0,
         totalOrders: 0,
@@ -42,6 +44,10 @@ function MerchantDashboard() {
                     ...statsData,
                     loading: false
                 })
+
+                // Fetch Available Drivers
+                const driversCount = await merchantService.getAvailableDriversCount()
+                setAvailableDriversCount(driversCount)
 
                 // Fetch Pending Orders for 'Baru' tab
                 const ordersData = await orderService.getMerchantOrders(user.merchantId, ['pending'])
@@ -73,7 +79,28 @@ function MerchantDashboard() {
         fetchData()
         // Refresh every 30 seconds
         const interval = setInterval(fetchData, 30000)
-        return () => clearInterval(interval)
+
+        // Set up Realtime subscription for driver online/offline status changes
+        const driverSubscription = supabase
+            .channel('driver_status_updates_dashboard')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'drivers'
+                },
+                () => {
+                    // Refetch data when a driver status changes to ensure an accurate count
+                    merchantService.getAvailableDriversCount().then(setAvailableDriversCount)
+                }
+            )
+            .subscribe()
+
+        return () => {
+            clearInterval(interval)
+            supabase.removeChannel(driverSubscription)
+        }
     }, [user?.merchantId])
 
     // Blocked screens for suspended/terminated merchants
@@ -240,7 +267,11 @@ function MerchantDashboard() {
                     </div>
                     <div className="flex-1">
                         <p className="text-xs font-semibold text-blue-800 dark:text-blue-300">Driver Tersedia</p>
-                        <p className="text-[10px] text-blue-600 dark:text-blue-400">Ada 12 driver di sekitar area warungmu.</p>
+                        <p className="text-[10px] text-blue-600 dark:text-blue-400">
+                            {availableDriversCount > 0
+                                ? `Ada ${availableDriversCount} driver di sekitar area warungmu.`
+                                : 'Belum ada driver yang aktif saat ini.'}
+                        </p>
                     </div>
                 </section>
 

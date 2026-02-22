@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import useSWR from 'swr'
 import merchantService from '../../../services/merchantService'
 import { useFavorites } from '../../../context/FavoritesContext'
 import { useCart } from '../../../context/CartContext'
@@ -7,65 +8,59 @@ import BottomNavigation from '../../../components/user/BottomNavigation'
 import LoadingState from '../../../components/shared/LoadingState'
 import ErrorState from '../../../components/shared/ErrorState'
 import EmptyState from '../../../components/shared/EmptyState'
+import { supabase } from '../../../services/supabaseClient'
 
 const filters = [
     { id: 'all', label: 'Semua', active: true },
     { id: 'rating', label: 'Rating 4.5+', icon: 'star', active: false },
     { id: 'promo', label: 'Promo', active: false },
     { id: 'popular', label: 'Terpopuler', active: false },
+    { id: 'free', label: 'Gratis Ongkir', active: false },
 ]
 
 function AllMerchantsPage() {
     const navigate = useNavigate()
     const [activeFilter, setActiveFilter] = useState('all')
-    const [merchants, setMerchants] = useState([])
-    const [allMerchants, setAllMerchants] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
     const { isFavorite, toggleFavorite } = useFavorites()
     const { cartItems } = useCart()
 
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 
-    const fetchMerchants = useCallback(async () => {
-        setLoading(true)
-        setError(null)
-        try {
-            const data = await merchantService.getMerchants({ limit: 50 })
-            setAllMerchants(data)
-            setMerchants(data)
-        } catch (err) {
-            setError(err.message || 'Gagal memuat data merchant')
-        } finally {
-            setLoading(false)
-        }
-    }, [])
+    const { data: fetchedMerchants = [], error, isLoading, mutate } = useSWR(
+        'all_merchants_list',
+        () => merchantService.getMerchants({ limit: 50 }),
+        { revalidateOnFocus: false }
+    )
 
     useEffect(() => {
-        fetchMerchants()
-    }, [fetchMerchants])
+        // Set up Supabase Realtime subscription
+        const subscription = supabase
+            .channel('merchant_updates_all')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'merchants'
+                },
+                (payload) => {
+                    mutate(currentList => {
+                        if (!currentList) return []
+                        return currentList.map(m =>
+                            m.id === payload.new.id ? { ...m, ...payload.new } : m
+                        )
+                    }, false)
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(subscription)
+        }
+    }, [mutate])
 
     const handleFilterClick = (filterId) => {
         setActiveFilter(filterId)
-
-        let filtered = [...allMerchants]
-        switch (filterId) {
-            case 'rating':
-                filtered = allMerchants.filter(m => m.rating >= 4.5)
-                break
-            case 'promo':
-                filtered = allMerchants.filter(m => m.hasPromo || m.has_promo)
-                break
-            case 'popular':
-                filtered = [...allMerchants].sort((a, b) => b.rating - a.rating)
-                break
-            case 'free':
-                filtered = allMerchants.filter(m => m.deliveryFee === 'Gratis' || m.delivery_fee === 0)
-                break
-            default:
-                filtered = allMerchants
-        }
-        setMerchants(filtered)
     }
 
     const handleFavoriteClick = (e, merchant) => {
@@ -73,12 +68,27 @@ function AllMerchantsPage() {
         toggleFavorite(merchant)
     }
 
-    if (loading) {
+    const merchants = (() => {
+        switch (activeFilter) {
+            case 'rating':
+                return fetchedMerchants.filter(m => m.rating >= 4.5)
+            case 'promo':
+                return fetchedMerchants.filter(m => m.hasPromo || m.has_promo)
+            case 'popular':
+                return [...fetchedMerchants].sort((a, b) => b.rating - a.rating)
+            case 'free':
+                return fetchedMerchants.filter(m => m.deliveryFee === 'Gratis' || m.delivery_fee === 0)
+            default:
+                return fetchedMerchants
+        }
+    })()
+
+    if (isLoading) {
         return <LoadingState message="Memuat merchant..." />
     }
 
     if (error) {
-        return <ErrorState message="Gagal Memuat Merchant" detail={error} onRetry={fetchMerchants} />
+        return <ErrorState message="Gagal Memuat Merchant" detail={error} onRetry={() => mutate()} />
     }
 
     return (
@@ -137,7 +147,7 @@ function AllMerchantsPage() {
                         <article
                             key={merchant.id}
                             onClick={() => navigate(`/merchant/${merchant.id}`)}
-                            className="flex items-center p-3 gap-3 rounded-xl bg-card-light shadow-soft border border-border-color active:bg-gray-50 transition-colors cursor-pointer"
+                            className={`flex items-start p-3 gap-3 rounded-xl bg-card-light shadow-soft border border-border-color active:bg-gray-50 transition-colors cursor-pointer ${!merchant.is_open ? 'opacity-80' : ''}`}
                         >
                             {/* Merchant Image */}
                             <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
@@ -145,13 +155,21 @@ function AllMerchantsPage() {
                                     src={merchant.image}
                                     alt={merchant.name}
                                     className="w-full h-full object-cover"
+                                    style={!merchant.is_open ? { filter: 'grayscale(100%) blur(1px)' } : {}}
                                     loading="lazy"
                                 />
                             </div>
 
                             {/* Merchant Info */}
-                            <div className="flex flex-col flex-1 justify-center gap-1">
-                                <h3 className="text-base font-semibold text-text-main leading-tight">{merchant.name}</h3>
+                            <div className="flex flex-col flex-1 justify-center gap-1 mt-1">
+                                <div className="flex items-start justify-between gap-1">
+                                    <h3 className="text-base font-semibold text-text-main leading-tight line-clamp-2">{merchant.name}</h3>
+                                    {!merchant.is_open && (
+                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 shrink-0">
+                                            Tutup
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[14px] text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                                     <span className="text-xs font-medium text-text-main">{merchant.rating}</span>

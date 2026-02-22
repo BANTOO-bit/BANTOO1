@@ -4,6 +4,8 @@ import DriverBottomNavigation from '../../components/driver/DriverBottomNavigati
 import BackToTopButton from '../../components/shared/BackToTopButton'
 import { supabase } from '../../services/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
+import { driverService } from '../../services/driverService'
+import { formatId } from '../../utils/formatters'
 
 function DriverEarningsPage() {
     const navigate = useNavigate()
@@ -162,7 +164,7 @@ function DriverEarningsPage() {
         if (filteredTransactions.length === 0) {
             return { driver: 0, codFee: 0 }
         }
-        const driverIncome = filteredTransactions.reduce((acc, curr) => acc + (curr.delivery_fee || 10000), 0)
+        const driverIncome = filteredTransactions.reduce((acc, curr) => acc + (curr.delivery_fee != null ? curr.delivery_fee : 0), 0)
         const codFee = filteredTransactions.reduce((acc, curr) => acc + curr.admin_fee, 0)
         return { driver: driverIncome, codFee: codFee }
     }, [filteredTransactions])
@@ -189,7 +191,7 @@ function DriverEarningsPage() {
                         <h2 className="text-slate-900 text-xl font-bold leading-tight">Pendapatan</h2>
                         <button
                             onClick={() => setShowFilter(true)}
-                            className="flex items-center gap-2 bg-white border border-[#0d59f2]/20 shadow-sm rounded-full pl-2 pr-2 py-1.5 transition-all active:scale-95 active:bg-slate-50 hover:border-[#0d59f2]/50 group ring-2 ring-[#0d59f2]/5 max-w-[190px]"
+                            className="flex items-center gap-2 bg-white border border-[#0d59f2]/20 shadow-sm rounded-full pl-2 pr-2 py-1.5 transition-all active:scale-95 active:bg-slate-50 hover:border-[#0d59f2]/50 group ring-2 ring-[#0d59f2]/0 max-w-[190px]"
                         >
                             <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#0d59f2] text-white shadow-sm shrink-0">
                                 <span className="material-symbols-outlined text-[16px]">calendar_month</span>
@@ -222,8 +224,8 @@ function DriverEarningsPage() {
                             </h1>
                             <button
                                 onClick={() => navigate('/driver/withdrawal')}
-                                className={`w-full bg-white text-[#0d59f2] font-bold py-2.5 rounded-xl text-sm transition-transform active:scale-95 shadow-sm hover:shadow-md flex items-center justify-center gap-2 ${!hasTransactions && 'bg-white/40 text-white cursor-not-allowed backdrop-blur-sm opacity-75'}`}
-                                disabled={!hasTransactions}
+                                className={`w-full font-bold py-2.5 rounded-xl text-sm transition-transform active:scale-95 shadow-sm hover:shadow-md flex items-center justify-center gap-2 ${earnings.driver <= 0 ? 'bg-white/40 text-white cursor-not-allowed backdrop-blur-sm opacity-75' : 'bg-white text-[#0d59f2]'}`}
+                                disabled={earnings.driver <= 0}
                             >
                                 <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
                                 Tarik Saldo
@@ -279,7 +281,7 @@ function DriverEarningsPage() {
                                                     <span className="material-symbols-outlined text-[18px]">{trx.icon}</span>
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-slate-900 text-sm font-bold">#{trx.id}</h4>
+                                                    <h4 className="text-slate-900 text-sm font-bold font-mono tracking-wider">{formatId(trx.id)}</h4>
                                                     <p className="text-slate-400 text-[10px] font-medium">Selesai â€¢ {trx.time} WIB â€¢ {trx.date}</p>
                                                     <div className="flex items-center gap-1.5 mt-1">
                                                         <span className={`material-symbols-outlined text-[14px] ${trx.method_icon_color}`}>{trx.method_icon}</span>

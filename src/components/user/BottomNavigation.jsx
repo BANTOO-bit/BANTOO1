@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 function BottomNavigation({ activeTab }) {
@@ -44,4 +45,4 @@ function BottomNavigation({ activeTab }) {
     )
 }
 
-export default BottomNavigation
+export default memo(BottomNavigation)

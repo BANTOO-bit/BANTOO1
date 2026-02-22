@@ -38,8 +38,8 @@ function SearchRecommendationCard({ menu, onClick }) {
             className="flex items-center p-3 gap-3 rounded-xl bg-white shadow-soft border border-gray-100 active:bg-gray-50 transition-colors cursor-pointer"
         >
             <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                {menu.image_url ? (
-                    <img src={menu.image_url} alt={menu.name} className="w-full h-full object-cover" loading="lazy" />
+                {(menu.image || menu.image_url) ? (
+                    <img src={menu.image || menu.image_url} alt={menu.name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300">
                         <span className="material-symbols-outlined text-3xl">restaurant</span>
@@ -54,16 +54,38 @@ function SearchRecommendationCard({ menu, onClick }) {
                     <span className="text-xs text-gray-400 mx-1">•</span>
                     <span className="text-xs text-gray-500 line-clamp-1">{menu.merchantName || 'Merchant'}</span>
                 </div>
-                <div className="flex items-center gap-4 mt-1">
+                <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-1 text-gray-500">
                         <span className="material-symbols-outlined text-[14px]">sell</span>
-                        <span className="text-xs">{formatPrice(menu.price)}</span>
+                        <span className="text-sm font-bold text-primary">{formatPrice(menu.price)}</span>
                     </div>
-                    {/* Placeholder for time/shipping if not available in menu object */}
-                    {/* <div className="flex items-center gap-1 text-gray-500">
-                        <span className="material-symbols-outlined text-[14px]">local_shipping</span>
-                        <span className="text-xs">Gratis</span>
-                    </div> */}
+                    {/* Cart Button logic similar to MerchantDetailPage */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                        {quantity === 0 ? (
+                            <button
+                                onClick={() => addToCart({ ...menu, merchantName: menu.merchantName }, { name: menu.merchantName, id: menu.merchantId })}
+                                className="w-7 h-7 flex items-center justify-center bg-primary text-white rounded-full active:scale-95 transition-transform shadow-md"
+                            >
+                                <span className="material-symbols-outlined text-base">add</span>
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => updateQuantity(menu.id, quantity - 1)}
+                                    className="w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-800 rounded-full active:scale-95 transition-transform"
+                                >
+                                    <span className="material-symbols-outlined text-base">remove</span>
+                                </button>
+                                <span className="font-bold text-sm w-5 text-center">{quantity}</span>
+                                <button
+                                    onClick={() => addToCart({ ...menu, merchantName: menu.merchantName }, { name: menu.merchantName, id: menu.merchantId })}
+                                    className="w-7 h-7 flex items-center justify-center bg-primary text-white rounded-full active:scale-95 transition-transform shadow-md"
+                                >
+                                    <span className="material-symbols-outlined text-base">add</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </article>
@@ -258,12 +280,23 @@ function SearchPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-gray-50/50">
                                     <span className="material-symbols-outlined text-4xl text-gray-300">search_off</span>
                                 </div>
-                                <h3 className="font-bold text-gray-800 mb-1">Tidak ditemukan</h3>
-                                <p className="text-sm text-gray-500">Coba kata kunci lain.</p>
+                                <h3 className="font-bold text-gray-800 mb-1">Menu Tidak Ditemukan</h3>
+                                <p className="text-sm text-gray-500 mb-6">Mungkin kata kuncinya kurang pas, atau menu yang dicari belum tersedia.</p>
+                                <button
+                                    onClick={() => {
+                                        setSearchQuery('')
+                                        setMerchantResults([])
+                                        setIsSearching(false)
+                                    }}
+                                    className="px-6 py-2.5 bg-primary/10 text-primary font-semibold rounded-full active:scale-95 transition-transform flex items-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
+                                    Lihat Menu Populer
+                                </button>
                             </div>
                         )}
                     </section>

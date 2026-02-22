@@ -28,6 +28,10 @@ export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
         }
     },
     auth: {
+        // Switch to sessionStorage for better security than localStorage
+        // Automatically destroyed when user closes the browser/tab
+        storage: typeof window !== 'undefined' ? window.sessionStorage : null,
+        storageKey: 'bantoo-auth-token',
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true

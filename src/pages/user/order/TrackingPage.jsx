@@ -28,11 +28,14 @@ const orderStatuses = [
 // Map status strings to step index
 const STATUS_INDEX_MAP = {
     'pending': 0,
+    'confirmed': 1,
     'accepted': 1,
     'preparing': 2,
+    'processing': 2,
     'ready': 3,
     'pickup': 3,
     'picked_up': 4,
+    'on_the_way': 5,
     'delivering': 5,
     'delivered': 6,
     'completed': 6,
@@ -118,9 +121,13 @@ function OrderDetailModal({ isOpen, onClose, order }) {
                             {order.items?.map((item, index) => (
                                 <div key={index} className="flex items-center justify-between p-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-gray-400">restaurant</span>
-                                        </div>
+                                        {item.menu_items?.image_url ? (
+                                            <img src={item.menu_items.image_url} alt={item.product_name || item.name} className="w-12 h-12 bg-gray-100 rounded-lg object-cover border border-border-color" />
+                                        ) : (
+                                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center border border-border-color">
+                                                <span className="material-symbols-outlined text-gray-400">restaurant</span>
+                                            </div>
+                                        )}
                                         <div>
                                             <p className="font-medium text-sm">{item.product_name || item.name}</p>
                                             <p className="text-xs text-text-secondary">{item.quantity}x @ Rp {(item.price_at_time || item.price)?.toLocaleString()}</p>
@@ -483,35 +490,37 @@ function TrackingPage() {
                 </div>
             </header>
 
-            {/* Map Section or Waiting State */}
-            {order.status === 'pending' ? (
+            {/* Waiting States: Pending, Accepted, Preparing, Processing, Ready */}
+            {['pending', 'accepted', 'preparing', 'processing', 'ready'].includes(order.status) ? (
                 <div className="w-full h-[320px] bg-white flex flex-col items-center justify-center p-6 text-center border-b border-gray-100 relative overflow-hidden text-slate-800">
-                    {/* Soft Glow Background */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-50/80 rounded-full blur-3xl -z-10"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-50/80 rounded-full blur-3xl -z-10"></div>
 
-                    {/* Icon Group */}
                     <div className="relative mb-6">
-                        <div className="absolute inset-0 bg-orange-400 rounded-full animate-ping opacity-20"></div>
-                        <div className="relative w-24 h-24 bg-gradient-to-tr from-orange-500 to-orange-400 rounded-full flex items-center justify-center">
-                            <span className="material-symbols-outlined text-4xl text-white animate-pulse">storefront</span>
+                        <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20" style={{ animationDuration: '3s' }}></div>
+                        <div className="relative w-24 h-24 bg-gradient-to-tr from-blue-500 to-blue-400 rounded-full flex items-center justify-center shadow-md border-4 border-white">
+                            <span className="material-symbols-outlined text-4xl text-white">
+                                {order.status === 'pending' ? 'storefront' : order.status === 'ready' ? 'takeout_dining' : 'soup_kitchen'}
+                            </span>
                         </div>
                     </div>
 
-                    <h3 className="font-bold text-xl text-gray-900 mb-2">Menunggu Konfirmasi</h3>
+                    <h3 className="font-bold text-xl text-gray-900 mb-2">
+                        {order.status === 'pending' ? 'Menunggu Konfirmasi' : order.status === 'ready' ? 'Siap Diambil' : 'Sedang Disiapkan'}
+                    </h3>
 
                     <div className="space-y-1 max-w-[280px] mx-auto">
                         <p className="text-gray-500 text-sm leading-relaxed">
-                            Pesananmu sedang diteruskan ke
+                            {order.status === 'pending'
+                                ? `Pesananmu sedang diteruskan ke ${merchantName}. Mohon tunggu sebentar ya...`
+                                : order.status === 'ready'
+                                    ? 'Pesananmu sudah siap. Sistem sedang mencarikan driver terdekat.'
+                                    : 'Restoran sedang menyiapkan hidangan lezatmu dengan sepenuh hati.'}
                         </p>
-                        <p className="font-bold text-gray-800 text-lg">{merchantName}</p>
-                        <p className="text-gray-400 text-xs italic mt-2">Mohon tunggu sebentar ya...</p>
                     </div>
 
-                    {/* Loading Dots */}
-                    <div className="mt-8 flex gap-2 justify-center">
-                        <div className="w-2 h-2 bg-orange-300 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-orange-300 rounded-full animate-bounce delay-75"></div>
-                        <div className="w-2 h-2 bg-orange-300 rounded-full animate-bounce delay-150"></div>
+                    <div className="mt-8 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full flex items-center gap-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-semibold text-slate-600">Mohon Ditunggu Ya</span>
                     </div>
                 </div>
             ) : (

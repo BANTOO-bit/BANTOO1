@@ -81,8 +81,8 @@ export default function DriverRoutes() {
 
             {/* Driver Order Flow (COD) */}
             <Route path="/driver/order/incoming/:orderId" element={<ProtectedRoute allowedRoles={['driver']}><DriverIncomingOrder /></ProtectedRoute>} />
-            <Route path="/driver/order/pickup" element={<ProtectedRoute allowedRoles={['driver']}><DriverPickupOrder /></ProtectedRoute>} />
-            <Route path="/driver/order/delivery" element={<ProtectedRoute allowedRoles={['driver']}><DriverDeliveryOrder /></ProtectedRoute>} />
+            <Route path="/driver/order/pickup/:orderId" element={<ProtectedRoute allowedRoles={['driver']}><DriverPickupOrder /></ProtectedRoute>} />
+            <Route path="/driver/order/delivery/:orderId" element={<ProtectedRoute allowedRoles={['driver']}><DriverDeliveryOrder /></ProtectedRoute>} />
             <Route path="/driver/order/payment" element={<ProtectedRoute allowedRoles={['driver']}><DriverPaymentConfirmation /></ProtectedRoute>} />
             <Route path="/driver/order/complete" element={<ProtectedRoute allowedRoles={['driver']}><DriverOrderComplete /></ProtectedRoute>} />
             <Route path="/driver/chat/:orderId" element={<ProtectedRoute allowedRoles={['driver']}><DriverChatPage /></ProtectedRoute>} />

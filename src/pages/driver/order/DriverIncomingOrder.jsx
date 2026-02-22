@@ -7,6 +7,7 @@ import orderService from '../../../services/orderService'
 import { calculateDistance } from '../../../services/driverLocationService'
 import { generateOrderId } from '../../../utils/orderUtils'
 import { handleError } from '../../../utils/errorHandler'
+import { formatId } from '../../../utils/formatters'
 
 function DriverIncomingOrder() {
     const navigate = useNavigate()
@@ -58,6 +59,7 @@ function DriverIncomingOrder() {
                 }
             } catch (error) {
                 handleError(error, toast, { context: 'Fetch order' })
+                navigate('/driver/dashboard')
             } finally {
                 setIsLoading(false)
             }
@@ -119,6 +121,7 @@ function DriverIncomingOrder() {
                 items: availableOrder.items?.map(item => ({
                     name: item.product_name,
                     quantity: item.quantity,
+                    image: item.menu_items?.image_url,
                     notes: item.notes
                 })) || [],
                 distances: {
@@ -142,8 +145,18 @@ function DriverIncomingOrder() {
         }
     }
 
-    const handleRejectOrder = () => {
-        navigate('/driver/dashboard')
+    const handleRejectOrder = async () => {
+        if (!availableOrder || isAccepting) return
+        try {
+            setIsAccepting(true)
+            const { driverService } = await import('../../../services/driverService')
+            await driverService.rejectOrder(availableOrder.id)
+            toast.success('Pesanan ditolak')
+        } catch (error) {
+            console.error('Error rejecting order:', error)
+        } finally {
+            navigate('/driver/dashboard')
+        }
     }
 
     if (isLoading) {

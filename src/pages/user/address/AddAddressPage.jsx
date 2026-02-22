@@ -34,10 +34,11 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
     const [errors, setErrors] = useState({})
 
     // Map States
-    const [mapCenter, setMapCenter] = useState({ lat: -7.0747, lng: 110.8767 }) // Default Tanggungharjo
+    const [mapCenter, setMapCenter] = useState({ lat: -7.0674066, lng: 110.8715891 }) // Default: Polsek Tanggungharjo
     const [flyToCoords, setFlyToCoords] = useState(null)
     const [isMapMoving, setIsMapMoving] = useState(false)
     const [isGeocoding, setIsGeocoding] = useState(false)
+    const [mapReferenceAddress, setMapReferenceAddress] = useState('')
 
     // GPS States
     const [isGPSLoading, setIsGPSLoading] = useState(false)
@@ -57,11 +58,14 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
             setIsGeocoding(true)
             const address = await locationService.reverseGeocode(lat, lng)
             if (address) {
-                // Update form address automatically
-                setForm(prev => ({
-                    ...prev,
-                    address: address
-                }))
+                // Update reference address and only autofill if form address is empty
+                setMapReferenceAddress(address)
+                setForm(prev => {
+                    if (!prev.address) {
+                        return { ...prev, address: address }
+                    }
+                    return prev
+                })
             }
         } catch (error) {
             handleError(error, toast, { context: 'Geocoding' })
@@ -263,23 +267,39 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
                     <div className="grid grid-cols-1 gap-5">
                         {/* Address */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-500 pl-1" htmlFor="address">
-                                Alamat Lengkap
+                            <label className="flex items-center justify-between text-sm font-medium text-slate-500 pl-1" htmlFor="address">
+                                <span>Alamat Lengkap</span>
+                                {mapReferenceAddress && mapReferenceAddress !== form.address && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChange('address', mapReferenceAddress)}
+                                        className="text-xs text-primary hover:underline font-semibold flex items-center gap-1 active:scale-95"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">place</span>
+                                        Pakai Alamat Peta
+                                    </button>
+                                )}
                             </label>
                             <textarea
                                 id="address"
                                 value={form.address}
                                 onChange={(e) => handleChange('address', e.target.value)}
-                                placeholder="Geser peta untuk isi alamat otomatis..."
+                                placeholder="Contoh: Jl. Merdeka No. 1, RT 01/RW 02"
                                 rows="3"
-                                className={`w-full rounded-2xl border bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm
+                                className={`w-full rounded-2xl border bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm leading-relaxed
                                     ${errors.address ? 'border-red-400' : 'border-slate-200'}`}
                             />
                             {errors.address && <p className="text-xs text-red-500 pl-1">{errors.address}</p>}
-                            <div className="flex justify-end pt-1">
-                                <p className="text-xs text-gray-400 italic">
-                                    *Alamat akan terisi otomatis sesuai titik di peta
-                                </p>
+                            <div className="flex justify-between items-start pt-1 px-1 min-h-[1.5rem]">
+                                {isGeocoding ? (
+                                    <p className="text-xs text-primary animate-pulse w-full">Memuat referensi alamat dari satelit...</p>
+                                ) : mapReferenceAddress ? (
+                                    <p className="text-xs text-gray-500 w-full">
+                                        <span className="font-semibold text-slate-700">Peta:</span> {mapReferenceAddress}
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-gray-400 italic">Geser peta untuk mendapatkan referensi alamat</p>
+                                )}
                             </div>
                         </div>
 

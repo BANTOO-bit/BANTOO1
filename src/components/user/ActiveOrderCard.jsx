@@ -10,9 +10,16 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
         const statusMap = {
             'pending': 0,
             'confirmed': 1,
+            'accepted': 1,
             'preparing': 1,
+            'processing': 1,
+            'ready': 1,
+            'pickup': 2,
+            'picked_up': 2,
             'on_the_way': 2,
-            'delivered': 3
+            'delivering': 2,
+            'delivered': 3,
+            'completed': 3
         }
         return statusMap[status] || 0
     }
@@ -27,11 +34,41 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
             },
             'confirmed': {
                 message: 'Pesanan Dikonfirmasi',
-                showDriver: true,
+                showDriver: false,
+                showCancel: false
+            },
+            'accepted': {
+                message: 'Pesanan Diterima Warung',
+                showDriver: false,
                 showCancel: false
             },
             'preparing': {
                 message: 'Makanan Sedang Disiapkan',
+                showDriver: false,
+                showCancel: false
+            },
+            'processing': {
+                message: 'Makanan Sedang Diproses',
+                showDriver: false,
+                showCancel: false
+            },
+            'ready': {
+                message: 'Pesanan Siap Diambil Driver',
+                showDriver: false,
+                showCancel: false
+            },
+            'pickup': {
+                message: 'Driver Menuju Warung',
+                showDriver: true,
+                showCancel: false
+            },
+            'picked_up': {
+                message: 'Driver Sudah Mengambil Pesanan',
+                showDriver: true,
+                showCancel: false
+            },
+            'delivering': {
+                message: 'Pesanan Sedang Diantar',
                 showDriver: true,
                 showCancel: false
             },
@@ -42,6 +79,11 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
             },
             'delivered': {
                 message: 'Pesanan Telah Sampai',
+                showDriver: true,
+                showCancel: false
+            },
+            'completed': {
+                message: 'Pesanan Selesai',
                 showDriver: true,
                 showCancel: false
             }

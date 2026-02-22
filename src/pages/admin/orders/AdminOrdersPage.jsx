@@ -8,12 +8,13 @@ import { exportToCSV } from '../../../utils/exportCSV'
 
 // Status config with display labels and colors
 const STATUS_CONFIG = {
-    pending: { label: 'Menunggu', color: 'orange' },
-    accepted: { label: 'Diterima', color: 'blue' },
+    pending: { label: 'Menunggu', color: 'gray' },
+    accepted: { label: 'Belum Diproses', color: 'blue' },
     preparing: { label: 'Menyiapkan', color: 'orange' },
-    ready: { label: 'Siap Antar', color: 'cyan' },
-    pickup: { label: 'Driver Menuju', color: 'blue' },
-    picked_up: { label: 'Diambil', color: 'blue' },
+    processing: { label: 'Menyiapkan', color: 'orange' },
+    ready: { label: 'Siap', color: 'green' },
+    pickup: { label: 'Penjemputan', color: 'purple' },
+    picked_up: { label: 'Diantar', color: 'indigo' },
     delivering: { label: 'Diantar', color: 'blue' },
     delivered: { label: 'Terkirim', color: 'emerald' },
     completed: { label: 'Selesai', color: 'emerald' },
@@ -26,6 +27,10 @@ const STATUS_COLORS = {
     cyan: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
     emerald: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
     red: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+    gray: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
+    green: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+    purple: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    indigo: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
 }
 
 // Date range filter helpers
@@ -112,7 +117,7 @@ export default function AdminOrdersPage() {
             const all = data || []
             setStats({
                 total: all.length,
-                active: all.filter(o => ['pending', 'accepted', 'preparing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(o.status)).length,
+                active: all.filter(o => ['pending', 'accepted', 'preparing', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(o.status)).length,
                 completed: all.filter(o => ['delivered', 'completed'].includes(o.status)).length,
                 cancelled: all.filter(o => o.status === 'cancelled').length,
             })

@@ -147,7 +147,7 @@ export const orderService = {
             .select(`
                 *,
                 merchant:merchants(id, name, image_url, address),
-                items:order_items(*)
+                items:order_items(*, menu_items(image_url))
             `)
             .eq('customer_id', user.id)
             .order('created_at', { ascending: false })
@@ -171,7 +171,7 @@ export const orderService = {
                 *,
                 customer:profiles!customer_id(id, full_name, phone, avatar_url),
                 driver:profiles!driver_id(id, full_name, phone),
-                items:order_items(*)
+                items:order_items(*, menu_items(image_url))
             `)
             .eq('merchant_id', merchantId)
             .order('created_at', { ascending: false })
@@ -198,7 +198,7 @@ export const orderService = {
             .select(`
                 *,
                 customer:profiles!customer_id(id, full_name, phone, avatar_url),
-                items:order_items(*)
+                items:order_items(*, menu_items(image_url))
             `)
             .eq('merchant_id', merchantId)
             .or('status.eq.completed,status.eq.cancelled') // Only history (completed/cancelled)
@@ -235,7 +235,7 @@ export const orderService = {
             .select(`
                 *,
                 merchant:merchants(id, name, image_url, address, latitude, longitude),
-                items:order_items(*)
+                items:order_items(*, menu_items(image_url))
             `)
             .eq('status', 'ready')
             .is('driver_id', null)
@@ -258,7 +258,7 @@ export const orderService = {
                 *,
                 merchant:merchants(id, name, image_url, address, latitude, longitude),
                 customer:profiles!customer_id(id, full_name, phone),
-                items:order_items(*)
+                items:order_items(*, menu_items(image_url))
             `)
             .eq('driver_id', user.id)
             .order('created_at', { ascending: false })
@@ -283,10 +283,10 @@ export const orderService = {
                 merchant:merchants(id, name, image_url, address, phone, latitude, longitude),
                 customer:profiles!customer_id(id, full_name, phone, avatar_url),
                 driver:profiles!driver_id(id, full_name, phone, avatar_url),
-                items:order_items(*)
+                items:order_items(*, menu_items(image_url))
             `)
             .eq('id', orderId)
-            .single()
+            .maybeSingle()
 
         if (error) throw error
         return data
@@ -413,10 +413,10 @@ export const orderService = {
                     id, full_name, phone, avatar_url,
                     driver_detail:drivers!user_id(vehicle_type, vehicle_plate, vehicle_brand)
                 ),
-                items:order_items(*)
+                items:order_items(*, menu_items(image_url))
             `)
             .eq('id', orderId)
-            .single()
+            .maybeSingle()
 
         if (error) throw error
         return data

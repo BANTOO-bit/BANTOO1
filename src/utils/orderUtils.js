@@ -10,10 +10,19 @@
  * @returns {string} Formatted order ID (e.g., "JKT-8821")
  */
 export function generateOrderId(orderId) {
-    // Format: CITY-XXXXX
-    // City code can be determined by merchant location or default to JKT
-    const cityCode = 'JKT'
-    const paddedId = String(orderId).padStart(4, '0')
+    if (!orderId) return '';
+    const idString = String(orderId);
+
+    // Format: PREFIX-XXXXX
+    const cityCode = 'ORD'
+
+    // If it's a UUID (long string), truncate it to the last 6 chars
+    if (idString.length > 10) {
+        return `${cityCode}-${idString.slice(-6).toUpperCase()}`
+    }
+
+    // Legacy support for numeric IDs
+    const paddedId = idString.padStart(4, '0')
     return `${cityCode}-${paddedId}`
 }
 
@@ -25,9 +34,14 @@ export function generateOrderId(orderId) {
  * @returns {string} Formatted Order ID (e.g., "#JKT-8821")
  */
 export function formatOrderId(orderId) {
-    if (!orderId) return '#JKT-0000'
+    if (!orderId) return '#ORD-0000'
 
     const idString = orderId.toString()
+
+    // If it's a raw UUID, format it immediately
+    if (idString.length > 10 && !idString.includes('ORD-')) {
+        return `#ORD-${idString.slice(-6).toUpperCase()}`
+    }
 
     // If already in correct format (JKT-XXXX)
     if (idString.includes('-')) {
@@ -35,7 +49,7 @@ export function formatOrderId(orderId) {
     }
 
     // Convert numeric ID to formatted ID
-    return `#${generateOrderId(parseInt(idString))}`
+    return `#${generateOrderId(idString)}`
 }
 
 /**

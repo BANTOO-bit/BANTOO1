@@ -43,7 +43,7 @@ function FlyToLocation({ coords }) {
 }
 
 const LeafletMapPicker = ({
-    initialLocation = { lat: -7.0747, lng: 110.8767 }, // Default Tanggungharjo, Grobogan
+    initialLocation = { lat: -7.0674066, lng: 110.8715891 }, // Default Polsek Tanggungharjo
     onLocationSelect,
     triggerFlyTo, // coordinate object to fly to
     isInteractionDisabled = false
@@ -58,6 +58,9 @@ const LeafletMapPicker = ({
         return () => setIsMounted(false);
     }, []);
 
+    // Helper component to initialize map center properly
+    // (Removed to fix map completely reverting on every moveend / pan)
+
     // If not mounted yet (client-side only), don't render map to avoid hydration mismatch or early init
     if (!isMounted) return <div className="w-full h-full bg-slate-200 animate-pulse"></div>;
 
@@ -67,7 +70,7 @@ const LeafletMapPicker = ({
             <div className="w-full h-full">
                 <MapContainer
                     ref={mapContainerRef}
-                    key={`${initialLocation.lat}-${initialLocation.lng}`} // Changing key forces remounting when initial location changes significantly
+                    // Removed dynamic key to prevent map from re-rendering/resetting zoom level on pan or zoom
                     center={[initialLocation.lat, initialLocation.lng]}
                     zoom={15}
                     style={{ height: '100%', width: '100%' }}
@@ -76,6 +79,7 @@ const LeafletMapPicker = ({
                     touchZoom={!isInteractionDisabled}
                     doubleClickZoom={!isInteractionDisabled}
                     scrollWheelZoom={!isInteractionDisabled}
+                    attributionControl={false}
                 >
                     <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

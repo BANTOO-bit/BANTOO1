@@ -230,29 +230,27 @@ function MerchantRegistrationStep1() {
                         {errors.location && <p className="text-red-500 text-xs mt-1 ml-1">{errors.location}</p>}
                     </div>
 
-                    {/* Alamat Otomatis (dari reverse geocoding) */}
+                    {/* Alamat Terisi (Bisa diubah manual) */}
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            Alamat Warung
-                            {locationSelected && <span className="text-xs font-normal text-gray-400 ml-2">(otomatis dari peta)</span>}
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" htmlFor="address">
+                            Alamat Warung <span className="text-red-500">*</span>
+                            {locationSelected && <span className="text-xs font-normal text-gray-400 ml-2">(isi alamat lengkap)</span>}
                         </label>
                         <div className="relative">
-                            <div className={`w-full px-4 py-3 min-h-[3.5rem] rounded-xl border ${errors.address ? 'border-red-500 bg-red-50/30 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
-                                } text-sm transition-all shadow-sm flex items-start gap-2`}>
-                                {isAddressLoading ? (
-                                    <div className="flex items-center gap-2 text-gray-400">
-                                        <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
-                                        <span>Mengambil alamat...</span>
-                                    </div>
-                                ) : formData.address ? (
-                                    <>
-                                        <span className="material-symbols-outlined text-green-500 text-lg flex-shrink-0 mt-0.5">location_on</span>
-                                        <span className="text-gray-900 dark:text-white leading-relaxed">{formData.address}</span>
-                                    </>
-                                ) : (
-                                    <span className="text-gray-400 italic">Alamat akan terisi otomatis setelah memilih lokasi di peta</span>
-                                )}
-                            </div>
+                            <textarea
+                                className={`w-full px-4 py-3 min-h-[4rem] bg-white dark:bg-surface-dark border ${errors.address ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 dark:border-gray-700 focus:ring-primary'} rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all shadow-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none text-sm leading-relaxed`}
+                                id="address"
+                                name="address"
+                                placeholder={isAddressLoading ? "Sedang mengambil referensi alamat dari peta..." : "Contoh: Jl. Diponegoro No. 15, RT 01/RW 02, Kecamatan, Kota, Provinsi"}
+                                rows="3"
+                                value={formData.address}
+                                onChange={handleInputChange}
+                            ></textarea>
+                            {isAddressLoading && (
+                                <div className="absolute right-3 top-3">
+                                    <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            )}
                         </div>
                         {errors.address && <p className="text-red-500 text-xs mt-1 ml-1">{errors.address}</p>}
                     </div>
@@ -332,7 +330,7 @@ function MerchantRegistrationStep1() {
                     </div>
                 }>
                     <MapSelector
-                        location={formData.location || { lat: -7.0747, lng: 110.8767 }} // Default: Tanggungharjo, Grobogan
+                        location={formData.location || { lat: -7.0674066, lng: 110.8715891 }} // Default: Polsek Tanggungharjo, Grobogan
                         onLocationChange={handleLocationSelect}
                         onClose={() => setShowMapSelector(false)}
                     />

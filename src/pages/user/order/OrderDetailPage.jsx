@@ -65,6 +65,7 @@ function OrderDetailPage() {
                         name: item.product_name,
                         quantity: item.quantity,
                         price: item.price_at_time,
+                        image: item.menu_items?.image_url,
                         notes: item.notes
                     })) || [],
                     timeline: {
@@ -138,7 +139,7 @@ function OrderDetailPage() {
         // Cleanup subscription
         return () => {
             logger.debug('Unsubscribing from order:', order.dbId)
-            channel.unsubscribe()
+            supabase.removeChannel(channel)
         }
     }, [order?.dbId, addNotification])
 

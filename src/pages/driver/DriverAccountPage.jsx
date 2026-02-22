@@ -10,18 +10,24 @@ function DriverAccountPage() {
     const [stats, setStats] = useState({ rating: '-', trips: 0, joinDate: '-' })
     const [showLogoutModal, setShowLogoutModal] = useState(false)
 
+    const [profile, setProfile] = useState(null)
+
     useEffect(() => {
-        async function fetchStats() {
+        async function fetchData() {
             if (user?.id) {
                 try {
-                    const data = await driverService.getDriverStats(user.id)
-                    setStats(data)
+                    const [statsData, profileData] = await Promise.all([
+                        driverService.getDriverStats(user.id),
+                        driverService.getProfile()
+                    ])
+                    setStats(statsData)
+                    setProfile(profileData)
                 } catch (error) {
-                    if (import.meta.env.DEV) console.error('Failed to load stats', error)
+                    if (import.meta.env.DEV) console.error('Failed to load data', error)
                 }
             }
         }
-        fetchStats()
+        fetchData()
     }, [user])
 
     const handleLogoutClick = () => {
@@ -47,7 +53,7 @@ function DriverAccountPage() {
                         <div className="relative">
                             <div
                                 className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-24 ring-4 ring-white shadow-lg"
-                                style={{ backgroundImage: `url("${user?.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'}")` }}
+                                style={{ backgroundImage: `url("${profile?.avatar_url || user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.full_name || user?.user_metadata?.full_name || 'Driver')}&background=0D8ABC&color=fff`}")` }}
                             >
                             </div>
                             <div className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1.5 ring-4 ring-white shadow-sm flex items-center justify-center" title="Terverifikasi">
@@ -55,7 +61,7 @@ function DriverAccountPage() {
                             </div>
                         </div>
                         <div className="flex flex-col gap-1 items-center">
-                            <h1 className="text-2xl font-bold text-slate-900">{user?.user_metadata?.full_name || 'Driver'}</h1>
+                            <h1 className="text-2xl font-bold text-slate-900">{profile?.full_name || user?.user_metadata?.full_name || 'Driver'}</h1>
                             <p className="text-slate-500 text-sm font-medium">ID: {user?.id?.slice(0, 8).toUpperCase() || '-'}</p>
                             <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold border border-green-100">
                                 <span className="material-symbols-outlined text-[14px]">verified</span>

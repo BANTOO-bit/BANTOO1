@@ -42,13 +42,18 @@ function MenuItemCard({ item, merchant, isShopOpen }) {
     return (
         <div className={`flex gap-3 p-3 bg-white rounded-xl border border-border-color ${!isShopOpen ? 'opacity-70' : ''}`}>
             {/* Item Image */}
-            <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0">
+            <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
                 <img
                     src={item.image}
                     alt={item.name}
                     className="w-full h-full object-cover"
-                    style={!isShopOpen ? { filter: 'grayscale(100%)' } : {}}
+                    style={!isShopOpen ? { filter: 'grayscale(100%) blur(1px)' } : {}}
                 />
+                {!isShopOpen && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-white text-center leading-tight px-1">Tutup<br />Sementara</span>
+                    </div>
+                )}
             </div>
 
             {/* Item Details */}
@@ -148,7 +153,7 @@ function MerchantDetailPage() {
         : merchantMenus.filter(item => item.category === activeCategory)
 
     // Only show cart button if shop is open AND cart has items
-    const showCartButton = currentMerchant?.isOpen && cartCount > 0 && merchantInfo?.id === currentMerchant?.id
+    const showCartButton = currentMerchant?.is_open && cartCount > 0 && merchantInfo?.id === currentMerchant?.id
 
     // Derive categories from menu items
     const uniqueCategories = [...new Set(merchantMenus.map(item => item.category).filter(Boolean))]
@@ -187,7 +192,7 @@ function MerchantDetailPage() {
     if (error) return <ErrorState message="Gagal Memuat" detail={error} onRetry={fetchMerchantData} />
     if (!currentMerchant) return null
 
-    const isShopOpen = currentMerchant?.isOpen
+    const isShopOpen = currentMerchant?.is_open
 
     return (
         <div className="relative min-h-screen flex flex-col bg-background-light pb-bottom-nav">

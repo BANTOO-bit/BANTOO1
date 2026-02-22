@@ -5,7 +5,7 @@
  */
 
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org/reverse';
-
+const BDC_BASE_URL = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
 export const locationService = {
     /**
      * Get address details from latitude and longitude
@@ -18,8 +18,9 @@ export const locationService = {
     reverseGeocode: async (lat, lng) => {
         try {
             // Using accept-language as query param instead of header to keep request "Simple"
+            // Adding email parameter as requested by Nominatim TOS to reduce blocking
             const response = await fetch(
-                `${NOMINATIM_BASE_URL}?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=id`
+                `${NOMINATIM_BASE_URL}?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=id&email=bantoo.dev@localhost.com`
             );
 
             if (!response.ok) {
@@ -29,13 +30,39 @@ export const locationService = {
             const data = await response.json();
 
             // Nominatim returns a very detailed "display_name"
-            // We can also construct it from data.address if we want specific format
-            return data.display_name;
+            if (data && data.display_name) {
+                return data.display_name;
+            }
+            throw new Error('Format data Nominatim tidak sesuai');
         } catch (error) {
-            console.warn('Nominatim error, falling back to basic coords:', error);
+            console.warn('Nominatim error, falling back to BDC API:', error);
 
-            // Fallback: Just return coordinates if lightweight fail
-            // Or we could try the BDC API as a backup here if we really wanted to.
+            try {
+                // Fallback to BigDataCloud Free API (Client-side friendly, no CORS issues usually)
+                const fallbackResponse = await fetch(
+                    `${BDC_BASE_URL}?latitude=${lat}&longitude=${lng}&localityLanguage=id`
+                );
+                
+                if (!fallbackResponse.ok) {
+                     throw new Error('BDC API gagal merespon');
+                }
+                
+                const fallbackData = await fallbackResponse.json();
+                
+                // Construct a readable address from BDC
+                let addressParts = [];
+                if (fallbackData.locality) addressParts.push(fallbackData.locality);
+                if (fallbackData.city) addressParts.push(fallbackData.city);
+                if (fallbackData.principalSubdivision) addressParts.push(fallbackData.principalSubdivision);
+                
+                if (addressParts.length > 0) {
+                     return addressParts.join(', ');
+                }
+            } catch (fallbackError) {
+                 console.warn('BDC fallback error:', fallbackError);
+            }
+
+            // Ultimate Fallback: Just return coordinates if lightweight fail
             return `Lokasi Terpilih: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         }
     },

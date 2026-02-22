@@ -69,7 +69,7 @@ function OrdersPage() {
                     name: item.product_name,
                     quantity: item.quantity,
                     price: item.price_at_time,
-                    image: item.product?.image_url,
+                    image: item.menu_items?.image_url,
                     notes: item.notes
                 })) || []
             }))

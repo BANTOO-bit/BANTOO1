@@ -7,6 +7,9 @@ import { useOrder } from '../../../context/OrderContext'
 import { useToast } from '../../../context/ToastContext'
 import { handleError, handleWarning } from '../../../utils/errorHandler'
 import orderService from '../../../services/orderService'
+import SlideToConfirm from '../../../components/shared/SlideToConfirm'
+import DriverIssueModal from '../../../components/driver/DriverIssueModal'
+import { formatId } from '../../../utils/formatters'
 
 function DriverPickupOrder() {
     const navigate = useNavigate()
@@ -16,6 +19,7 @@ function DriverPickupOrder() {
     const toast = useToast()
     const [checkedItems, setCheckedItems] = useState({})
     const [isConfirming, setIsConfirming] = useState(false)
+    const [showIssueModal, setShowIssueModal] = useState(false)
 
     // Protected route: redirect if no active order
     useEffect(() => {
@@ -44,6 +48,21 @@ function DriverPickupOrder() {
         }))
     }
 
+    const hasArrived = activeOrder.hasArrivedAtMerchant || false
+    const handleArriveAtMerchant = () => {
+        setActiveOrder({ ...activeOrder, hasArrivedAtMerchant: true })
+    }
+
+    const handleReportIssue = async (reason) => {
+        // Here you would call backend to report issue / cancel order
+        // e.g., await driverService.reportOrderIssue(activeOrder.id, reason)
+        setShowIssueModal(false)
+        toast.info(`Laporan kendala "${reason}" terkirim. Pesanan dibatalkan.`)
+        // Simulating immediate removal from active orders
+        setActiveOrder(null)
+        navigate('/driver/dashboard')
+    }
+
     // Handle both flat and nested data structures
     const orderItems = activeOrder.items || []
     const allItemsChecked = orderItems.every((_, index) => checkedItems[index])
@@ -59,7 +78,7 @@ function DriverPickupOrder() {
         ? [activeOrder.customer_lat, activeOrder.customer_lng]
         : (activeOrder.customerCoords || [-6.2250, 106.8500])
 
-    const paymentMethod = activeOrder.payment_method || activeOrder.paymentMethod
+    const paymentMethod = (activeOrder.payment_method || activeOrder.paymentMethod || '').toLowerCase()
     const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
     const customerNote = activeOrder.notes || activeOrder.customerNote
 
@@ -72,11 +91,38 @@ function DriverPickupOrder() {
         try {
             setIsConfirming(true)
 
-            // Update order status to picked_up via Driver Service
+            // Dapatkan lokasi GPS akurat sebelum memperbolehkan pickup
+            let lat = null, lng = null;
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 10000
+                    });
+                });
+                lat = position.coords.latitude;
+                lng = position.coords.longitude;
+            } catch (gpsError) {
+                console.warn('Gagal mendapatkan GPS instan, mencoba fallback...', gpsError);
+                // Fallback ke tracking GPS terkahir jika ada
+                if (activeOrder.driverCoords && activeOrder.driverCoords.length === 2) {
+                    lat = activeOrder.driverCoords[0];
+                    lng = activeOrder.driverCoords[1];
+                    console.log('Menggunakan fallback (lokasi terakhir):', lat, lng);
+                } else {
+                    toast.warning('GPS sulit dilacak. Pastikan sinyal GPS Anda kuat.', {
+                        duration: 5000,
+                        icon: 'gps_off'
+                    });
+                }
+            }
+
+            // Update order status to picked_up via Driver Service (dengan radius validation jika GPS dapat)
             const { driverService } = await import('../../../services/driverService')
             // Support both id and dbId
             const orderId = activeOrder.id
-            await driverService.updateOrderStatus(orderId, 'picked_up')
+            await driverService.updateOrderStatus(orderId, 'picked_up', lat, lng)
 
             // Update context
             setActiveOrder({ ...activeOrder, status: 'picked_up' })
@@ -86,6 +132,7 @@ function DriverPickupOrder() {
             navigate(`/driver/order/delivery/${orderId}`)
         } catch (error) {
             console.error('Error confirming pickup:', error)
+            // Error bisa datang dari backend karena reject radius
             handleError(error, toast, { context: 'Confirm Pickup' })
         } finally {
             setIsConfirming(false)
@@ -103,7 +150,7 @@ function DriverPickupOrder() {
                         </button>
                         <div>
                             <h1 className="text-lg font-bold text-slate-900 leading-tight">Ambil Pesanan</h1>
-                            <p className="text-xs font-medium text-slate-500">Order ID #{activeOrder.id?.slice(0, 8)}</p>
+                            <p className="text-xs font-medium text-slate-500">Order ID #{formatId(activeOrder.id)}</p>
                         </div>
                     </div>
                     <div className="flex gap-3">
@@ -113,8 +160,11 @@ function DriverPickupOrder() {
                         >
                             <span className="material-symbols-outlined text-[24px]">chat</span>
                         </button>
-                        <button className="flex items-center justify-center rounded-full size-10 bg-slate-100 text-slate-900 hover:bg-slate-200 transition-colors">
-                            <span className="material-symbols-outlined text-[24px]">help</span>
+                        <button
+                            onClick={() => setShowIssueModal(true)}
+                            className="flex items-center justify-center rounded-full size-10 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-[24px]">warning</span>
                         </button>
                     </div>
                 </div>
@@ -157,7 +207,7 @@ function DriverPickupOrder() {
                 </div>
 
                 {/* COD Warning (Conditional) */}
-                {paymentMethod === 'COD' && (
+                {paymentMethod === 'cod' && (
                     <div className="bg-red-50 rounded-xl p-5 border border-red-100 text-center animate-in fade-in slide-in-from-bottom-2">
                         <div className="flex items-center justify-center gap-2 text-red-600 font-bold text-sm mb-1">
                             <span className="material-symbols-outlined text-[20px]">payments</span>
@@ -169,7 +219,7 @@ function DriverPickupOrder() {
                 )}
 
                 {/* Service/Payment Info (Non-COD fallback/additional info) */}
-                {paymentMethod !== 'COD' && (
+                {paymentMethod !== 'cod' && (
                     <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex items-center gap-3">
                         <span className="material-symbols-outlined text-green-600 text-[24px]">verified</span>
                         <div>
@@ -207,7 +257,7 @@ function DriverPickupOrder() {
                                     />
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-base text-slate-900">{item.quantity}x {item.name}</h4>
+                                    <h4 className="font-bold text-base text-slate-900">{item.quantity}x {item.name || item.product_name || 'Item Pesanan'}</h4>
                                     {item.notes && <p className="text-sm text-slate-500 mt-0.5">{item.notes}</p>}
                                 </div>
                             </div>
@@ -219,22 +269,34 @@ function DriverPickupOrder() {
                 </div>
             </main>
 
-            {/* Bottom Floating Action */}
             <div className="fixed bottom-[72px] left-0 right-0 px-4 pb-2 z-40 bg-gradient-to-t from-background-light via-background-light to-transparent pt-4 max-w-md mx-auto">
-                <button
-                    onClick={handleConfirmPickup}
-                    disabled={!allItemsChecked || isConfirming}
-                    className={`w - full font - bold py - 3.5 rounded - xl flex items - center justify - center gap - 2 shadow - sm transition - all active: scale - [0.98] ${allItemsChecked && !isConfirming
-                        ? 'bg-green-500 hover:bg-green-600 text-white'
-                        : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                        } `}
-                >
-                    <span className="material-symbols-outlined">{isConfirming ? 'refresh' : 'check_circle'}</span>
-                    {isConfirming ? 'MEMPROSES...' : 'SAYA SUDAH AMBIL PESANAN'}
-                </button>
+                {!hasArrived ? (
+                    <button
+                        onClick={handleArriveAtMerchant}
+                        className="w-full font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] bg-green-500 hover:bg-green-600 text-white"
+                    >
+                        <span className="material-symbols-outlined">location_on</span>
+                        SAYA SUDAH DI RESTO
+                    </button>
+                ) : (
+                    <SlideToConfirm
+                        onConfirm={handleConfirmPickup}
+                        isConfirming={isConfirming}
+                        disabled={!allItemsChecked}
+                        text="GESER JIKA SUDAH DIAMBIL"
+                        processingText="MENCARI LOKASI GPS AKURAT..."
+                    />
+                )}
             </div>
 
             <DriverBottomNavigation activeTab="orders" />
+
+            <DriverIssueModal
+                isOpen={showIssueModal}
+                onClose={() => setShowIssueModal(false)}
+                onSubmit={handleReportIssue}
+                type="pickup"
+            />
         </div>
     )
 }

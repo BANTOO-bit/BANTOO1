@@ -146,17 +146,14 @@ function DriverDashboard() {
             if (!user?.id) return
 
             try {
-                // Update online status in DB
-                // Only if mounted
-                if (isMounted) {
-                    await driverService.toggleStatus(isOnline)
-                }
-
                 if (!isMounted) return
 
                 if (isOnline) {
                     // Start watching location
                     if ('geolocation' in navigator) {
+                        // Optimistically fetch orders with default coordinates first so the UI isn't stuck
+                        checkAvailableOrders(-7.0674066, 110.8715891) // Polsek Tanggungharjo default
+
                         locationWatchId = navigator.geolocation.watchPosition(
                             (position) => {
                                 if (!isMounted) return
@@ -166,13 +163,18 @@ function DriverDashboard() {
                                 // Poll for orders if we have location
                                 checkAvailableOrders(latitude, longitude)
                             },
-                            (error) => { if (import.meta.env.DEV) console.error('Location error:', error) },
+                            (error) => {
+                                if (import.meta.env.DEV) console.error('Location error:', error)
+                                if (!isMounted) return
+                                // Fallback: still fetch orders even if location fails
+                                checkAvailableOrders(-7.0674066, 110.8715891)
+                            },
                             { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
                         )
                     } else {
-                        console.warn('Geolocation not supported, checking orders with default Jakarta location')
-                        // Fallback: Check orders with default Jakarta location for testing
-                        checkAvailableOrders(-6.200000, 106.816666)
+                        console.warn('Geolocation not supported, checking orders with default location')
+                        // Fallback: Check orders with default Tanggungharjo location
+                        checkAvailableOrders(-7.0674066, 110.8715891)
                     }
                 }
             } catch (error) {
@@ -221,10 +223,10 @@ function DriverDashboard() {
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(
                             (pos) => checkAvailableOrders(pos.coords.latitude, pos.coords.longitude),
-                            () => checkAvailableOrders(-6.200000, 106.816666) // fallback
+                            () => checkAvailableOrders(-7.0674066, 110.8715891) // fallback Tanggungharjo
                         )
                     } else {
-                        checkAvailableOrders(-6.200000, 106.816666)
+                        checkAvailableOrders(-7.0674066, 110.8715891)
                     }
                 }
             })
@@ -243,7 +245,7 @@ function DriverDashboard() {
             .subscribe()
 
         return () => {
-            channel.unsubscribe()
+            supabase.removeChannel(channel)
         }
     }, [isOnline, driverStatus])
 
@@ -361,7 +363,26 @@ function DriverDashboard() {
                                                 type="checkbox"
                                                 className="peer sr-only"
                                                 checked={isOnline}
-                                                onChange={() => setIsOnline(!isOnline)}
+                                                onChange={async () => {
+                                                    const newValue = !isOnline
+                                                    setIsOnline(newValue)
+                                                    try {
+                                                        await driverService.toggleStatus(newValue)
+                                                        // Force an immediate refresh when going online to avoid hanging on "Mencari Orderan..."
+                                                        if (newValue) {
+                                                            checkAvailableOrders(-7.0674066, 110.8715891)
+                                                        } else {
+                                                            setAvailableOrders([]) // Clear orders when going offline
+                                                        }
+                                                    } catch (err) {
+                                                        setIsOnline(!newValue)
+                                                        addNotification({
+                                                            type: 'error',
+                                                            message: 'Gagal mengupdate status driver',
+                                                            duration: 3000
+                                                        })
+                                                    }
+                                                }}
                                             />
                                             <span className={`absolute h-6 w-6 rounded-full bg-white transition-all shadow-sm ${isOnline ? 'left-7' : 'left-1'}`} />
                                         </label>

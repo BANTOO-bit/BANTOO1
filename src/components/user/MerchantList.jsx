@@ -1,29 +1,49 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import useSWR from 'swr'
 import MerchantCard from './MerchantCard'
 import { merchantService } from '../../services/merchantService'
+import { supabase } from '../../services/supabaseClient'
 
 function MerchantList() {
     const navigate = useNavigate()
-    const [merchants, setMerchants] = useState([])
-    const [isLoading, setIsLoading] = useState(true)
+
+    const { data: merchants = [], isLoading, mutate } = useSWR(
+        'homepage_merchants',
+        () => merchantService.getMerchants({ isOpen: null, limit: 5 }),
+        { revalidateOnFocus: false } // Prevent excessive auto-refresh
+    )
 
     useEffect(() => {
-        async function fetchMerchants() {
-            try {
-                // Fetch top 5 merchants (sorted by open status & rating in backend)
-                const data = await merchantService.getMerchants({ isOpen: null, limit: 5 })
+        // Set up Supabase Realtime subscription for merchant updates (e.g., Open/Close status)
+        const subscription = supabase
+            .channel('merchant_updates_homepage')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'merchants'
+                },
+                (payload) => {
+                    // Update the local SWR cache instantly without re-fetching
+                    mutate(currentMerchants => {
+                        if (!currentMerchants) return []
+                        return currentMerchants.map(merchant =>
+                            merchant.id === payload.new.id
+                                ? { ...merchant, ...payload.new }
+                                : merchant
+                        )
+                    }, false)
+                }
+            )
+            .subscribe()
 
-                setMerchants(data)
-            } catch (error) {
-                console.error('Failed to fetch homepage merchants:', error)
-            } finally {
-                setIsLoading(false)
-            }
+        // Cleanup subscription when user leaves the homepage
+        return () => {
+            supabase.removeChannel(subscription)
         }
-
-        fetchMerchants()
-    }, [])
+    }, [mutate])
 
     if (isLoading) {
         return <div className="py-4 text-center text-sm text-gray-500">Memuat merchant...</div>

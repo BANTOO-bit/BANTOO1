@@ -71,14 +71,18 @@ function AllCategoriesPage() {
 
                 // 3. Add any NEW categories from DB that aren't in metadata
                 dbCategories.forEach(catName => {
+                    // Skip if DB returned a null/undefined category name somehow
+                    if (!catName) return;
+
                     const isKnown = categoryMetadata.some(
-                        m => m.name.toLowerCase() === catName.toLowerCase()
+                        m => m.name?.toLowerCase() === catName?.toLowerCase()
                     )
 
                     if (!isKnown) {
+                        const safeName = String(catName);
                         combinedCategories.push({
-                            id: catName.toLowerCase().replace(/\s+/g, '-'),
-                            name: catName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+                            id: safeName.toLowerCase().replace(/\s+/g, '-'),
+                            name: safeName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
                             icon: 'restaurant' // Default icon for unknown categories
                         })
                     }
@@ -100,7 +104,7 @@ function AllCategoriesPage() {
     // Filter categories based on search
     const filteredCategories = debouncedSearch.trim()
         ? activeCategories.filter(cat =>
-            cat.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+            cat.name?.toLowerCase().includes(debouncedSearch.toLowerCase())
         )
         : activeCategories
 

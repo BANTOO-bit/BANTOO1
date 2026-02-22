@@ -58,7 +58,7 @@ function MerchantOrdersPage() {
             // Map tab to database status
             const statusMap = {
                 'baru': ['pending'],
-                'diproses': ['accepted', 'preparing', 'ready', 'pickup', 'picked_up', 'delivering'],
+                'diproses': ['accepted', 'preparing', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'],
                 'selesai': ['delivered', 'completed', 'cancelled']
             }
 
@@ -70,6 +70,8 @@ function MerchantOrdersPage() {
                 dbId: order.id, // Keep database ID for updates
                 time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                 created_at: order.created_at, // Raw timestamp for timeout countdown
+                accepted_at: order.accepted_at,
+                prep_time: order.prep_time,
                 payment: (order.payment_method === 'cod' || order.payment_method === 'cash') ? 'Tunai (COD)' : order.payment_method,
                 status: order.status, // Pass raw status for logic, component handles display text
                 total: order.total_amount,
@@ -77,7 +79,8 @@ function MerchantOrdersPage() {
                     qty: item.quantity,
                     name: item.product_name,
                     price: item.price_at_time,
-                    note: item.notes
+                    note: item.notes,
+                    image: item.menu_items?.image_url
                 })) || [],
                 customer: order.customer ? {
                     name: order.customer.full_name,
@@ -186,6 +189,7 @@ function MerchantOrdersPage() {
                     'pending': 'baru',
                     'accepted': 'diproses',
                     'preparing': 'diproses',
+                    'processing': 'diproses',
                     'ready': 'diproses',
                     'pickup': 'diproses',
                     'picked_up': 'diproses',
@@ -193,6 +197,20 @@ function MerchantOrdersPage() {
                     'delivered': 'selesai',
                     'completed': 'selesai',
                     'cancelled': 'selesai'
+                }
+
+                // Check for cancelled order and alert the merchant
+                if (payload.new.status === 'cancelled' && payload.old.status !== 'cancelled') {
+                    // Play error/alert sound
+                    const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2864/2864-preview.mp3')
+                    alertAudio.play().catch(e => logger.debug('Alert audio play failed:', e))
+
+                    // Show visual warning toast notification
+                    addNotification({
+                        type: 'error',
+                        message: `Pesanan #${generateOrderId(payload.new.id)} telah DIBATALKAN. Silakan cek tab Selesai.`,
+                        duration: 8000 // Show slightly longer
+                    })
                 }
 
                 // If order moved to current tab or away from it, refresh
@@ -207,7 +225,7 @@ function MerchantOrdersPage() {
 
         // Cleanup subscription on unmount
         return () => {
-            channel.unsubscribe()
+            supabase.removeChannel(channel)
         }
     }, [user?.merchantId, activeTab, addNotification])
 
@@ -697,17 +715,18 @@ function MerchantOrdersPage() {
                                                 <div className="flex justify-between items-start mb-2">
                                                     <span className="text-sm font-bold text-text-main dark:text-white">#{order.id}</span>
                                                     <span className={`text-xs px-2 py-0.5 rounded-md ${order.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                                                        ['accepted', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(order.status) ? 'bg-blue-100 text-blue-700' :
+                                                        ['accepted', 'preparing', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(order.status) ? 'bg-blue-100 text-blue-700' :
                                                             order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
                                                                 'bg-green-100 text-green-700'
                                                         }`}>
                                                         {order.status === 'pending' ? 'Baru' :
                                                             order.status === 'accepted' ? 'Diproses' :
-                                                                order.status === 'ready' ? 'Siap' :
-                                                                    order.status === 'pickup' ? 'Driver' :
-                                                                        order.status === 'picked_up' ? 'Diantar' :
-                                                                            order.status === 'cancelled' ? 'Batal' :
-                                                                                'Selesai'}
+                                                                order.status === 'preparing' || order.status === 'processing' ? 'Dimasak' :
+                                                                    order.status === 'ready' ? 'Siap' :
+                                                                        order.status === 'pickup' ? 'Driver' :
+                                                                            order.status === 'picked_up' ? 'Diantar' :
+                                                                                order.status === 'cancelled' ? 'Batal' :
+                                                                                    'Selesai'}
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-text-secondary">
@@ -748,7 +767,45 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
     const isDiproses = tab === 'diproses'
     const isSelesai = tab === 'selesai'
     const isBaru = tab === 'baru'
-    const timerDisplay = order.timer || '00:00'
+
+    // Internal timer state for diproses orders
+    const [timeLeftStr, setTimeLeftStr] = useState('00:00')
+    const [isLate, setIsLate] = useState(false)
+
+    useEffect(() => {
+        if (!isDiproses || !order.accepted_at || !order.prep_time || (order.status !== 'preparing' && order.status !== 'processing')) return
+
+        const calculateTimeLeft = () => {
+            const acceptedTime = new Date(order.accepted_at).getTime()
+            const targetTime = acceptedTime + (order.prep_time * 60 * 1000)
+            const now = new Date().getTime()
+            const diff = targetTime - now
+
+            if (diff <= 0) {
+                setIsLate(true)
+                const overMatch = Math.abs(diff)
+                const m = Math.floor((overMatch % (1000 * 60 * 60)) / (1000 * 60))
+                const s = Math.floor((overMatch % (1000 * 60)) / 1000)
+                return `-${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+            }
+
+            setIsLate(false)
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        }
+
+        setTimeLeftStr(calculateTimeLeft())
+
+        const interval = setInterval(() => {
+            setTimeLeftStr(calculateTimeLeft())
+        }, 1000)
+
+        return () => clearInterval(interval)
+    }, [isDiproses, order.accepted_at, order.prep_time, order.status])
+
+    const timerDisplay = order.timer || timeLeftStr
 
     return (
         <article
@@ -768,13 +825,13 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                     </div>
                 </div>
                 <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${order.status === 'pending' ? 'bg-orange-50 dark:bg-orange-900/20 text-primary dark:text-orange-300 border-orange-100 dark:border-orange-800/30' :
-                    ['accepted', 'preparing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(order.status) ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800/30' :
+                    ['accepted', 'preparing', 'processing', 'ready', 'pickup', 'picked_up', 'delivering'].includes(order.status) ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800/30' :
                         order.status === 'cancelled' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 border-red-100 dark:border-red-800/30' :
                             'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 border-green-100 dark:border-green-800/30'
                     }`}>
                     {order.status === 'pending' ? 'Baru' :
                         order.status === 'accepted' ? 'Sedang Disiapkan' :
-                            order.status === 'preparing' ? 'Sedang Dimasak' :
+                            (order.status === 'preparing' || order.status === 'processing') ? 'Sedang Dimasak' :
                                 order.status === 'ready' ? 'Menunggu Driver' :
                                     order.status === 'pickup' ? 'Driver Menuju Resto' :
                                         order.status === 'picked_up' ? 'Sedang Diantar' :
@@ -791,8 +848,8 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
             )}
 
             {/* Timer for Diproses */}
-            {isDiproses && (
-                <div className="flex items-center gap-1.5 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-lg border border-orange-100 dark:border-orange-800/30 w-full sm:w-fit">
+            {isDiproses && (order.status === 'preparing' || order.status === 'processing') && (
+                <div className={`flex items-center gap-1.5 ${isLate ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30' : 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30'} px-3 py-1.5 rounded-lg border w-full sm:w-fit`}>
                     <span className="material-symbols-outlined text-[18px]">timer</span>
                     <span className="text-xs font-medium">Waktu tersisa: <span className="font-bold tabular-nums">{timerDisplay}</span></span>
                 </div>
@@ -851,7 +908,7 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                 )}
                 {isDiproses && (
                     <>
-                        {['accepted', 'preparing'].includes(order.status) && (
+                        {['accepted', 'preparing', 'processing'].includes(order.status) && (
                             <button
                                 onClick={onHandover}
                                 className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"

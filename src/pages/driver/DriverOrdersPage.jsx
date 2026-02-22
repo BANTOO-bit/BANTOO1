@@ -6,6 +6,7 @@ import BackToTopButton from '../../components/shared/BackToTopButton'
 import { driverService } from '../../services/driverService'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../services/supabaseClient'
+import { formatId } from '../../utils/formatters'
 
 function DriverOrdersPage() {
     const navigate = useNavigate()
@@ -61,6 +62,7 @@ function DriverOrdersPage() {
                     status: getStatusLabel(o.status),
                     statusIcon: getStatusIcon(o.status),
                     totalCOD: o.payment_method === 'cod' ? o.total_amount : 0,
+                    deliveryFee: o.delivery_fee,
                     paymentMethod: o.payment_method === 'cod' ? 'COD' : 'Wallet',
                     statusKey: o.status
                 }))
@@ -75,6 +77,7 @@ function DriverOrdersPage() {
                     status: 'Selesai',
                     statusIcon: 'check_circle',
                     totalCOD: o.payment_method === 'cod' ? o.total_amount : 0,
+                    deliveryFee: o.delivery_fee,
                     paymentMethod: o.payment_method === 'cod' ? 'COD' : 'Wallet',
                     statusKey: o.status
                 }))
@@ -164,7 +167,7 @@ function DriverOrdersPage() {
                                     <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3">
                                         <div className="flex justify-between items-start">
                                             <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-slate-400 mb-1">#{order.id.slice(0, 8)}</span>
+                                                <span className="text-xs font-bold text-slate-400 mb-1 font-mono tracking-wider">{formatId(order.id)}</span>
                                                 <h3 className="text-base font-bold text-slate-900">{order.merchantName}</h3>
                                                 <p className="text-xs text-slate-500 mt-0.5">{order.time}</p>
                                             </div>
@@ -211,7 +214,7 @@ function DriverOrdersPage() {
                                     <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3 opacity-75 hover:opacity-100 transition-opacity">
                                         <div className="flex justify-between items-start">
                                             <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-slate-400 mb-1">#{order.id.slice(0, 8)}</span>
+                                                <span className="text-xs font-bold text-slate-400 mb-1 font-mono tracking-wider">{formatId(order.id)}</span>
                                                 <h3 className="text-base font-bold text-slate-900">{order.merchantName}</h3>
                                                 <p className="text-xs text-slate-500 mt-0.5">{order.time}</p>
                                             </div>
@@ -224,7 +227,7 @@ function DriverOrdersPage() {
                                         <div className="flex justify-between items-center">
                                             <div className="flex flex-col gap-1">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Pendapatan</p>
-                                                <p className="text-lg font-bold text-green-600">Rp {order.totalCOD > 0 ? '0' : '8.000'} <span className='text-[10px] text-gray-400 font-normal'>(Est)</span></p>
+                                                <p className="text-lg font-bold text-green-600">Rp {(order.deliveryFee != null ? order.deliveryFee : 0).toLocaleString('id-ID')}</p>
                                             </div>
                                         </div>
                                     </div>

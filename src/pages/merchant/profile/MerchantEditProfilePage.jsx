@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
 import merchantService from '../../../services/merchantService'
+import locationService from '../../../services/locationService'
 import { handleError } from '../../../utils/errorHandler'
+
+// Lazy load map component to avoid SSR issues
+const MapSelector = lazy(() => import('../../../components/partner/MapSelector'))
 
 function MerchantEditProfilePage() {
     const navigate = useNavigate()
@@ -17,8 +21,13 @@ function MerchantEditProfilePage() {
         category: '',
         address: '',
         description: '',
-        image: ''
+        image: '',
+        location: null
     })
+
+    const [locationSelected, setLocationSelected] = useState(false)
+    const [showMapSelector, setShowMapSelector] = useState(false)
+    const [isAddressLoading, setIsAddressLoading] = useState(false)
 
     useEffect(() => {
         async function fetchMerchantProfile() {
@@ -31,8 +40,12 @@ function MerchantEditProfilePage() {
                             category: data.category || '',
                             address: data.address || '',
                             description: data.description || '',
-                            image: data.image || ''
+                            image: data.image || '',
+                            location: data.latitude && data.longitude ? { lat: data.latitude, lng: data.longitude } : null
                         })
+                        if (data.latitude && data.longitude) {
+                            setLocationSelected(true)
+                        }
                     }
                 } catch (error) {
                     handleError(error, toast, { context: 'Load Profile' })
@@ -54,6 +67,26 @@ function MerchantEditProfilePage() {
         }))
     }
 
+    const handleLocationSelect = async (latlng) => {
+        setFormData(prev => ({ ...prev, location: latlng }))
+        setLocationSelected(true)
+
+        // Try to auto-fill address via reverse geocoding if it makes sense to update it
+        if (!formData.address || window.confirm('Apakah Anda ingin memperbarui teks alamat berdasarkan titik peta yang baru?')) {
+            setIsAddressLoading(true)
+            try {
+                const address = await locationService.reverseGeocode(latlng.lat, latlng.lng)
+                if (address) {
+                    setFormData(prev => ({ ...prev, address: address }))
+                }
+            } catch (error) {
+                if (import.meta.env.DEV) console.error("Geocoding error:", error)
+            } finally {
+                setIsAddressLoading(false)
+            }
+        }
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (!user?.merchantId) return
@@ -64,7 +97,9 @@ function MerchantEditProfilePage() {
                 name: formData.name,
                 category: formData.category,
                 address: formData.address,
-                description: formData.description
+                description: formData.description,
+                latitude: formData.location?.lat || null,
+                longitude: formData.location?.lng || null
             })
 
             toast.success('Profil berhasil diperbarui')
@@ -140,6 +175,47 @@ function MerchantEditProfilePage() {
                             required
                         />
                     </div>
+
+                    {/* Titik Lokasi GPS */}
+                    <div>
+                        <label className="text-sm font-semibold text-text-main dark:text-gray-200 mb-1.5 block">
+                            Titik Lokasi Warung (Peta)
+                        </label>
+                        <div
+                            onClick={() => setShowMapSelector(true)}
+                            className={`relative w-full h-auto min-h-[5rem] py-4 rounded-xl overflow-hidden border ${locationSelected
+                                    ? 'border-green-400 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
+                                    : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
+                                } shadow-sm cursor-pointer hover:border-primary transition-all`}
+                        >
+                            <div className="w-full h-full flex items-center justify-between px-4">
+                                <div className="flex items-center gap-3">
+                                    {locationSelected ? (
+                                        <>
+                                            <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-full">
+                                                <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-green-700 dark:text-green-400">Lokasi Tersimpan</p>
+                                                <p className="text-xs text-gray-500">Ketuk untuk mengubah titik Peta</p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="bg-white dark:bg-gray-700 p-2 rounded-full shadow-sm">
+                                                <span className="material-symbols-outlined text-primary">place</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pilih Lokasi di Peta</p>
+                                                <p className="text-xs text-gray-400">Untuk akurasi pengiriman</p>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                <span className="material-symbols-outlined text-gray-400">chevron_right</span>
+                            </div>
+                        </div>
+                    </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="text-sm font-semibold text-text-main dark:text-gray-200" htmlFor="address">Lokasi Warung</label>
                         <input
@@ -175,6 +251,25 @@ function MerchantEditProfilePage() {
                 </form>
                 <div className="h-4"></div>
             </main>
+            {/* Map Selector Modal */}
+            {showMapSelector && (
+                <Suspense fallback={
+                    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+                        <div className="bg-white dark:bg-card-dark rounded-2xl p-8">
+                            <div className="flex flex-col items-center gap-4">
+                                <span className="material-symbols-outlined text-5xl text-primary animate-pulse">map</span>
+                                <p className="text-gray-600 dark:text-gray-400">Loading map...</p>
+                            </div>
+                        </div>
+                    </div>
+                }>
+                    <MapSelector
+                        location={formData.location || { lat: -7.0674066, lng: 110.8715891 }} // Default fallback
+                        onLocationChange={handleLocationSelect}
+                        onClose={() => setShowMapSelector(false)}
+                    />
+                </Suspense>
+            )}
         </div>
     )
 }

@@ -613,6 +613,25 @@ export const merchantService = {
             logger.error('Failed to request withdrawal', error, 'merchantService')
             throw error
         }
+    },
+
+    /**
+     * Get the number of available/active drivers
+     */
+    async getAvailableDriversCount() {
+        try {
+            const { count, error } = await supabase
+                .from('drivers')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'approved')
+                .eq('is_active', true)
+
+            if (error) throw error
+            return count || 0
+        } catch (error) {
+            logger.error('Failed to get available drivers count', error, 'merchantService')
+            return 0 // Fallback to 0 in case of error
+        }
     }
 }
 
