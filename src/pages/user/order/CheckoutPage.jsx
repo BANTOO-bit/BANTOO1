@@ -5,6 +5,7 @@ import { useCart } from '../../../context/CartContext'
 import { useAddress } from '../../../context/AddressContext'
 import orderService from '../../../services/orderService'
 import dashboardService from '../../../services/dashboardService'
+import paymentService from '../../../services/paymentService'
 import BackButton from '../../../components/shared/BackButton'
 import MerchantShopOpenWarning from '../../../components/shared/MerchantShopOpenWarning'
 import { useToast } from '../../../context/ToastContext'
@@ -109,10 +110,26 @@ function CheckoutPage() {
             // Create order via API
             const order = await orderService.createOrder(orderData)
 
-            // Clear cart after successful order
+            // Clear cart after successful order creation
             clearCart()
 
-            // Navigate to success page with order ID
+            // Handle digital payment redirection
+            if (['gopay', 'ovo', 'dana'].includes(selectedPayment)) {
+                try {
+                    const paymentRes = await paymentService.createPaymentTransaction(order.id, grandTotal, selectedPayment)
+                    if (paymentRes.success) {
+                        navigate(paymentRes.redirect_url)
+                    } else {
+                        toast.error('Gagal mempersiapkan simulasi pembayaran')
+                    }
+                } catch (err) {
+                    console.error('Payment preparation error:', err)
+                    toast.error('Terjadi kesalahan sistem pembayaran')
+                }
+                return
+            }
+
+            // Navigate to success page for cash/wallet with order ID
             navigate('/order-success', { state: { orderId: order.id } })
         } catch (error) {
             console.error('Error creating order:', error)

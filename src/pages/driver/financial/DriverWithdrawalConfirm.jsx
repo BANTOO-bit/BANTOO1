@@ -1,8 +1,39 @@
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
+import { walletService } from '../../../services/walletService'
 
 function DriverWithdrawalConfirm() {
     const navigate = useNavigate()
+    const location = useLocation()
+    const amount = location.state?.amount || 0
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [error, setError] = useState(null)
+
+    // Redirect back if no amount
+    if (!amount) {
+        navigate('/driver/withdrawal', { replace: true })
+        return null
+    }
+
+    const handleConfirm = async () => {
+        setIsSubmitting(true)
+        setError(null)
+        try {
+            await walletService.requestWithdrawal({
+                amount: amount,
+                bankName: 'BCA', // Hardcoded for this mockup iteration, would normally come from driver settings
+                accountName: 'Budi Santoso',
+                accountNumber: '0921'
+            })
+            navigate('/driver/withdrawal/status', { state: { amount } })
+        } catch (err) {
+            console.error('Failed to request withdrawal:', err)
+            setError(err.message || 'Gagal memproses penarikan. Silakan coba lagi.')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     return (
         <div className="font-display bg-white text-slate-900 antialiased min-h-screen">
@@ -22,9 +53,14 @@ function DriverWithdrawalConfirm() {
 
                 <main className="flex-1 px-4 pt-4 pb-bottom-nav flex flex-col gap-6">
                     <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                        <div className="p-8 flex flex-col items-center border-b border-slate-100 bg-slate-50/50">
+                        <div className="p-8 flex flex-col items-center border-b border-slate-100 bg-slate-50/50 relative">
                             <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Total Penarikan</p>
-                            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Rp 50.000</h1>
+                            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Rp {amount.toLocaleString('id-ID')}</h1>
+                            {error && (
+                                <div className="absolute top-4 left-4 right-4 bg-red-100 text-red-600 text-xs text-center font-semibold p-2 rounded-lg border border-red-200">
+                                    {error}
+                                </div>
+                            )}
                         </div>
                         <div className="p-5 space-y-4 bg-white">
                             <div className="flex justify-between items-start py-1">
@@ -45,7 +81,7 @@ function DriverWithdrawalConfirm() {
                             <div className="h-px bg-slate-100 w-full"></div>
                             <div className="flex justify-between items-center py-1">
                                 <span className="text-slate-900 font-bold text-sm">Diterima</span>
-                                <span className="font-bold text-slate-900 text-lg">Rp 50.000</span>
+                                <span className="font-bold text-slate-900 text-lg">Rp {amount.toLocaleString('id-ID')}</span>
                             </div>
                         </div>
                     </div>
@@ -65,10 +101,19 @@ function DriverWithdrawalConfirm() {
                             <p className="text-xs text-slate-500 font-medium">Transaksi ini akan diproses secara aman oleh sistem</p>
                         </div>
                         <button
-                            onClick={() => navigate('/driver/withdrawal/status')}
-                            className="w-full bg-[#0d59f2] hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-base transition-all active:scale-[0.98]"
+                            onClick={handleConfirm}
+                            disabled={isSubmitting}
+                            className={`w-full font-bold py-4 rounded-xl text-base transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isSubmitting ? 'bg-slate-300 text-slate-500 cursor-wait' : 'bg-[#0d59f2] hover:bg-blue-700 text-white'
+                                }`}
                         >
-                            KONFIRMASI SEKARANG
+                            {isSubmitting ? (
+                                <>
+                                    <span className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></span>
+                                    MEMPROSES...
+                                </>
+                            ) : (
+                                'KONFIRMASI SEKARANG'
+                            )}
                         </button>
                     </div>
                 </main>

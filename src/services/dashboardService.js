@@ -126,23 +126,20 @@ export const dashboardService = {
                 {
                     id: 'gopay',
                     name: 'GoPay',
-                    description: 'Coming Soon',
-                    icon: 'payment',
-                    disabled: true
+                    description: 'Simulasi Pembayaran Digital',
+                    icon: 'payment'
                 },
                 {
                     id: 'ovo',
                     name: 'OVO',
-                    description: 'Coming Soon',
-                    icon: 'payment',
-                    disabled: true
+                    description: 'Simulasi Pembayaran Digital',
+                    icon: 'payment'
                 },
                 {
                     id: 'dana',
                     name: 'DANA',
-                    description: 'Coming Soon',
-                    icon: 'payment',
-                    disabled: true
+                    description: 'Simulasi Pembayaran Digital',
+                    icon: 'payment'
                 }
             ]
         } catch (error) {
@@ -171,7 +168,7 @@ export const dashboardService = {
                     .order('created_at', { ascending: false })
                     .limit(5),
                 supabase.from('orders')
-                    .select('total_amount, delivery_fee')
+                    .select('total_amount, delivery_fee, created_at')
                     .eq('status', 'completed')
             ])
 
@@ -182,31 +179,46 @@ export const dashboardService = {
             // Platform net revenue (example: 10% of order value + 20% of delivery fee)
             const netRevenue = (totalRevenue * 0.10) + (totalDeliveryFees * 0.20)
 
+            // Calculate weekly chart data from real database rows
+            const last7Days = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date()
+                d.setDate(d.getDate() - (6 - i))
+                d.setHours(0, 0, 0, 0)
+                return d
+            })
+
+            const daysMap = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+
+            const weeklyOrdersData = last7Days.map(date => ({
+                label: daysMap[date.getDay()],
+                value: 0
+            }))
+
+            const weeklyRevenueData = last7Days.map(date => ({
+                label: daysMap[date.getDay()],
+                value: 0
+            }))
+
+            revenueData?.forEach(order => {
+                if (!order.created_at) return
+                const orderDate = new Date(order.created_at)
+                orderDate.setHours(0, 0, 0, 0)
+
+                const dayIndex = last7Days.findIndex(d => d.getTime() === orderDate.getTime())
+                if (dayIndex !== -1) {
+                    weeklyOrdersData[dayIndex].value += 1
+                    weeklyRevenueData[dayIndex].value += (order.total_amount || 0)
+                }
+            })
+
             return {
                 totalUsers: totalUsers || 0,
                 totalOrders: totalOrders || 0,
                 totalRevenue,
                 netRevenue,
                 recentOrders: recentOrders || [],
-                // Mock chart data for visualization (real aggregation requires complex queries)
-                weeklyOrders: [
-                    { label: 'Sen', value: 87 },
-                    { label: 'Sel', value: 112 },
-                    { label: 'Rab', value: 95 },
-                    { label: 'Kam', value: 128 },
-                    { label: 'Jum', value: 142 },
-                    { label: 'Sab', value: 168 },
-                    { label: 'Min', value: 153 },
-                ],
-                weeklyRevenue: [
-                    { label: 'Sen', value: 2100 },
-                    { label: 'Sel', value: 2850 },
-                    { label: 'Rab', value: 2400 },
-                    { label: 'Kam', value: 3200 },
-                    { label: 'Jum', value: 3600 },
-                    { label: 'Sab', value: 4100 },
-                    { label: 'Min', value: 3800 },
-                ]
+                weeklyOrders: weeklyOrdersData,
+                weeklyRevenue: weeklyRevenueData
             }
         } catch (error) {
             logger.error('Failed to fetch admin stats', error, 'dashboardService')

@@ -1,8 +1,10 @@
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
 
 function DriverDepositVerification() {
     const navigate = useNavigate()
+    const location = useLocation()
+    const deposit = location.state?.deposit || { amount: 0, payment_method: 'transfer' }
 
     return (
         <div className="font-display bg-background-light text-slate-900 antialiased min-h-screen">
@@ -31,11 +33,11 @@ function DriverDepositVerification() {
                     <div className="w-full bg-white rounded-2xl p-5 border border-slate-200 flex flex-col gap-4 mb-6">
                         <div className="flex justify-between items-center border-b border-slate-50 pb-3 border-dashed">
                             <span className="text-slate-500 text-sm font-medium">Jumlah Setoran</span>
-                            <span className="text-slate-900 font-bold font-mono text-base">Rp 5.600</span>
+                            <span className="text-slate-900 font-bold font-mono text-base">Rp {deposit.amount.toLocaleString('id-ID')}</span>
                         </div>
                         <div className="flex justify-between items-center border-b border-slate-50 pb-3 border-dashed">
                             <span className="text-slate-500 text-sm font-medium">Metode</span>
-                            <span className="text-slate-900 font-semibold text-sm">Transfer Bank</span>
+                            <span className="text-slate-900 font-semibold text-sm capitalize">{deposit.payment_method === 'cash' ? 'Tunai ke Kantor' : 'Transfer Bank'}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-slate-500 text-sm font-medium">Status</span>

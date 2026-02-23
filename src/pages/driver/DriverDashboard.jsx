@@ -15,8 +15,13 @@ function DriverDashboard() {
     const { user } = useAuth()
     const { addNotification } = useNotification()
     const { setActiveOrder } = useOrder() // Import setActiveOrder
-    const [isOnline, setIsOnline] = useState(false)
-    const [driverStatus, setDriverStatus] = useState('active') // 'active', 'suspended', or 'terminated'
+
+    // Use session storage for initial state to prevent flicker
+    const initialOnlineState = sessionStorage.getItem('driver_isOnline') === 'true'
+    const initialDriverStatus = sessionStorage.getItem('driver_status') || 'active'
+
+    const [isOnline, setIsOnline] = useState(initialOnlineState)
+    const [driverStatus, setDriverStatus] = useState(initialDriverStatus) // 'active', 'suspended', or 'terminated'
     const [earnings, setEarnings] = useState({
         todayIncome: 0,
         codFee: 0,
@@ -25,7 +30,9 @@ function DriverDashboard() {
     })
 
     const [driverProfile, setDriverProfile] = useState(null)
+    const [isLoadingProfile, setIsLoadingProfile] = useState(true)
     const [availableOrders, setAvailableOrders] = useState([])
+    const [hasUnreadNotification, setHasUnreadNotification] = useState(false)
 
     useEffect(() => {
         let mounted = true
@@ -52,11 +59,28 @@ function DriverDashboard() {
                 if (mounted && profile) {
                     setDriverProfile(profile)
                     // Sync local state with DB state
+                    const newStatus = profile.status === 'terminated' ? 'terminated' : (profile.status === 'suspended' || profile.status === 'rejected') ? 'suspended' : 'active'
                     setIsOnline(profile.is_active)
-                    setDriverStatus(profile.status === 'terminated' ? 'terminated' : (profile.status === 'suspended' || profile.status === 'rejected') ? 'suspended' : 'active')
+                    setDriverStatus(newStatus)
+
+                    // Cache the state to prevent flicker on next visit
+                    sessionStorage.setItem('driver_isOnline', profile.is_active ? 'true' : 'false')
+                    sessionStorage.setItem('driver_status', newStatus)
                 }
             } catch (error) {
                 if (import.meta.env.DEV) console.error('Error fetching driver profile:', error)
+            } finally {
+                if (mounted) setIsLoadingProfile(false)
+            }
+        }
+
+        async function checkNotifications() {
+            if (!user?.id) return
+            try {
+                const notifs = await driverService.getNotifications(user.id)
+                setHasUnreadNotification(notifs.some(n => n.isUnread))
+            } catch (error) {
+                if (import.meta.env.DEV) console.error('Error fetching notifications:', error)
             }
         }
 
@@ -83,6 +107,7 @@ function DriverDashboard() {
             fetchEarnings()
             fetchProfile()
             checkActiveOrder()
+            checkNotifications()
         }
 
         // Refresh every 30 seconds
@@ -90,6 +115,7 @@ function DriverDashboard() {
             if (user?.id) {
                 fetchEarnings()
                 checkActiveOrder()
+                checkNotifications()
             }
         }, 30000)
 
@@ -149,6 +175,23 @@ function DriverDashboard() {
                 if (!isMounted) return
 
                 if (isOnline) {
+                    // Set up explicit polling just in case geolocation or realtime fails
+                    const pollInterval = setInterval(() => {
+                        if (!isMounted || !isOnline) {
+                            clearInterval(pollInterval)
+                            return
+                        }
+
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                                (pos) => checkAvailableOrders(pos.coords.latitude, pos.coords.longitude),
+                                () => checkAvailableOrders(-7.0674066, 110.8715891) // Polsek Tanggungharjo fallback
+                            )
+                        } else {
+                            checkAvailableOrders(-7.0674066, 110.8715891)
+                        }
+                    }, 5000); // Check every 5 seconds
+
                     // Start watching location
                     if ('geolocation' in navigator) {
                         // Optimistically fetch orders with default coordinates first so the UI isn't stuck
@@ -286,7 +329,9 @@ function DriverDashboard() {
                                 className="flex items-center justify-center rounded-full size-10 bg-slate-100 text-slate-900 hover:bg-slate-200 transition-colors relative"
                             >
                                 <span className="material-symbols-outlined text-[24px]">notifications</span>
-                                <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                                {hasUnreadNotification && (
+                                    <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                                )}
                             </button>
                         </div>
                     </div>
@@ -294,7 +339,17 @@ function DriverDashboard() {
 
                 {/* Main Content */}
                 <main className="flex-1 pb-bottom-nav bg-background-light">
-                    {(driverStatus === 'suspended' || driverStatus === 'terminated') ? (
+                    {isLoadingProfile ? (
+                        <div className="flex flex-col p-4 mt-2">
+                            <div className="animate-pulse space-y-3 w-full">
+                                <div className="h-24 bg-slate-200 rounded-xl w-full"></div>
+                                <div className="flex gap-3 w-full">
+                                    <div className="h-32 bg-slate-200 rounded-xl w-1/2"></div>
+                                    <div className="h-32 bg-slate-200 rounded-xl w-1/2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (driverStatus === 'suspended' || driverStatus === 'terminated') ? (
                         /* Suspended/Terminated State UI */
                         <div className="flex flex-col items-center justify-center text-center px-4 pt-8">
                             {/* Disabled Toggle Card */}
@@ -461,7 +516,7 @@ function DriverDashboard() {
                                                     <div className="flex justify-between items-center mt-3">
                                                         <div>
                                                             <p className="text-xs font-semibold text-slate-400">Total Harga</p>
-                                                            <p className="text-sm font-bold text-slate-900">{formatCurrency(order.total_amount)}</p>
+                                                            <p className="text-sm font-bold text-slate-900">{formatCurrency(order.total_amount || 0)}</p>
                                                         </div>
                                                         <button
                                                             onClick={() => navigate(`/driver/order/incoming/${order.id}`)}

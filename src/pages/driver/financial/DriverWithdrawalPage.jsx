@@ -1,13 +1,56 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
+import { walletService } from '../../../services/walletService'
 
 function DriverWithdrawalPage() {
     const navigate = useNavigate()
     const [amount, setAmount] = useState('')
+    const [balance, setBalance] = useState(0)
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+        loadBalance()
+    }, [])
+
+    const loadBalance = async () => {
+        try {
+            setIsLoading(true)
+            const currentBalance = await walletService.getBalance()
+            setBalance(currentBalance)
+        } catch (err) {
+            console.error('Failed to load wallet balance:', err)
+            setError('Gagal memuat saldo')
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     const handleQuickAmount = (val) => {
-        setAmount(val)
+        // Only set if amount doesn't exceed balance
+        if (val <= balance) {
+            setAmount(val)
+        }
+    }
+
+    const handleWithdraw = () => {
+        const numAmount = parseInt(amount)
+        if (!numAmount || numAmount <= 0) {
+            alert('Masukkan nominal penarikan yang valid')
+            return
+        }
+        if (numAmount < 10000) {
+            alert('Minimal penarikan adalah Rp 10.000')
+            return
+        }
+        if (numAmount > balance) {
+            alert('Saldo Anda tidak mencukupi')
+            return
+        }
+
+        // Pass amount to confirmation page
+        navigate('/driver/withdrawal/confirm', { state: { amount: numAmount } })
     }
 
     return (
@@ -27,9 +70,19 @@ function DriverWithdrawalPage() {
                 </header>
 
                 <main className="flex-1 px-4 pt-4 pb-bottom-nav flex flex-col gap-6">
-                    <div className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-100">
-                        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Saldo Tersedia</p>
-                        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Rp 50.400</h1>
+                    <div className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-100 relative">
+                        {isLoading ? (
+                            <div className="animate-pulse">
+                                <div className="h-4 bg-slate-200 rounded w-24 mx-auto mb-3"></div>
+                                <div className="h-10 bg-slate-200 rounded w-40 mx-auto"></div>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Saldo Tersedia</p>
+                                <h1 className="text-4xl font-extrabold text-[#0d59f2] tracking-tight">Rp {balance.toLocaleString('id-ID')}</h1>
+                            </>
+                        )}
+                        {error && <div className="absolute top-2 right-2 flex items-center justify-center bg-red-100 text-red-500 rounded-full w-6 h-6"><span className="material-symbols-outlined text-[14px]">error</span></div>}
                     </div>
 
                     <div className="flex flex-col gap-3">
@@ -82,8 +135,12 @@ function DriverWithdrawalPage() {
                             </p>
                         </div>
                         <button
-                            onClick={() => navigate('/driver/withdrawal/confirm')}
-                            className="w-full bg-[#0d59f2] hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-base transition-all active:scale-[0.98]"
+                            onClick={handleWithdraw}
+                            disabled={isLoading || !amount || amount > balance}
+                            className={`w-full font-bold py-4 rounded-xl text-base transition-all active:scale-[0.98] ${isLoading || !amount || amount > balance
+                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                    : 'bg-[#0d59f2] hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30'
+                                }`}
                         >
                             TARIK SALDO SEKARANG
                         </button>

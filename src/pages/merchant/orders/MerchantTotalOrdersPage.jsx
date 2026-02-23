@@ -40,7 +40,7 @@ function MerchantTotalOrdersPage() {
                     else if (['cancelled', 'rejected'].includes(order.status)) status = 'cancelled'
 
                     // Determine payment
-                    const isCash = order.payment_method === 'cod' || order.payment_method === 'COD'
+                    const isCash = ['cod', 'COD', 'cash', 'CASH', 'tunai', 'TUNAI'].includes(order.payment_method)
 
                     return {
                         id: order.id,
@@ -52,7 +52,7 @@ function MerchantTotalOrdersPage() {
                         items: itemsSummary,
                         total: order.total_amount || 0,
                         paymentMethod: isCash ? 'cash' : 'noncash',
-                        paymentLabel: isCash ? 'Tunai' : (order.payment_method === 'wallet' ? 'Saldo' : order.payment_method || 'Non-Tunai'),
+                        paymentLabel: isCash ? ((order.payment_method?.toUpperCase() === 'COD') ? 'COD' : 'Tunai') : (order.payment_method === 'wallet' ? 'Saldo' : order.payment_method || 'Non-Tunai'),
                         paymentIcon: isCash ? null : 'account_balance_wallet'
                     }
                 })

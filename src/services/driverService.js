@@ -83,20 +83,49 @@ export const driverService = {
         }
     },
 
-    /**
-     * Accept an order
-     * @param {string} orderId 
-     */
     async acceptOrder(orderId) {
         try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Driver belum login')
+
+            // 1. Coba lewat fungsi RPC (lebih aman jika ada validasi khusus)
             const { data, error } = await supabase.rpc('driver_accept_order', {
                 p_order_id: orderId
             })
 
-            if (error) throw error
-            if (!data.success) throw new Error(data.message)
+            if (!error && data?.success) {
+                return data
+            }
 
-            return data
+            console.warn('RPC "driver_accept_order" failed or missing, falling back to direct update:', error?.message || 'Data invalid')
+
+            // 2. Fallback: Update langsung via tabel `orders`
+            // - Pastikan pesanan belum diambil orang lain (status masih 'ready' dan driver_id masih null)
+            const { data: activeOrder, error: checkError } = await supabase
+                .from('orders')
+                .select('status, driver_id')
+                .eq('id', orderId)
+                .single()
+
+            if (checkError) throw new Error('Order tidak ditemukan')
+
+            if (activeOrder.status !== 'ready' || activeOrder.driver_id !== null) {
+                throw new Error('Maaf pesanannya sudah diambil oleh driver lain atau telah dibatalkan')
+            }
+
+            const { data: updateData, error: updateError } = await supabase
+                .from('orders')
+                .update({
+                    driver_id: user.id,
+                    status: 'pickup'
+                })
+                .eq('id', orderId)
+                .select()
+                .single()
+
+            if (updateError) throw updateError
+
+            return { success: true, order: updateData }
         } catch (error) {
             console.error('Error accepting order:', error)
             throw error

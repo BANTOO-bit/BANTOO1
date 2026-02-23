@@ -23,9 +23,8 @@ function OrdersPage() {
     const { user } = useAuth()
     const toast = useToast()
     const { addToCart, setMerchantInfo, clearCart, cartItems } = useCart()
+    const { orders: contextOrders, loading: contextLoading } = useOrder()
     const [activeTab, setActiveTab] = useState('aktif')
-    const [activeOrders, setActiveOrders] = useState([])
-    const [orderHistory, setOrderHistory] = useState([])
     const [showReorderToast, setShowReorderToast] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -35,36 +34,43 @@ function OrdersPage() {
     const [selectedOrderToCancel, setSelectedOrderToCancel] = useState(null)
     const [isCancelling, setIsCancelling] = useState(false)
 
-    // Load orders from Supabase
-    useEffect(() => {
-        loadOrders()
-    }, [user?.id])
+    // Derived state for orders
+    const [activeOrders, setActiveOrders] = useState([])
+    const [orderHistory, setOrderHistory] = useState([])
 
-    const loadOrders = async () => {
-        if (!user?.id) {
+    // Process context orders whenever they change
+    useEffect(() => {
+        if (!user?.id) return
+
+        setIsLoading(contextLoading)
+        setError(null)
+
+        if (!contextOrders) {
             setIsLoading(false)
             return
         }
 
         try {
-            setIsLoading(true)
-            setError(null)
-
-            // Fetch all customer orders
-            const allOrders = await orderService.getCustomerOrders()
-
-            // Transform and separate active and completed orders
-            const transformedOrders = allOrders.map(order => ({
+            // Transform and separate active and completed orders 
+            // from the real-time context
+            const transformedOrders = contextOrders.map(order => ({
                 id: generateOrderId(order.id),
                 dbId: order.id,
-                merchantName: order.merchant?.name || 'Merchant',
+                merchantName: order.merchant?.name || order.merchants?.name || 'Merchant',
                 merchantId: order.merchant_id,
-                merchantImage: order.merchant?.image_url,
+                merchantImage: order.merchant?.image_url || order.merchants?.image_url,
                 status: order.status,
                 totalAmount: order.total_amount,
                 paymentMethod: order.payment_method,
                 createdAt: order.created_at,
                 items: order.items?.map(item => ({
+                    id: item.product_id,
+                    name: item.product_name,
+                    quantity: item.quantity,
+                    price: item.price_at_time,
+                    image: item.menu_items?.image_url,
+                    notes: item.notes
+                })) || order.order_items?.map(item => ({
                     id: item.product_id,
                     name: item.product_name,
                     quantity: item.quantity,
@@ -78,24 +84,27 @@ function OrdersPage() {
             const active = transformedOrders.filter(o =>
                 o.status === 'pending' ||
                 o.status === 'accepted' ||
+                o.status === 'preparing' ||
                 o.status === 'ready' ||
-                o.status === 'picked_up'
+                o.status === 'picked_up' ||
+                o.status === 'delivering'
             )
             const history = transformedOrders.filter(o =>
                 o.status === 'delivered' ||
                 o.status === 'completed' ||
-                o.status === 'cancelled'
+                o.status === 'cancelled' ||
+                o.status === 'timeout'
             )
 
+            // Update local variables
             setActiveOrders(active)
             setOrderHistory(history)
         } catch (err) {
-            const msg = handleError(err, toast, { context: 'Load pesanan' })
-            setError(msg)
+            setError('Gagal memproses data pesanan')
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [contextOrders, contextLoading, user?.id])
 
     const handleTrack = (order) => {
         navigate(`/tracking/${order.dbId}`)
@@ -114,8 +123,7 @@ function OrdersPage() {
             // Cancel order via API
             await orderService.cancelOrder(selectedOrderToCancel.dbId, 'Dibatalkan oleh pelanggan')
 
-            // Reload orders
-            await loadOrders()
+            // Local context state mapping will automatically trigger loadOrders via context update
             toast.success('Pesanan berhasil dibatalkan')
             setCancelModalOpen(false)
             setSelectedOrderToCancel(null)
@@ -242,7 +250,7 @@ function OrdersPage() {
                         <h3 className="font-bold text-text-main dark:text-white mb-1">Gagal Memuat Pesanan</h3>
                         <p className="text-sm text-text-secondary dark:text-gray-400 text-center mb-4">{error}</p>
                         <button
-                            onClick={loadOrders}
+                            onClick={() => window.location.reload()}
                             className="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-md active:scale-95 transition-transform"
                         >
                             Coba Lagi

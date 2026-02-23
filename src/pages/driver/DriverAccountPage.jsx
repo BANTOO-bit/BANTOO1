@@ -170,7 +170,7 @@ function DriverAccountPage() {
                     <p className="text-center text-xs text-slate-400 mt-2">Versi Aplikasi 1.0.0 (Build 2024)</p>
                 </main>
 
-                <DriverBottomNavigation activeTab="account" />
+                <DriverBottomNavigation activeTab="profile" />
 
                 {/* Logout Modal */}
                 {showLogoutModal && (

@@ -148,6 +148,83 @@ export const walletService = {
 
         if (error) throw error
         return data
+    },
+
+    /**
+     * Submit a deposit (Admin Fee Payment / Topup)
+     * @param {Object} params - Deposit params
+     * @param {number} params.amount - Total amount deposited
+     * @param {string} params.paymentMethod - 'cash' or 'transfer'
+     * @param {string} params.bankName - Optional bank name if transfer
+     * @param {File} params.proofFile - File object for the transfer receipt
+     */
+    async submitDeposit({ amount, paymentMethod, bankName, proofFile }) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Not authenticated')
+
+        if (!amount || amount <= 0) throw new Error('Invalid deposit amount')
+
+        let proofUrl = null;
+
+        // If it's a transfer and we have a file, upload it
+        if (paymentMethod === 'transfer' && proofFile) {
+            const fileExt = proofFile.name.split('.').pop()
+            const fileName = `${user.id}_${Date.now()}.${fileExt}`
+            const filePath = `${user.id}/${fileName}` // Organise by user_id
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('deposits')
+                .upload(filePath, proofFile, {
+                    cacheControl: '3600',
+                    upsert: false
+                })
+
+            if (uploadError) {
+                console.error("Deposit proof upload failed:", uploadError)
+                throw new Error('Gagal mengunggah bukti transfer: ' + uploadError.message)
+            }
+
+            // Get Public URL
+            const { data: publicURLData } = supabase.storage
+                .from('deposits')
+                .getPublicUrl(filePath)
+
+            proofUrl = publicURLData.publicUrl
+        }
+
+        // Insert Record into DB
+        const { data, error } = await supabase
+            .from('deposits')
+            .insert({
+                user_id: user.id,
+                amount,
+                payment_method: paymentMethod,
+                bank_name: paymentMethod === 'transfer' ? bankName : null,
+                proof_url: proofUrl,
+                status: 'pending'
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    },
+
+    /**
+     * Get deposit history (for driver to track previous topup statuses)
+     */
+    async getDeposits() {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Not authenticated')
+
+        const { data, error } = await supabase
+            .from('deposits')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return data
     }
 }
 

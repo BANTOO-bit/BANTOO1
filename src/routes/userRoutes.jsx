@@ -22,6 +22,7 @@ const CategoryDetailPage = lazy(() => import('../pages/user/browse/CategoryDetai
 // Order Flow
 const CartPage = lazy(() => import('../pages/user/order/CartPage'))
 const CheckoutPage = lazy(() => import('../pages/user/order/CheckoutPage'))
+const PaymentSimulationPage = lazy(() => import('../pages/user/order/PaymentSimulationPage'))
 const OrderSuccessPage = lazy(() => import('../pages/user/order/OrderSuccessPage'))
 const OrderDetailPage = lazy(() => import('../pages/user/order/OrderDetailPage'))
 const TrackingPage = lazy(() => import('../pages/user/order/TrackingPage'))
@@ -122,6 +123,7 @@ export default function UserRoutes({ logout }) {
             {/* Cart & Checkout Flow */}
             <Route path="/cart" element={<RoleLockRedirect><CartPage /></RoleLockRedirect>} />
             <Route path="/checkout" element={<RoleLockRedirect><CheckoutPage /></RoleLockRedirect>} />
+            <Route path="/payment-simulation/:orderId" element={<RoleLockRedirect><PaymentSimulationPage /></RoleLockRedirect>} />
             <Route path="/order-success" element={<RoleLockRedirect><OrderSuccessPage /></RoleLockRedirect>} />
 
             {/* Order Management */}

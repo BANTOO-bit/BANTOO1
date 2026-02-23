@@ -250,7 +250,7 @@ function DriverEarningsPage() {
                                 <p className="text-white/80 text-[10px] italic font-medium mt-0.5">(Bukan pendapatan)</p>
                             </div>
                             <button
-                                onClick={() => navigate('/driver/deposit')}
+                                onClick={() => navigate('/driver/deposit', { state: { amount: earnings.codFee } })}
                                 className="w-full bg-white text-red-500 font-bold py-2.5 rounded-xl text-sm transition-transform active:scale-95 shadow-sm"
                             >
                                 Setor Ke Admin

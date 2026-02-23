@@ -1,8 +1,13 @@
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
 
 function DriverWithdrawalStatus() {
     const navigate = useNavigate()
+    const location = useLocation()
+    const amount = location.state?.amount || 0
+
+    // Random TX ID for visual mockup purpose since we don't have the newly inserted DB id easily passed back here
+    const txId = `#WD-${Math.floor(Math.random() * 9000) + 1000}`
 
     return (
         <div className="font-display bg-white text-slate-900 antialiased min-h-screen">
@@ -22,7 +27,7 @@ function DriverWithdrawalStatus() {
                     <div className="space-y-3">
                         <h1 className="text-2xl font-extrabold text-slate-900">Penarikan Sedang Proses</h1>
                         <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto">
-                            Permintaan penarikan <span className="text-slate-900 font-bold">Rp 50.000</span> Anda sedang diproses dan akan segera dikirim ke rekening tujuan.
+                            Permintaan penarikan <span className="text-slate-900 font-bold">Rp {amount.toLocaleString('id-ID')}</span> Anda sedang diproses dan akan segera dikirim ke rekening tujuan.
                         </p>
                     </div>
 
@@ -30,7 +35,7 @@ function DriverWithdrawalStatus() {
                         <div className="flex flex-col gap-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-slate-500 text-sm font-medium">ID Transaksi</span>
-                                <span className="font-bold text-slate-900 text-sm font-mono">#WD-9921</span>
+                                <span className="font-bold text-slate-900 text-sm font-mono">{txId}</span>
                             </div>
                             <div className="h-px bg-slate-100 w-full"></div>
                             <div className="flex justify-between items-center">
