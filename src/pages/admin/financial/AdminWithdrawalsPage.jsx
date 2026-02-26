@@ -4,7 +4,7 @@ import AdminLayout from '../../../components/admin/AdminLayout'
 import AdminWithdrawalModal from '../../../components/admin/AdminWithdrawalModal'
 import { financeService } from '../../../services/financeService'
 import { exportService } from '../../../services/exportService'
-import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../components/admin/AdminToast'
 import logger from '../../../utils/logger'
 
 export default function AdminWithdrawalsPage() {
@@ -15,6 +15,7 @@ export default function AdminWithdrawalsPage() {
     const [loading, setLoading] = useState(true)
     const [exporting, setExporting] = useState(false)
     const [stats, setStats] = useState({ pendingCount: 0, pendingAmount: 0, processedAmount: 0 })
+    const { addToast } = useToast()
 
     useEffect(() => {
         fetchWithdrawals()
@@ -64,14 +65,14 @@ export default function AdminWithdrawalsPage() {
         try {
             if (selectedWithdrawal) {
                 await financeService.approveWithdrawal(selectedWithdrawal.id, file)
-                alert('Penarikan berhasil disetujui')
+                addToast('Penarikan berhasil disetujui', 'success')
                 setIsModalOpen(false)
                 setSelectedWithdrawal(null)
                 fetchWithdrawals() // Refresh list
             }
         } catch (error) {
             console.error('Failed to approve withdrawal:', error)
-            alert('Gagal memproses penarikan')
+            addToast('Gagal memproses penarikan', 'error')
         }
     }
 

@@ -30,6 +30,9 @@ describe('driverService', () => {
 
     describe('acceptOrder', () => {
         it('should call driver_accept_order RPC with order id', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'driver-1' } }
+            })
             supabase.rpc.mockResolvedValue({
                 data: { success: true, order_id: 'order-1', active_orders: 1, max_orders: 2 },
                 error: null
@@ -45,6 +48,9 @@ describe('driverService', () => {
         })
 
         it('should throw if order already taken', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'driver-1' } }
+            })
             supabase.rpc.mockResolvedValue({
                 data: null,
                 error: { message: 'Pesanan sudah diambil driver lain' }
@@ -55,6 +61,9 @@ describe('driverService', () => {
         })
 
         it('should throw when max concurrent orders reached', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'driver-1' } }
+            })
             supabase.rpc.mockResolvedValue({
                 data: null,
                 error: { message: 'Anda sudah memiliki 2 pesanan aktif (maks 2)' }

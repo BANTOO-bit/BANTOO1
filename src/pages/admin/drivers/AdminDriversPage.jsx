@@ -17,6 +17,7 @@ export default function AdminDriversPage() {
     const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false)
     const [selectedDriver, setSelectedDriver] = useState(null)
     const [confirmText, setConfirmText] = useState('')
+    const [terminateReason, setTerminateReason] = useState('')
     const [drivers, setDrivers] = useState([])
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState({ total: 0, online: 0, offline: 0, pending: 0, suspended: 0 })
@@ -47,11 +48,11 @@ export default function AdminDriversPage() {
 
     useEffect(() => { fetchDrivers(); fetchStats() }, [])
 
-    const handleTerminateClick = (d) => { setSelectedDriver(d); setConfirmText(''); setIsTerminateModalOpen(true) }
+    const handleTerminateClick = (d) => { setSelectedDriver(d); setConfirmText(''); setTerminateReason(''); setIsTerminateModalOpen(true) }
 
     const handleTerminate = async () => {
         if (!selectedDriver) return
-        const { error } = await supabase.from('drivers').update({ status: 'terminated' }).eq('id', selectedDriver.id)
+        const { error } = await supabase.from('drivers').update({ status: 'terminated', termination_reason: terminateReason || null }).eq('id', selectedDriver.id)
         if (!error) {
             setDrivers(drivers.filter(d => d.id !== selectedDriver.id))
             fetchStats()
@@ -229,7 +230,7 @@ export default function AdminDriversPage() {
                             <p className="text-[#617589] dark:text-[#94a3b8] text-center mb-8 leading-relaxed">Tindakan ini bersifat permanen. <strong className="text-[#111418] dark:text-white">{driverDisplayName(selectedDriver)}</strong> tidak akan bisa menerima order lagi.</p>
                             <div className="mb-6">
                                 <label className="block text-sm font-bold text-[#111418] dark:text-white mb-2">Alasan</label>
-                                <select className="w-full appearance-none bg-[#f6f7f8] dark:bg-[#202e3b] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-lg pl-4 pr-10 py-3 text-[#111418] dark:text-white"><option disabled selected value="">Pilih alasan...</option><option>Pelanggaran Prosedur</option><option>Fraud</option><option>Permintaan Mitra</option><option>Lainnya</option></select>
+                                <select value={terminateReason} onChange={(e) => setTerminateReason(e.target.value)} className="w-full appearance-none bg-[#f6f7f8] dark:bg-[#202e3b] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-lg pl-4 pr-10 py-3 text-[#111418] dark:text-white"><option disabled value="">Pilih alasan...</option><option value="Pelanggaran Prosedur">Pelanggaran Prosedur</option><option value="Fraud">Fraud</option><option value="Permintaan Mitra">Permintaan Mitra</option><option value="Lainnya">Lainnya</option></select>
                             </div>
                             <div className="mb-8">
                                 <label className="block text-sm font-bold text-[#111418] dark:text-white mb-2">Konfirmasi Tindakan</label>

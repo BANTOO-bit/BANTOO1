@@ -61,6 +61,7 @@ function MerchantChangePasswordPage() {
 
             if (verifyError) {
                 if (import.meta.env.DEV) console.error('Password verification failed:', verifyError)
+                toast.error('Kata sandi lama salah')
                 setLoading(false)
                 return
             }

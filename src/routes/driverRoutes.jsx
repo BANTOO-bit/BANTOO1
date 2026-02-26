@@ -42,6 +42,7 @@ const DriverWithdrawalConfirm = lazy(() => import('../pages/driver/financial/Dri
 const DriverWithdrawalStatus = lazy(() => import('../pages/driver/financial/DriverWithdrawalStatus'))
 const DriverDepositPage = lazy(() => import('../pages/driver/financial/DriverDepositPage'))
 const DriverDepositVerification = lazy(() => import('../pages/driver/financial/DriverDepositVerification'))
+const DriverDepositHistoryPage = lazy(() => import('../pages/driver/financial/DriverDepositHistoryPage'))
 
 
 // ============================================
@@ -77,6 +78,7 @@ export default function DriverRoutes() {
             <Route path="/driver/withdrawal/status" element={<ProtectedRoute allowedRoles={['driver']}><DriverWithdrawalStatus /></ProtectedRoute>} />
             <Route path="/driver/deposit" element={<ProtectedRoute allowedRoles={['driver']}><DriverDepositPage /></ProtectedRoute>} />
             <Route path="/driver/deposit/verification" element={<ProtectedRoute allowedRoles={['driver']}><DriverDepositVerification /></ProtectedRoute>} />
+            <Route path="/driver/deposit/history" element={<ProtectedRoute allowedRoles={['driver']}><DriverDepositHistoryPage /></ProtectedRoute>} />
             <Route path="/driver/reviews" element={<ProtectedRoute allowedRoles={['driver']}><DriverReviewsPage /></ProtectedRoute>} />
 
             {/* Driver Order Flow (COD) */}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
 import { useToast } from '../../../context/ToastContext'
-import { handleSuccess } from '../../../utils/errorHandler'
+import { supabase } from '../../../services/supabaseClient'
 
 function DriverSecurityPage() {
     const navigate = useNavigate()
@@ -16,20 +16,56 @@ function DriverSecurityPage() {
     // PIN Form State
     const [pinData, setPinData] = useState({ current: '', new: '', confirm: '' })
 
-    const handlePasswordChange = (e) => {
+    const handlePasswordChange = async (e) => {
         e.preventDefault()
-        // Logic
-        toast.success('Password berhasil diubah')
-        setShowPasswordForm(false)
-        setPasswordData({ current: '', new: '', confirm: '' })
+        if (!passwordData.current || !passwordData.new || !passwordData.confirm) {
+            toast.error('Semua field harus diisi')
+            return
+        }
+        if (passwordData.new.length < 6) {
+            toast.error('Kata sandi baru minimal 6 karakter')
+            return
+        }
+        if (passwordData.new !== passwordData.confirm) {
+            toast.error('Konfirmasi kata sandi tidak cocok')
+            return
+        }
+        try {
+            const { error } = await supabase.auth.updateUser({ password: passwordData.new })
+            if (error) throw error
+            toast.success('Password berhasil diubah')
+            setShowPasswordForm(false)
+            setPasswordData({ current: '', new: '', confirm: '' })
+        } catch (err) {
+            toast.error(err.message || 'Gagal mengubah password')
+        }
     }
 
-    const handlePinChange = (e) => {
+    const handlePinChange = async (e) => {
         e.preventDefault()
-        // Logic
-        toast.success('PIN berhasil diubah')
-        setShowPinForm(false)
-        setPinData({ current: '', new: '', confirm: '' })
+        if (!pinData.current || !pinData.new || !pinData.confirm) {
+            toast.error('Semua field harus diisi')
+            return
+        }
+        if (pinData.new.length !== 6 || !/^\d{6}$/.test(pinData.new)) {
+            toast.error('PIN harus terdiri dari 6 digit angka')
+            return
+        }
+        if (pinData.new !== pinData.confirm) {
+            toast.error('Konfirmasi PIN tidak cocok')
+            return
+        }
+        try {
+            const { error } = await supabase.auth.updateUser({
+                data: { security_pin: pinData.new }
+            })
+            if (error) throw error
+            toast.success('PIN berhasil diubah')
+            setShowPinForm(false)
+            setPinData({ current: '', new: '', confirm: '' })
+        } catch (err) {
+            toast.error(err.message || 'Gagal mengubah PIN')
+        }
     }
 
     return (
@@ -154,10 +190,10 @@ function DriverSecurityPage() {
                     <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
                         <h3 className="font-bold text-slate-900 text-sm mb-3">Perangkat Terhubung</h3>
                         <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200">
-                            <span className="material-symbols-outlined text-slate-400">smartphone</span>
+                            <span className="material-symbols-outlined text-slate-400">{/mobile|android|iphone/i.test(navigator.userAgent) ? 'smartphone' : 'computer'}</span>
                             <div className="flex-1">
-                                <p className="text-xs font-bold text-slate-900">Samsung Galaxy S23</p>
-                                <p className="text-[10px] text-slate-500">Jakarta, ID • Saat ini</p>
+                                <p className="text-xs font-bold text-slate-900">{navigator.userAgent.match(/\(([^)]+)\)/)?.[1]?.split(';')[0] || 'Perangkat ini'}</p>
+                                <p className="text-[10px] text-slate-500">Saat ini aktif</p>
                             </div>
                             <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">Aktif</span>
                         </div>

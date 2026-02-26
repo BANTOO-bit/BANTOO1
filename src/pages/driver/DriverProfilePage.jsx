@@ -105,14 +105,6 @@ function DriverProfilePage() {
                 </header>
 
                 <main className="flex-1 overflow-y-auto pb-8">
-                    {/* DEBUG SECTION - Remove later */}
-                    {/* 
-                    <div className="p-4 bg-gray-100 text-xs overflow-auto max-h-40 mb-4 border-b border-gray-200">
-                        <p className="font-bold text-red-500">DEBUG DATA:</p>
-                        <pre>{JSON.stringify(d, null, 2)}</pre>
-                    </div> 
-                    */}
-
                     {/* Profile Photo Section */}
                     <div className="flex flex-col items-center pt-8 pb-8 px-4 bg-white border-b border-slate-100 mb-4">
                         <div className="relative">
@@ -179,6 +171,8 @@ function DriverProfilePage() {
                         <p className="text-center text-xs text-slate-400 pt-4">ID Driver: {user?.id ? user.id.slice(0, 8).toUpperCase() : '-'}</p>
                     </div>
                 </main>
+
+                <DriverBottomNavigation activeTab="profile" />
             </div>
         </div>
     )

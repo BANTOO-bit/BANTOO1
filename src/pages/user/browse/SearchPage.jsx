@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 import merchantService from '../../../services/merchantService'
 import { useCart } from '../../../context/CartContext'
@@ -121,9 +121,10 @@ function CategoryItem({ category, onClick }) {
 
 function SearchPage() {
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
     const { cartItems } = useCart()
     const toast = useToast()
-    const [searchQuery, setSearchQuery] = useState('')
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
     const debouncedQuery = useDebounce(searchQuery, 500)
     const [merchantResults, setMerchantResults] = useState([]) // Actually menu results
     const [popularMenus, setPopularMenus] = useState([])
@@ -149,25 +150,8 @@ function SearchPage() {
                 // Render popular menus immediately
                 setPopularMenus(popular)
 
-                const dbCategories = await merchantService.getCategories()
-
-                const combinedCategories = [...searchCategories]
-                if (Array.isArray(dbCategories)) {
-                    dbCategories.forEach(catName => {
-                        if (!catName) return // Skip null/undefined categories
-                        const id = catName.toLowerCase().replace(/\s+/g, '-')
-                        const isKnown = searchCategories.some(sc => sc.id === id)
-                        if (!isKnown) {
-                            combinedCategories.push({
-                                id: id,
-                                name: catName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-                                icon: 'restaurant'
-                            })
-                        }
-                    })
-                }
-                // Limit to 9 to fill 3 rows nicely
-                setDisplayCategories(combinedCategories.slice(0, 9))
+                // Only show predefined categories (don't merge from DB)
+                setDisplayCategories(searchCategories.slice(0, 9))
 
             } catch (error) {
                 handleError(error, toast, { context: 'Load search data' })
@@ -249,7 +233,7 @@ function SearchPage() {
                 >
                     <span className="material-symbols-outlined">shopping_cart</span>
                     {cartItemCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
                             {cartItemCount > 99 ? '99+' : cartItemCount}
                         </span>
                     )}

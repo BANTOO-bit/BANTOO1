@@ -186,7 +186,7 @@ function DriverOrdersPage() {
                                                 onClick={() => {
                                                     // Navigate based on order status (SQL statuses)
                                                     if (order.statusKey === 'pickup') {
-                                                        navigate('/driver/order/pickup')
+                                                        navigate(`/driver/order/pickup/${order.id}`)
                                                     } else if (['picked_up', 'delivering'].includes(order.statusKey)) {
                                                         navigate(`/driver/order/delivery/${order.id}`)
                                                     }

@@ -46,6 +46,7 @@ function OrderDetailPage() {
                 const transformedOrder = {
                     id: generateOrderId(orderData.id),
                     dbId: orderData.id,
+                    merchantId: orderData.merchant_id,
                     merchantName: orderData.merchant?.name || 'Merchant',
                     merchantImage: orderData.merchant?.image_url,
                     merchantAddress: orderData.merchant?.address,
@@ -156,7 +157,7 @@ function OrderDetailPage() {
     }
 
     const formatTime = (dateString) => {
-        if (!dateString) return '12:45'
+        if (!dateString) return '-'
         const date = new Date(dateString)
         return date.toLocaleTimeString('id-ID', {
             hour: '2-digit',
@@ -217,10 +218,11 @@ function OrderDetailPage() {
 
     const isCancelled = order.status === 'cancelled'
     const isCompleted = order.status === 'delivered' || order.status === 'completed'
-    const subtotal = order.items?.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0) || order.total || 0
-    const deliveryFee = order.deliveryFee || 10000
+    const isActive = !isCancelled && !isCompleted
+    const subtotal = order.items?.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0) || order.totalAmount || 0
+    const deliveryFee = order.deliveryFee || 0
     const serviceFee = 0
-    const total = order.total || (subtotal + deliveryFee)
+    const total = order.totalAmount || (subtotal + deliveryFee)
     const itemCount = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0
 
     return (
@@ -243,20 +245,24 @@ function OrderDetailPage() {
                 <div className="bg-card-light dark:bg-card-dark rounded-2xl p-5 shadow-soft border border-border-color dark:border-gray-800 flex flex-col items-center text-center">
                     <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${isCancelled
                         ? 'bg-red-50 dark:bg-red-900/20'
-                        : 'bg-green-50 dark:bg-green-900/20'
+                        : isActive
+                            ? 'bg-blue-50 dark:bg-blue-900/20'
+                            : 'bg-green-50 dark:bg-green-900/20'
                         }`}>
-                        <span className={`material-symbols-outlined text-[48px] fill ${isCancelled ? 'text-red-600' : 'text-green-600'
+                        <span className={`material-symbols-outlined text-[48px] fill ${isCancelled ? 'text-red-600' : isActive ? 'text-blue-600' : 'text-green-600'
                             }`}>
-                            {isCancelled ? 'cancel' : 'check_circle'}
+                            {isCancelled ? 'cancel' : isActive ? 'pending' : 'check_circle'}
                         </span>
                     </div>
                     <h2 className="text-lg font-bold text-text-main dark:text-white">
-                        {isCancelled ? 'Pesanan Dibatalkan' : 'Pesanan Selesai'}
+                        {isCancelled ? 'Pesanan Dibatalkan' : isActive ? 'Pesanan Diproses' : 'Pesanan Selesai'}
                     </h2>
                     <p className="text-xs text-text-secondary dark:text-gray-400 mt-1 max-w-[240px] leading-relaxed">
                         {isCancelled
                             ? (order.cancelReason || 'Pesanan dibatalkan karena merchant tidak merespon.')
-                            : 'Terima kasih! Pesananmu sudah sampai di tujuan.'
+                            : isActive
+                                ? 'Pesananmu sedang diproses.'
+                                : 'Terima kasih! Pesananmu sudah sampai di tujuan.'
                         }
                     </p>
                     <div className="mt-4 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center gap-1.5 border border-gray-100 dark:border-gray-700">
@@ -277,15 +283,15 @@ function OrderDetailPage() {
                     </div>
                     <div className="pl-1">
                         <p className="font-bold text-sm text-text-main dark:text-white">
-                            {order.recipientName || order.address?.name || 'Budi Santoso'}
+                            {order.recipientName || order.address?.name || 'Pelanggan'}
                         </p>
                         <p className="text-xs text-text-secondary dark:text-gray-400 mt-1 font-medium">
-                            {order.recipientPhone || order.address?.phone || '0812-3456-7890'}
+                            {order.recipientPhone || order.address?.phone || '-'}
                         </p>
                         <p className="text-xs text-text-secondary dark:text-gray-400 mt-2 leading-relaxed bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
                             {typeof order.address === 'string'
                                 ? order.address
-                                : (order.address?.address || order.address?.label || 'Jl. Kebon Jeruk Raya No. 25, RT.02/RW.05, Kebon Jeruk, Jakarta Barat, 11530')
+                                : (order.deliveryAddress || order.address?.address || order.address?.label || 'Alamat tidak tersedia')
                             }
                         </p>
                     </div>

@@ -120,7 +120,7 @@ function DriverVehiclePage() {
                         <div className="text-center mb-4">
                             <p className="text-xs text-slate-400">Ingin mengganti kendaraan?</p>
                         </div>
-                        <button className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl text-sm transition-all active:scale-95 shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2">
+                        <button onClick={() => navigate('/driver/help')} className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl text-sm transition-all active:scale-95 shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2">
                             <span className="material-symbols-outlined">headset_mic</span>
                             Hubungi Layanan Pelanggan
                         </button>

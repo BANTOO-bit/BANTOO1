@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
 
@@ -6,8 +7,8 @@ function DriverWithdrawalStatus() {
     const location = useLocation()
     const amount = location.state?.amount || 0
 
-    // Random TX ID for visual mockup purpose since we don't have the newly inserted DB id easily passed back here
-    const txId = `#WD-${Math.floor(Math.random() * 9000) + 1000}`
+    // Memoize txId so it doesn't change on re-renders
+    const txId = useMemo(() => `#WD - ${Math.floor(Math.random() * 9000) + 1000} `, [])
 
     return (
         <div className="font-display bg-white text-slate-900 antialiased min-h-screen">

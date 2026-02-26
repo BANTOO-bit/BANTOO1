@@ -65,11 +65,13 @@ export const walletService = {
         if (!user) throw new Error('Not authenticated')
 
         if (!amount || amount <= 0) throw new Error('Invalid withdrawal amount')
+        if (amount < 10000) throw new Error('Minimum penarikan adalah Rp 10.000')
+        if (amount > 10000000) throw new Error('Maksimum penarikan adalah Rp 10.000.000')
         if (!bankName || !accountName || !accountNumber) {
             throw new Error('Bank details are required')
         }
 
-        // Try atomic RPC first
+        // Atomic RPC — ensures balance check + deduction + insert in one transaction
         const { data: rpcResult, error: rpcError } = await supabase.rpc('request_withdrawal', {
             p_amount: amount,
             p_bank_name: bankName,
@@ -78,59 +80,13 @@ export const walletService = {
         })
 
         if (rpcError) {
-            // If RPC doesn't exist yet, use safer fallback
             if (rpcError.code === '42883' || rpcError.message?.includes('does not exist')) {
-                return this._requestWithdrawalFallback(user, { amount, bankName, accountName, accountNumber })
+                throw new Error('Fitur penarikan belum aktif. Hubungi admin.')
             }
-            // RPC exists but returned a business error (e.g., insufficient balance)
-            throw new Error(rpcError.message || 'Withdrawal failed')
+            throw new Error(rpcError.message || 'Penarikan gagal')
         }
 
         return rpcResult
-    },
-
-    /**
-     * Fallback withdrawal (TEMPORARY — remove after RPC deployment)
-     * Uses conditional update to prevent race conditions at DB level.
-     * @private
-     */
-    async _requestWithdrawalFallback(user, { amount, bankName, accountName, accountNumber }) {
-        // Atomically deduct balance using conditional update
-        // The .gte('balance', amount) ensures we only deduct if sufficient balance
-        const { data: wallet, error: deductError } = await supabase
-            .from('wallets')
-            .update({ balance: supabase.rpc('wallets_balance_minus', { amount }) || undefined })
-            .eq('user_id', user.id)
-            .gte('balance', amount)
-            .select()
-            .single()
-
-        // If conditional update fails, it means insufficient balance or race condition
-        if (deductError || !wallet) {
-            // Check actual balance to give proper error message
-            const currentBalance = await this.getBalance()
-            if (currentBalance < amount) {
-                throw new Error('Saldo tidak mencukupi')
-            }
-            throw new Error('Gagal memproses penarikan. Silakan coba lagi.')
-        }
-
-        // Insert withdrawal record
-        const { data, error } = await supabase
-            .from('withdrawals')
-            .insert({
-                user_id: user.id,
-                amount,
-                bank_name: bankName,
-                bank_account_name: accountName,
-                bank_account_number: accountNumber,
-                status: 'pending'
-            })
-            .select()
-            .single()
-
-        if (error) throw error
-        return data
     },
 
     /**
@@ -162,7 +118,8 @@ export const walletService = {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
-        if (!amount || amount <= 0) throw new Error('Invalid deposit amount')
+        if (!amount || amount < 1000) throw new Error('Minimal setoran adalah Rp 1.000')
+        if (amount > 10000000) throw new Error('Maksimal setoran adalah Rp 10.000.000')
 
         let proofUrl = null;
 

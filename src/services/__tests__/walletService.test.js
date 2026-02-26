@@ -82,5 +82,44 @@ describe('walletService', () => {
                 accountNumber: '123'
             })).rejects.toThrow()
         })
+
+        it('should reject withdrawal below minimum (Rp 10.000)', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'user-123' } }
+            })
+
+            await expect(walletService.requestWithdrawal({
+                amount: 5000,
+                bankName: 'BCA',
+                accountName: 'John',
+                accountNumber: '123'
+            })).rejects.toThrow('Minimum penarikan')
+        })
+
+        it('should reject withdrawal above maximum (Rp 10.000.000)', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'user-123' } }
+            })
+
+            await expect(walletService.requestWithdrawal({
+                amount: 15000000,
+                bankName: 'BCA',
+                accountName: 'John',
+                accountNumber: '123'
+            })).rejects.toThrow('Maksimum penarikan')
+        })
+
+        it('should reject withdrawal without bank details', async () => {
+            supabase.auth.getUser.mockResolvedValue({
+                data: { user: { id: 'user-123' } }
+            })
+
+            await expect(walletService.requestWithdrawal({
+                amount: 50000,
+                bankName: '',
+                accountName: 'John',
+                accountNumber: '123'
+            })).rejects.toThrow('Bank details')
+        })
     })
 })

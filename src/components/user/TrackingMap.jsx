@@ -105,8 +105,33 @@ function TrackingMap({
     merchantLocation = [-7.0747, 110.8767],
     userLocation = [-6.2250, 106.8500],
     driverLocation,
+    routeCoords,
     height = "300px"
 }) {
+    const [fetchedRoute, setFetchedRoute] = useState(null)
+
+    // Auto-fetch route from OSRM if not provided as prop
+    useEffect(() => {
+        if (routeCoords || !merchantLocation || !userLocation) return
+
+        let cancelled = false
+        async function fetchRoute() {
+            try {
+                const { getRoute } = await import('../../services/routingService')
+                const result = await getRoute(merchantLocation, userLocation)
+                if (!cancelled && result.routeCoords?.length > 2) {
+                    setFetchedRoute(result.routeCoords)
+                }
+            } catch {
+                // Silently fail — will show straight line fallback
+            }
+        }
+        fetchRoute()
+        return () => { cancelled = true }
+    }, [merchantLocation?.[0], merchantLocation?.[1], userLocation?.[0], userLocation?.[1], routeCoords])
+
+    const displayRoute = routeCoords || fetchedRoute
+
     // Collect points for bounds
     const points = [
         merchantLocation,
@@ -127,11 +152,18 @@ function TrackingMap({
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                 />
 
-                {/* Route Line (Merchant -> User) */}
-                <Polyline
-                    positions={[merchantLocation, userLocation]}
-                    pathOptions={{ color: '#2979FF', weight: 4, opacity: 0.6, dashArray: '10, 10' }}
-                />
+                {/* Route Line: Real road route or straight-line fallback */}
+                {displayRoute ? (
+                    <Polyline
+                        positions={displayRoute}
+                        pathOptions={{ color: '#2979FF', weight: 4, opacity: 0.8 }}
+                    />
+                ) : (
+                    <Polyline
+                        positions={[merchantLocation, userLocation]}
+                        pathOptions={{ color: '#2979FF', weight: 4, opacity: 0.6, dashArray: '10, 10' }}
+                    />
+                )}
 
                 {/* Route Line (Driver -> User, if driver exists) */}
                 {driverLocation && (

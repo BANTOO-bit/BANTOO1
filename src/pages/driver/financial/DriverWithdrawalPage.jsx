@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
 import { walletService } from '../../../services/walletService'
+import { driverService } from '../../../services/driverService'
 
 function DriverWithdrawalPage() {
     const navigate = useNavigate()
@@ -9,6 +10,7 @@ function DriverWithdrawalPage() {
     const [balance, setBalance] = useState(0)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [bankAccount, setBankAccount] = useState(null)
 
     useEffect(() => {
         loadBalance()
@@ -17,8 +19,18 @@ function DriverWithdrawalPage() {
     const loadBalance = async () => {
         try {
             setIsLoading(true)
-            const currentBalance = await walletService.getBalance()
+            const [currentBalance, bankData] = await Promise.all([
+                walletService.getBalance(),
+                driverService.getBankDetails()
+            ])
             setBalance(currentBalance)
+            if (bankData && bankData.bank_name) {
+                setBankAccount({
+                    bankName: bankData.bank_name,
+                    accountName: bankData.bank_account_name || '-',
+                    accountNumber: bankData.bank_account_number || '-'
+                })
+            }
         } catch (err) {
             console.error('Failed to load wallet balance:', err)
             setError('Gagal memuat saldo')
@@ -30,25 +42,34 @@ function DriverWithdrawalPage() {
     const handleQuickAmount = (val) => {
         // Only set if amount doesn't exceed balance
         if (val <= balance) {
-            setAmount(val)
+            setAmount(String(val))
         }
     }
 
     const handleWithdraw = () => {
         const numAmount = parseInt(amount)
+        if (!bankAccount) {
+            setError('Tambahkan rekening bank terlebih dahulu')
+            return
+        }
         if (!numAmount || numAmount <= 0) {
-            alert('Masukkan nominal penarikan yang valid')
+            setError('Masukkan nominal penarikan yang valid')
             return
         }
         if (numAmount < 10000) {
-            alert('Minimal penarikan adalah Rp 10.000')
+            setError('Minimal penarikan adalah Rp 10.000')
+            return
+        }
+        if (numAmount > 10000000) {
+            setError('Maksimal penarikan adalah Rp 10.000.000')
             return
         }
         if (numAmount > balance) {
-            alert('Saldo Anda tidak mencukupi')
+            setError('Saldo Anda tidak mencukupi')
             return
         }
 
+        setError(null)
         // Pass amount to confirmation page
         navigate('/driver/withdrawal/confirm', { state: { amount: numAmount } })
     }
@@ -114,8 +135,8 @@ function DriverWithdrawalPage() {
                                 <span className="material-symbols-outlined">account_balance</span>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-slate-900 truncate">Bank BCA</p>
-                                <p className="text-xs font-medium text-slate-500 truncate">Budi Santoso • **** 0921</p>
+                                <p className="text-sm font-bold text-slate-900 truncate">{bankAccount?.bankName || 'Belum ada rekening'}</p>
+                                <p className="text-xs font-medium text-slate-500 truncate">{bankAccount ? `${bankAccount.accountName} • ${bankAccount.accountNumber.slice(-4).padStart(bankAccount.accountNumber.length, '*')}` : 'Tambahkan rekening terlebih dahulu'}</p>
                             </div>
                             <span className="material-symbols-outlined text-slate-300 group-hover:text-slate-400">chevron_right</span>
                         </div>
@@ -136,10 +157,10 @@ function DriverWithdrawalPage() {
                         </div>
                         <button
                             onClick={handleWithdraw}
-                            disabled={isLoading || !amount || amount > balance}
-                            className={`w-full font-bold py-4 rounded-xl text-base transition-all active:scale-[0.98] ${isLoading || !amount || amount > balance
-                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                    : 'bg-[#0d59f2] hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30'
+                            disabled={isLoading || !amount || parseInt(amount) > balance}
+                            className={`w-full font-bold py-4 rounded-xl text-base transition-all active:scale-[0.98] ${isLoading || !amount || parseInt(amount) > balance
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-[#0d59f2] hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30'
                                 }`}
                         >
                             TARIK SALDO SEKARANG
@@ -149,7 +170,7 @@ function DriverWithdrawalPage() {
 
                 <DriverBottomNavigation activeTab="earnings" />
             </div>
-        </div>
+        </div >
     )
 }
 

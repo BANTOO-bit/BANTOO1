@@ -136,11 +136,11 @@ function OrdersPage() {
     }
 
     const handleReview = (order) => {
-        navigate(`/ review / ${order.dbId} `)
+        navigate(`/review/${order.dbId}`)
     }
 
     const handleViewDetail = (order) => {
-        navigate(`/ order - detail / ${order.dbId} `)
+        navigate(`/order-detail/${order.dbId}`)
     }
 
     const handleReorder = (order) => {

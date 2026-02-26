@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
 import { walletService } from '../../../services/walletService'
+import { driverService } from '../../../services/driverService'
 
 function DriverWithdrawalConfirm() {
     const navigate = useNavigate()
@@ -9,12 +10,34 @@ function DriverWithdrawalConfirm() {
     const amount = location.state?.amount || 0
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState(null)
+    const [bankAccount, setBankAccount] = useState(null)
 
-    // Redirect back if no amount
-    if (!amount) {
-        navigate('/driver/withdrawal', { replace: true })
-        return null
-    }
+    useEffect(() => {
+        async function loadBank() {
+            try {
+                const data = await driverService.getBankDetails()
+                if (data && data.bank_name) {
+                    setBankAccount({
+                        bankName: data.bank_name,
+                        accountName: data.bank_account_name || '-',
+                        accountNumber: data.bank_account_number || '-'
+                    })
+                }
+            } catch (err) {
+                if (import.meta.env.DEV) console.error('Failed to load bank details:', err)
+            }
+        }
+        loadBank()
+    }, [])
+
+    // Redirect back if no amount — use useEffect to avoid side-effects during render
+    useEffect(() => {
+        if (!amount) {
+            navigate('/driver/withdrawal', { replace: true })
+        }
+    }, [amount, navigate])
+
+    if (!amount) return null
 
     const handleConfirm = async () => {
         setIsSubmitting(true)
@@ -22,9 +45,9 @@ function DriverWithdrawalConfirm() {
         try {
             await walletService.requestWithdrawal({
                 amount: amount,
-                bankName: 'BCA', // Hardcoded for this mockup iteration, would normally come from driver settings
-                accountName: 'Budi Santoso',
-                accountNumber: '0921'
+                bankName: bankAccount?.bankName || 'Unknown',
+                accountName: bankAccount?.accountName || 'Unknown',
+                accountNumber: bankAccount?.accountNumber || 'Unknown'
             })
             navigate('/driver/withdrawal/status', { state: { amount } })
         } catch (err) {
@@ -68,9 +91,9 @@ function DriverWithdrawalConfirm() {
                                 <div className="text-right">
                                     <div className="flex items-center justify-end gap-2 mb-0.5">
                                         <span className="material-symbols-outlined text-[#0d59f2] text-[18px]">account_balance</span>
-                                        <p className="font-bold text-slate-900 text-sm">Bank BCA</p>
+                                        <p className="font-bold text-slate-900 text-sm">{bankAccount?.bankName || '-'}</p>
                                     </div>
-                                    <p className="text-xs text-slate-500 font-medium">Budi Santoso • ****0921</p>
+                                    <p className="text-xs text-slate-500 font-medium">{bankAccount ? `${bankAccount.accountName} • ${bankAccount.accountNumber.slice(-4).padStart(bankAccount.accountNumber.length, '*')}` : '-'}</p>
                                 </div>
                             </div>
                             <div className="h-px bg-slate-100 w-full"></div>

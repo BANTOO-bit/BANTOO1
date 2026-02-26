@@ -17,6 +17,7 @@ export default function AdminMerchantsPage() {
     const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false)
     const [selectedMerchant, setSelectedMerchant] = useState(null)
     const [confirmText, setConfirmText] = useState('')
+    const [terminateReason, setTerminateReason] = useState('')
     const [merchants, setMerchants] = useState([])
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState({ total: 0, open: 0, closed: 0, pending: 0, suspended: 0 })
@@ -71,12 +72,13 @@ export default function AdminMerchantsPage() {
     const handleTerminateClick = (merchant) => {
         setSelectedMerchant(merchant)
         setConfirmText('')
+        setTerminateReason('')
         setIsTerminateModalOpen(true)
     }
 
     const handleTerminate = async () => {
         if (!selectedMerchant) return
-        const { error } = await supabase.from('merchants').update({ status: 'terminated' }).eq('id', selectedMerchant.id)
+        const { error } = await supabase.from('merchants').update({ status: 'terminated', termination_reason: terminateReason || null }).eq('id', selectedMerchant.id)
         if (!error) {
             setMerchants(merchants.filter(m => m.id !== selectedMerchant.id))
             fetchStats()
@@ -199,10 +201,6 @@ export default function AdminMerchantsPage() {
                                 <span className="material-symbols-outlined text-base">filter_list</span>
                                 Filter
                             </button>
-                            <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#617589] dark:text-[#94a3b8] bg-[#f0f2f4] dark:bg-[#2a3b4d] hover:bg-[#e5e7eb] dark:hover:bg-[#344658] rounded-lg transition-colors">
-                                <span className="material-symbols-outlined text-base">download</span>
-                                Ekspor
-                            </button>
                         </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -304,12 +302,12 @@ export default function AdminMerchantsPage() {
                             <div className="mb-6">
                                 <label className="block text-sm font-bold text-[#111418] dark:text-white mb-2">Alasan</label>
                                 <div className="relative">
-                                    <select className="w-full appearance-none bg-[#f6f7f8] dark:bg-[#202e3b] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-lg pl-4 pr-10 py-3 text-[#111418] dark:text-white focus:outline-none focus:border-red-500 transition-colors cursor-pointer">
-                                        <option disabled selected value="">Pilih alasan...</option>
-                                        <option value="prosedur">Pelanggaran Prosedur</option>
-                                        <option value="fraud">Fraud</option>
-                                        <option value="permintaan">Permintaan Mitra</option>
-                                        <option value="lainnya">Lainnya</option>
+                                    <select value={terminateReason} onChange={(e) => setTerminateReason(e.target.value)} className="w-full appearance-none bg-[#f6f7f8] dark:bg-[#202e3b] border border-[#e5e7eb] dark:border-[#2a3b4d] rounded-lg pl-4 pr-10 py-3 text-[#111418] dark:text-white focus:outline-none focus:border-red-500 transition-colors cursor-pointer">
+                                        <option disabled value="">Pilih alasan...</option>
+                                        <option value="Pelanggaran Prosedur">Pelanggaran Prosedur</option>
+                                        <option value="Fraud">Fraud</option>
+                                        <option value="Permintaan Mitra">Permintaan Mitra</option>
+                                        <option value="Lainnya">Lainnya</option>
                                     </select>
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#617589] dark:text-[#94a3b8]">
                                         <span className="material-symbols-outlined font-light text-2xl">keyboard_arrow_down</span>

@@ -20,11 +20,11 @@ function DriverDepositPage() {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0]
             if (file.size > 2 * 1024 * 1024) {
-                alert('Ukuran file maksimal 2MB')
+                setError('Ukuran file maksimal 2MB')
                 return
             }
             if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-                alert('Format file harus JPG atau PNG')
+                setError('Format file harus JPG atau PNG')
                 return
             }
             setProofFile(file)
@@ -39,6 +39,9 @@ function DriverDepositPage() {
             const submitAmount = parseInt(amount)
             if (!submitAmount || submitAmount < 1000) {
                 throw new Error('Minimal setoran adalah Rp 1.000')
+            }
+            if (submitAmount > 10000000) {
+                throw new Error('Maksimal setoran adalah Rp 10.000.000')
             }
 
             if (paymentMethod === 'transfer' && !proofFile) {
@@ -57,7 +60,6 @@ function DriverDepositPage() {
         } catch (err) {
             console.error('Failed to submit deposit:', err)
             setError(err.message || 'Gagal mengirim bukti setoran. Coba beberapa saat lagi.')
-            alert(err.message || 'Gagal mengirim bukti setoran. Coba beberapa saat lagi.') // Fallback notification
         } finally {
             setIsSubmitting(false)
         }
@@ -164,7 +166,7 @@ function DriverDepositPage() {
                                         <div className="text-lg font-bold text-slate-800 tracking-wide font-mono">827 123 4567</div>
                                         <div className="text-xs text-slate-500 font-medium mt-0.5">a.n PT Ojek Online Indonesia</div>
                                     </div>
-                                    <button className="p-2 text-[#0d59f2] bg-[#0d59f2]/5 rounded-lg hover:bg-[#0d59f2]/10 active:scale-95 transition-all">
+                                    <button onClick={() => navigator.clipboard.writeText('8271234567')} className="p-2 text-[#0d59f2] bg-[#0d59f2]/5 rounded-lg hover:bg-[#0d59f2]/10 active:scale-95 transition-all">
                                         <span className="material-symbols-outlined text-[20px]">content_copy</span>
                                     </button>
                                 </div>
@@ -174,7 +176,7 @@ function DriverDepositPage() {
                                         <div className="text-lg font-bold text-slate-800 tracking-wide font-mono">157 000 998 877</div>
                                         <div className="text-xs text-slate-500 font-medium mt-0.5">a.n PT Ojek Online Indonesia</div>
                                     </div>
-                                    <button className="p-2 text-[#0d59f2] bg-[#0d59f2]/5 rounded-lg hover:bg-[#0d59f2]/10 active:scale-95 transition-all">
+                                    <button onClick={() => navigator.clipboard.writeText('157000998877')} className="p-2 text-[#0d59f2] bg-[#0d59f2]/5 rounded-lg hover:bg-[#0d59f2]/10 active:scale-95 transition-all">
                                         <span className="material-symbols-outlined text-[20px]">content_copy</span>
                                     </button>
                                 </div>
@@ -207,8 +209,8 @@ function DriverDepositPage() {
                     <div className="mt-8">
                         <button
                             onClick={handleSubmit}
-                            disabled={isSubmitting || amount < 1000}
-                            className={`w-full font-bold py-4 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${isSubmitting || amount < 1000 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white active:scale-[0.98]'
+                            disabled={isSubmitting || !amount || parseInt(amount) < 1000}
+                            className={`w-full font-bold py-4 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${isSubmitting || !amount || parseInt(amount) < 1000 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white active:scale-[0.98]'
                                 }`}
                         >
                             {isSubmitting ? (

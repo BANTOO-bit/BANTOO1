@@ -32,6 +32,12 @@ export function OrderProvider({ children }) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const subscriptionRef = useRef(null)
+    const activeOrderRef = useRef(null)
+
+    // Keep ref in sync with state for use in realtime callbacks
+    useEffect(() => {
+        activeOrderRef.current = activeOrder
+    }, [activeOrder])
 
     // ============================================
     // FETCH ORDERS
@@ -218,7 +224,7 @@ export function OrderProvider({ children }) {
                         setOrders(prev => prev.map(o =>
                             o.id === newRecord.id ? newRecord : o
                         ))
-                        if (activeOrder?.id === newRecord.id) {
+                        if (activeOrderRef.current?.id === newRecord.id) {
                             if (['completed', 'cancelled', 'timeout'].includes(newRecord.status)) {
                                 setActiveOrder(null)
                             } else {

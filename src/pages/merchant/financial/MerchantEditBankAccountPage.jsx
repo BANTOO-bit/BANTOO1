@@ -17,7 +17,7 @@ function MerchantEditBankAccountPage() {
     const [formData, setFormData] = useState({
         bank_name: '',
         bank_account_number: '',
-        bank_account_holder: ''
+        bank_account_name: ''
     })
 
     // Fetch existing bank data
@@ -28,7 +28,7 @@ function MerchantEditBankAccountPage() {
             try {
                 const { data, error } = await supabase
                     .from('merchants')
-                    .select('bank_name, bank_account_number, bank_account_holder')
+                    .select('bank_name, bank_account_number, bank_account_name')
                     .eq('owner_id', user.id)
                     .single()
 
@@ -38,7 +38,7 @@ function MerchantEditBankAccountPage() {
                     setFormData({
                         bank_name: data.bank_name || '',
                         bank_account_number: data.bank_account_number || '',
-                        bank_account_holder: data.bank_account_holder || ''
+                        bank_account_name: data.bank_account_name || ''
                     })
                 }
             } catch (error) {
@@ -65,6 +65,21 @@ function MerchantEditBankAccountPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+
+        // Validate all fields
+        if (!formData.bank_name) {
+            toast.error('Pilih bank terlebih dahulu')
+            return
+        }
+        if (!formData.bank_account_number.trim()) {
+            toast.error('Nomor rekening harus diisi')
+            return
+        }
+        if (!formData.bank_account_name.trim()) {
+            toast.error('Nama pemilik rekening harus diisi')
+            return
+        }
+
         setIsSaving(true)
 
         try {
@@ -73,7 +88,7 @@ function MerchantEditBankAccountPage() {
                 .update({
                     bank_name: formData.bank_name,
                     bank_account_number: formData.bank_account_number,
-                    bank_account_holder: formData.bank_account_holder
+                    bank_account_name: formData.bank_account_name
                 })
                 .eq('owner_id', user.id)
 
@@ -141,8 +156,8 @@ function MerchantEditBankAccountPage() {
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-semibold text-text-main dark:text-white">Nama Pemilik</label>
                         <input
-                            name="bank_account_holder"
-                            value={formData.bank_account_holder}
+                            name="bank_account_name"
+                            value={formData.bank_account_name}
                             onChange={handleChange}
                             className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white text-sm rounded-xl focus:ring-1 focus:ring-primary focus:border-primary block p-3.5 placeholder-gray-400 outline-none transition-all"
                             placeholder="Sesuaikan dengan buku tabungan"

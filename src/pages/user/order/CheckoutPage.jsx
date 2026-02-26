@@ -6,6 +6,7 @@ import { useAddress } from '../../../context/AddressContext'
 import orderService from '../../../services/orderService'
 import dashboardService from '../../../services/dashboardService'
 import paymentService from '../../../services/paymentService'
+import settingsService from '../../../services/settingsService'
 import BackButton from '../../../components/shared/BackButton'
 import MerchantShopOpenWarning from '../../../components/shared/MerchantShopOpenWarning'
 import { useToast } from '../../../context/ToastContext'
@@ -22,6 +23,7 @@ function CheckoutPage() {
     const [showPaymentModal, setShowPaymentModal] = useState(false)
     const [showAddressModal, setShowAddressModal] = useState(false)
     const [paymentMethods, setPaymentMethods] = useState([])
+    const [codMaxAmount, setCodMaxAmount] = useState(500000) // Default Rp 500.000
     const [loadingPayments, setLoadingPayments] = useState(true)
 
     useEffect(() => {
@@ -51,9 +53,21 @@ function CheckoutPage() {
         }
 
         fetchPaymentMethods()
+
+        // Fetch COD max order amount
+        async function fetchCodLimit() {
+            try {
+                const operational = await settingsService.get('operational')
+                if (operational?.cod_max_order_amount) {
+                    setCodMaxAmount(operational.cod_max_order_amount)
+                }
+            } catch { /* use default */ }
+        }
+        fetchCodLimit()
     }, [user?.id])
 
     const handlePlaceOrder = async () => {
+        if (isProcessing) return // prevent double submit
         // Check if merchant shop is open
         if (user?.isMerchant && isShopOpen) {
             toast.error('Tutup warung terlebih dahulu untuk memesan sebagai pelanggan')
@@ -85,7 +99,6 @@ function CheckoutPage() {
                 setIsProcessing(false)
                 return
             }
-
             // Prepare order data
             const orderData = {
                 merchantId: effectiveMerchantId,
@@ -98,8 +111,8 @@ function CheckoutPage() {
                 })),
                 deliveryAddress: typeof selectedAddress === 'string' ? selectedAddress : selectedAddress.address,
                 deliveryDetail: selectedAddress.detail || null,
-                customerName: user?.profile?.full_name || selectedAddress.name || 'Customer',
-                customerPhone: user?.profile?.phone || selectedAddress.phone || '',
+                customerName: user?.fullName || selectedAddress.name || 'Customer',
+                customerPhone: user?.phone || selectedAddress.phone || '',
                 customerLat: selectedAddress.lat || null,
                 customerLng: selectedAddress.lng || null,
                 paymentMethod: selectedPayment,
@@ -157,7 +170,7 @@ function CheckoutPage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-background-light pb-bottom-nav">
+        <div className="min-h-screen flex flex-col bg-background-light pb-40">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white px-4 pt-12 pb-4 border-b border-border-color">
                 <div className="relative flex items-center justify-center min-h-[40px]">
@@ -171,7 +184,7 @@ function CheckoutPage() {
                 <MerchantShopOpenWarning blocking={true} />
             </div>
 
-            <div className="flex-1 px-4 space-y-4 mt-4">
+            <div className="flex-1 px-4 space-y-4 mt-4 mb-4">
                 {/* Delivery Address */}
                 <div
                     className="bg-white rounded-2xl border border-border-color p-4 cursor-pointer active:bg-gray-50"
@@ -243,7 +256,6 @@ function CheckoutPage() {
                     </div>
                 </div>
 
-                {/* Payment Method */}
                 <div
                     className="bg-white rounded-2xl border border-border-color p-4 cursor-pointer active:bg-gray-50"
                     onClick={() => setShowPaymentModal(true)}
@@ -256,8 +268,30 @@ function CheckoutPage() {
                         <span className="material-symbols-outlined text-text-secondary text-sm">chevron_right</span>
                     </div>
                     <div className="flex items-center gap-2 ml-7 mt-2">
-                        <span className="material-symbols-outlined text-text-main text-lg">{selectedPaymentMethod?.icon}</span>
-                        <span className="text-sm font-medium">{selectedPaymentMethod?.name}</span>
+                        {loadingPayments ? (
+                            <div className="flex items-center gap-2 w-full">
+                                <div className="w-6 h-6 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
+                            </div>
+                        ) : selectedPaymentMethod ? (
+                            <>
+                                <span className="material-symbols-outlined text-text-main text-lg">{selectedPaymentMethod.icon}</span>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium">{selectedPaymentMethod.name}</span>
+                                    {selectedPaymentMethod.description && (
+                                        <span className="text-[11px] text-text-secondary">{selectedPaymentMethod.description}</span>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <span className="material-symbols-outlined text-text-main text-lg">payments</span>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium">Tunai (COD)</span>
+                                    <span className="text-[11px] text-text-secondary">Bayar saat pesanan tiba</span>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -300,28 +334,40 @@ function CheckoutPage() {
                             </button>
                         </div>
                         <div className="space-y-2">
-                            {paymentMethods.map(method => (
-                                <button
-                                    key={method.id}
-                                    onClick={() => {
-                                        setSelectedPayment(method.id)
-                                        setShowPaymentModal(false)
-                                    }}
-                                    className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${selectedPayment === method.id
-                                        ? 'border-primary bg-orange-50'
-                                        : 'border-border-color'
-                                        }`}
-                                >
-                                    <span className="material-symbols-outlined text-2xl text-primary">{method.icon}</span>
-                                    <div className="flex-1 text-left">
-                                        <p className="font-medium">{method.name}</p>
-                                        <p className="text-xs text-text-secondary">{method.description}</p>
-                                    </div>
-                                    {selectedPayment === method.id && (
-                                        <span className="material-symbols-outlined text-primary">check_circle</span>
-                                    )}
-                                </button>
-                            ))}
+                            {paymentMethods.map(method => {
+                                const isCodDisabled = (method.id === 'cash' || method.id === 'cod') && grandTotal > codMaxAmount
+                                return (
+                                    <button
+                                        key={method.id}
+                                        disabled={isCodDisabled}
+                                        onClick={() => {
+                                            if (!isCodDisabled) {
+                                                setSelectedPayment(method.id)
+                                                setShowPaymentModal(false)
+                                            }
+                                        }}
+                                        className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${isCodDisabled
+                                            ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                                            : selectedPayment === method.id
+                                                ? 'border-primary bg-orange-50'
+                                                : 'border-border-color'
+                                            }`}
+                                    >
+                                        <span className={`material-symbols-outlined text-2xl ${isCodDisabled ? 'text-gray-400' : 'text-primary'}`}>{method.icon}</span>
+                                        <div className="flex-1 text-left">
+                                            <p className={`font-medium ${isCodDisabled ? 'text-gray-400' : ''}`}>{method.name}</p>
+                                            <p className="text-xs text-text-secondary">
+                                                {isCodDisabled
+                                                    ? `Tidak tersedia untuk pesanan di atas Rp ${codMaxAmount.toLocaleString('id-ID')}`
+                                                    : method.description}
+                                            </p>
+                                        </div>
+                                        {selectedPayment === method.id && !isCodDisabled && (
+                                            <span className="material-symbols-outlined text-primary">check_circle</span>
+                                        )}
+                                    </button>
+                                )
+                            })}
                         </div>
                     </div>
                 </div>

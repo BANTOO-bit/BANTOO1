@@ -79,6 +79,17 @@ export default function AdminIssuesPage() {
         }
     }
 
+    const getColorClasses = (color) => {
+        const map = {
+            red: { text: 'text-red-500', bg: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300' },
+            orange: { text: 'text-orange-500', bg: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-300' },
+            purple: { text: 'text-purple-500', bg: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300' },
+            blue: { text: 'text-blue-500', bg: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300' },
+            gray: { text: 'text-gray-500', bg: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
+        }
+        return map[color] || map.gray
+    }
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'Terbuka':
@@ -107,6 +118,7 @@ export default function AdminIssuesPage() {
     const filteredIssues = issues.filter(issue => {
         if (activeTab === 'open' && issue.status === 'Selesai') return false
         if (activeTab === 'closed' && issue.status !== 'Selesai') return false
+        if (filterCategory !== 'Semua Kategori' && issue.type !== filterCategory) return false
         return true
     })
 
@@ -224,14 +236,14 @@ export default function AdminIssuesPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
-                                                <span className={`material-symbols-outlined text-${issue.typeColor}-500 text-[18px]`}>{issue.typeIcon}</span>
+                                                <span className={`material-symbols-outlined ${getColorClasses(issue.typeColor).text} text-[18px]`}>{issue.typeIcon}</span>
                                                 <span className="text-sm text-[#111418] dark:text-white font-medium">{issue.type}</span>
                                             </div>
                                             <p className="text-xs text-[#617589] dark:text-[#94a3b8] mt-1 pl-6 line-clamp-1">{issue.description}</p>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-full bg-${issue.related.color}-100 text-${issue.related.color}-600 dark:bg-${issue.related.color}-900/30 dark:text-${issue.related.color}-300 flex items-center justify-center text-xs font-bold`}>
+                                                <div className={`w-8 h-8 rounded-full ${getColorClasses(issue.related.color).bg} flex items-center justify-center text-xs font-bold`}>
                                                     {issue.related.initials}
                                                 </div>
                                                 <div>

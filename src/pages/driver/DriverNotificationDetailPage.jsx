@@ -148,7 +148,7 @@ function DriverNotificationDetailPage() {
                         </div>
 
                         <div className="mt-auto w-full max-w-sm pt-8 pb-4">
-                            <button className="w-full bg-white border border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors">
+                            <button onClick={() => navigate('/driver/help')} className="w-full bg-white border border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors">
                                 Butuh Bantuan?
                             </button>
                         </div>
@@ -212,7 +212,7 @@ function DriverNotificationDetailPage() {
                     </main>
 
                     <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 p-4 pb-8 z-40">
-                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <button onClick={() => navigate('/driver/help')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             Hubungi Keamanan
                         </button>
                     </div>
@@ -273,7 +273,7 @@ function DriverNotificationDetailPage() {
                         <div className="flex-grow"></div>
 
                         <div className="w-full mt-8 mb-4">
-                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center space-x-2">
+                            <button onClick={() => navigate('/driver/help')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center space-x-2">
                                 <span className="material-symbols-outlined text-[20px]">support_agent</span>
                                 <span>Hubungi Pusat Bantuan</span>
                             </button>
@@ -396,7 +396,10 @@ function DriverNotificationDetailPage() {
                         </div>
 
                         <div className="w-full mt-auto mb-6">
-                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2">
+                            <button
+                                onClick={() => navigate('/driver/deposit', { state: { amount } })}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
+                            >
                                 <span className="material-symbols-outlined">search</span>
                                 Tinjau
                             </button>

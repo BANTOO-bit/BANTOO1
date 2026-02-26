@@ -120,16 +120,16 @@ function DriverPickupOrder() {
 
             // Update order status to picked_up via Driver Service (dengan radius validation jika GPS dapat)
             const { driverService } = await import('../../../services/driverService')
-            // Support both id and dbId
-            const orderId = activeOrder.id
-            await driverService.updateOrderStatus(orderId, 'picked_up', lat, lng)
+            // Support both id and dbId — use dbId (UUID) for API calls
+            const dbOrderId = activeOrder.dbId || activeOrder.id
+            await driverService.updateOrderStatus(dbOrderId, 'picked_up', lat, lng)
 
             // Update context
             setActiveOrder({ ...activeOrder, status: 'picked_up' })
 
             toast.success('Status diupdate: Menuju Customer')
             // Navigate to delivery page
-            navigate(`/driver/order/delivery/${orderId}`)
+            navigate(`/driver/order/delivery/${dbOrderId}`)
         } catch (error) {
             console.error('Error confirming pickup:', error)
             // Error bisa datang dari backend karena reject radius

@@ -6,7 +6,7 @@ import BackButton from '../../../components/shared/BackButton'
 import MerchantBottomNavigation from '../../../components/merchant/MerchantBottomNavigation'
 import { useToast } from '../../../context/ToastContext'
 import { handleError, handleWarning, handleSuccess } from '../../../utils/errorHandler'
-import { validateForm, hasErrors, menuItemSchema } from '../../../utils/validation'
+import { validateForm, hasErrors, menuItemSchema, formatPriceDisplay, parsePriceToNumber } from '../../../utils/validation'
 import { supabase } from '../../../services/supabaseClient'
 
 function MerchantAddMenuPage() {
@@ -65,7 +65,17 @@ function MerchantAddMenuPage() {
         }
     }
 
+    const handlePriceChange = (e) => {
+        const rawValue = e.target.value
+        const formatted = formatPriceDisplay(rawValue)
+        setFormData(prev => ({ ...prev, price: formatted }))
+        if (errors.price) {
+            setErrors(prev => ({ ...prev, price: null }))
+        }
+    }
+
     const handleSubmit = async () => {
+        if (isLoading) return // prevent double submit
         // Validation
         const validationErrors = validateForm(formData, menuItemSchema)
         if (hasErrors(validationErrors)) {
@@ -111,7 +121,7 @@ function MerchantAddMenuPage() {
                     merchant_id: merchant.id,
                     name: formData.name,
                     category: formData.category,
-                    price: parseInt(formData.price),
+                    price: parsePriceToNumber(formData.price),
                     description: formData.description,
                     image_url: finalImage,
                     is_available: true
@@ -301,9 +311,10 @@ function MerchantAddMenuPage() {
                                 className={`w-full pl-10 pr-4 py-3 rounded-xl bg-white dark:bg-card-dark border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm placeholder-gray-400 transition-all dark:text-white ${errors.price ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                                 id="price"
                                 value={formData.price}
-                                onChange={handleChange}
+                                onChange={handlePriceChange}
                                 placeholder="0"
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                             />
                             {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
                         </div>

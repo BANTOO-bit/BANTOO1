@@ -4,7 +4,7 @@ import settingsService from '../../../services/settingsService'
 
 // Default values (fallback if DB is empty)
 const DEFAULTS = {
-    operational: { service_radius_km: 10, open_time: '08:00', close_time: '21:00', cod_balance_limit: 200000 },
+    operational: { service_radius_km: 10, open_time: '08:00', close_time: '21:00', cod_balance_limit: 10000, cod_time_limit_hours: 48, cod_max_order_amount: 500000 },
     financial: { commission_percent: 10, base_delivery_fare: 8000, parking_fee: 2000, cod_admin_fee: 0 },
     bank: { bank_name: 'BCA', account_number: '', account_holder: '' },
     admin_profile: { full_name: '', whatsapp: '', office_address: '', office_lat: -6.2088, office_lng: 106.8456 }
@@ -22,6 +22,11 @@ export default function AdminSettingsPage() {
     const [bank, setBank] = useState(DEFAULTS.bank)
     const [adminProfile, setAdminProfile] = useState(DEFAULTS.admin_profile)
 
+    // Delivery Fee Tiers
+    const [tiersConfig, setTiersConfig] = useState(settingsService.DEFAULT_DELIVERY_FEE_TIERS)
+    const [editingTier, setEditingTier] = useState(null) // index of tier being edited
+    const [simDistance, setSimDistance] = useState('') // simulation distance input
+
     // Load settings from DB on mount
     useEffect(() => {
         async function load() {
@@ -31,6 +36,10 @@ export default function AdminSettingsPage() {
                 if (all.financial) setFinancial({ ...DEFAULTS.financial, ...all.financial })
                 if (all.bank) setBank({ ...DEFAULTS.bank, ...all.bank })
                 if (all.admin_profile) setAdminProfile({ ...DEFAULTS.admin_profile, ...all.admin_profile })
+
+                // Load delivery fee tiers
+                const tiers = await settingsService.getDeliveryFeeTiers()
+                setTiersConfig(tiers)
             } catch (err) {
                 console.error('Failed to load settings:', err)
             } finally {
@@ -65,14 +74,64 @@ export default function AdminSettingsPage() {
         setSaving(true)
         try {
             await settingsService.saveAll({ financial, bank })
-            showToast('Pengaturan keuangan berhasil disimpan')
+            await settingsService.saveDeliveryFeeTiers(tiersConfig)
+            showToast('Pengaturan keuangan & tarif ongkir berhasil disimpan')
         } catch (err) {
             console.error(err)
-            showToast('Gagal menyimpan pengaturan', 'error')
+            showToast(err.message || 'Gagal menyimpan pengaturan', 'error')
         } finally {
             setSaving(false)
         }
     }
+
+    // ============ TIER HANDLERS ============
+    const handleTierChange = (index, field, value) => {
+        setTiersConfig(prev => {
+            const newTiers = [...prev.tiers]
+            newTiers[index] = { ...newTiers[index], [field]: Number(value) || 0 }
+            return { ...prev, tiers: newTiers }
+        })
+    }
+
+    const handleAddTier = () => {
+        setTiersConfig(prev => {
+            const tiers = prev.tiers
+            const lastMax = tiers.length > 0 ? tiers[tiers.length - 1].max_km : 0
+            const newMax = Math.min(lastMax + 2, prev.max_radius_km)
+            if (lastMax >= prev.max_radius_km) {
+                showToast('Tier sudah mencapai batas radius maksimal', 'error')
+                return prev
+            }
+            return {
+                ...prev,
+                tiers: [...tiers, {
+                    min_km: lastMax,
+                    max_km: newMax,
+                    total_fee: (tiers[tiers.length - 1]?.total_fee || 3000) + 2000,
+                    admin_fee: (tiers[tiers.length - 1]?.admin_fee || 500) + 300
+                }]
+            }
+        })
+    }
+
+    const handleDeleteTier = (index) => {
+        if (tiersConfig.tiers.length <= 1) {
+            showToast('Minimal harus ada 1 tier', 'error')
+            return
+        }
+        setTiersConfig(prev => ({
+            ...prev,
+            tiers: prev.tiers.filter((_, i) => i !== index)
+        }))
+        setEditingTier(null)
+    }
+
+    // Simulation result
+    const simResult = simDistance
+        ? settingsService.calculateFeeFromTiers(parseFloat(simDistance), tiersConfig)
+        : null
+
+    const formatCurrency = (val) => `Rp ${(val || 0).toLocaleString('id-ID')}`
 
     // Save handler for account tab
     const saveProfile = async () => {
@@ -199,7 +258,42 @@ export default function AdminSettingsPage() {
                                         </div>
                                         <p className="mt-1.5 text-xs text-[#617589] dark:text-[#94a3b8] flex items-center gap-1">
                                             <span className="material-symbols-outlined text-[14px]">account_balance_wallet</span>
-                                            Driver tidak bisa mengambil order jika saldo tunai melebihi batas ini.
+                                            Driver akan di-suspend otomatis jika fee COD admin melebihi batas ini.
+                                        </p>
+                                    </div>
+
+                                    {/* COD Time Limit */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#111418] dark:text-white mb-1.5">Batas Waktu Setoran COD (jam)</label>
+                                        <input
+                                            className="w-full px-4 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-[#111418] dark:text-white"
+                                            type="number"
+                                            value={operational.cod_time_limit_hours || 48}
+                                            onChange={e => setOperational(p => ({ ...p, cod_time_limit_hours: Number(e.target.value) }))}
+                                        />
+                                        <p className="mt-1.5 text-xs text-[#617589] dark:text-[#94a3b8] flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">schedule</span>
+                                            Driver di-suspend jika belum setor dalam waktu ini sejak order COD pertama.
+                                        </p>
+                                    </div>
+
+                                    {/* COD Max Order Amount */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-[#111418] dark:text-white mb-2">Batas Maks Order COD</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span className="text-gray-500 font-medium text-sm">Rp</span>
+                                            </div>
+                                            <input
+                                                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-[#111418] dark:text-white"
+                                                type="number"
+                                                value={operational.cod_max_order_amount || 500000}
+                                                onChange={e => setOperational(p => ({ ...p, cod_max_order_amount: Number(e.target.value) }))}
+                                            />
+                                        </div>
+                                        <p className="mt-1.5 text-xs text-[#617589] dark:text-[#94a3b8] flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">shopping_cart</span>
+                                            Order di atas jumlah ini tidak bisa menggunakan COD, wajib non-tunai.
                                         </p>
                                     </div>
                                 </div>
@@ -244,17 +338,18 @@ export default function AdminSettingsPage() {
                 {/* ========== FINANCIAL TAB ========== */}
                 {activeTab === 'keuangan' && (
                     <section className="space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                        {/* Financial Parameters */}
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                 <span className="material-symbols-outlined text-green-600 dark:text-green-400">payments</span>
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-[#111418] dark:text-white">Parameter Keuangan</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Atur komisi dan tarif dasar pengiriman</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Atur komisi dan parameter dasar</p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {/* Commission */}
                             <div className="bg-white dark:bg-[#1a2632] p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-colors">
                                 <div className="flex flex-col gap-4">
@@ -263,39 +358,10 @@ export default function AdminSettingsPage() {
                                         <span className="material-symbols-outlined text-gray-400 text-lg">percent</span>
                                     </div>
                                     <div className="relative rounded-md shadow-sm">
-                                        <input
-                                            className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pr-10 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white"
-                                            type="number"
-                                            value={financial.commission_percent}
-                                            onChange={e => setFinancial(p => ({ ...p, commission_percent: Number(e.target.value) }))}
-                                        />
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
-                                            <span className="text-gray-500 font-medium">%</span>
-                                        </div>
+                                        <input className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pr-10 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white" type="number" value={financial.commission_percent} onChange={e => setFinancial(p => ({ ...p, commission_percent: Number(e.target.value) }))} />
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4"><span className="text-gray-500 font-medium">%</span></div>
                                     </div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Potongan dari total order.</p>
-                                </div>
-                            </div>
-
-                            {/* Base fare */}
-                            <div className="bg-white dark:bg-[#1a2632] p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-colors">
-                                <div className="flex flex-col gap-4">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Tarif Dasar Pengantaran</label>
-                                        <span className="material-symbols-outlined text-gray-400 text-lg">local_shipping</span>
-                                    </div>
-                                    <div className="relative rounded-md shadow-sm">
-                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                            <span className="text-gray-500 font-medium">Rp</span>
-                                        </div>
-                                        <input
-                                            className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pl-12 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white"
-                                            type="number"
-                                            value={financial.base_delivery_fare}
-                                            onChange={e => setFinancial(p => ({ ...p, base_delivery_fare: Number(e.target.value) }))}
-                                        />
-                                    </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Harga awal per pengiriman.</p>
                                 </div>
                             </div>
 
@@ -307,15 +373,8 @@ export default function AdminSettingsPage() {
                                         <span className="material-symbols-outlined text-gray-400 text-lg">local_parking</span>
                                     </div>
                                     <div className="relative rounded-md shadow-sm">
-                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                            <span className="text-gray-500 font-medium">Rp</span>
-                                        </div>
-                                        <input
-                                            className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pl-12 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white"
-                                            type="number"
-                                            value={financial.parking_fee}
-                                            onChange={e => setFinancial(p => ({ ...p, parking_fee: Number(e.target.value) }))}
-                                        />
+                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4"><span className="text-gray-500 font-medium">Rp</span></div>
+                                        <input className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pl-12 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white" type="number" value={financial.parking_fee} onChange={e => setFinancial(p => ({ ...p, parking_fee: Number(e.target.value) }))} />
                                     </div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Tambahan biaya parkir driver.</p>
                                 </div>
@@ -329,17 +388,162 @@ export default function AdminSettingsPage() {
                                         <span className="material-symbols-outlined text-gray-400 text-lg">price_check</span>
                                     </div>
                                     <div className="relative rounded-md shadow-sm">
-                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                            <span className="text-gray-500 font-medium">Rp</span>
-                                        </div>
-                                        <input
-                                            className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pl-12 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white"
-                                            type="number"
-                                            value={financial.cod_admin_fee}
-                                            onChange={e => setFinancial(p => ({ ...p, cod_admin_fee: Number(e.target.value) }))}
-                                        />
+                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4"><span className="text-gray-500 font-medium">Rp</span></div>
+                                        <input className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pl-12 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white" type="number" value={financial.cod_admin_fee} onChange={e => setFinancial(p => ({ ...p, cod_admin_fee: Number(e.target.value) }))} />
                                     </div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Potongan biaya admin dari ongkos kirim.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ============ DELIVERY FEE TIERS ============ */}
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                                        <span className="material-symbols-outlined text-orange-600 dark:text-orange-400">delivery_dining</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-[#111418] dark:text-white">Tarif Ongkos Kirim</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Ongkir bertingkat berdasarkan jarak (km)</p>
+                                    </div>
+                                </div>
+                                {/* Max Radius */}
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs font-medium text-gray-500">Radius Maks:</label>
+                                    <div className="relative w-20">
+                                        <input className="w-full px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm font-bold text-center text-gray-900 dark:text-white focus:border-primary outline-none" type="number" min="1" max="50" value={tiersConfig.max_radius_km} onChange={e => setTiersConfig(prev => ({ ...prev, max_radius_km: Number(e.target.value) || 15 }))} />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">km</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Tier Table */}
+                                <div className="lg:col-span-2 bg-white dark:bg-[#1a2632] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="bg-gray-50 dark:bg-gray-800/50">
+                                                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Jarak</th>
+                                                    <th className="px-4 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Ongkir</th>
+                                                    <th className="px-4 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Admin Fee</th>
+                                                    <th className="px-4 py-3 text-right text-[11px] font-semibold text-green-600 uppercase tracking-wider">Driver Net</th>
+                                                    <th className="px-4 py-3 w-10"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                                {tiersConfig.tiers.map((tier, index) => (
+                                                    <tr key={index} className={`group hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors ${editingTier === index ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
+                                                        <td className="px-4 py-3">
+                                                            {editingTier === index ? (
+                                                                <div className="flex items-center gap-1">
+                                                                    <input className="w-12 px-1 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs text-center font-mono text-gray-900 dark:text-white" type="number" step="0.5" value={tier.min_km} onChange={e => handleTierChange(index, 'min_km', e.target.value)} />
+                                                                    <span className="text-gray-400 text-xs">–</span>
+                                                                    <input className="w-12 px-1 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs text-center font-mono text-gray-900 dark:text-white" type="number" step="0.5" value={tier.max_km} onChange={e => handleTierChange(index, 'max_km', e.target.value)} />
+                                                                    <span className="text-gray-400 text-[10px]">km</span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer" onClick={() => setEditingTier(index)}>{tier.min_km} – {tier.max_km} km</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            {editingTier === index ? (
+                                                                <input className="w-24 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs text-right font-mono text-gray-900 dark:text-white" type="number" step="500" value={tier.total_fee} onChange={e => handleTierChange(index, 'total_fee', e.target.value)} />
+                                                            ) : (
+                                                                <span className="text-sm font-semibold text-gray-900 dark:text-white cursor-pointer" onClick={() => setEditingTier(index)}>{formatCurrency(tier.total_fee)}</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            {editingTier === index ? (
+                                                                <input className="w-20 px-2 py-1 rounded border border-orange-300 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20 text-xs text-right font-mono text-orange-700 dark:text-orange-300" type="number" step="100" value={tier.admin_fee} onChange={e => handleTierChange(index, 'admin_fee', e.target.value)} />
+                                                            ) : (
+                                                                <span className="text-sm text-orange-600 dark:text-orange-400 font-medium cursor-pointer" onClick={() => setEditingTier(index)}>{formatCurrency(tier.admin_fee)}</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <span className="text-sm font-bold text-green-600 dark:text-green-400">{formatCurrency(tier.total_fee - tier.admin_fee)}</span>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                {editingTier === index ? (
+                                                                    <button onClick={() => setEditingTier(null)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors">
+                                                                        <span className="material-symbols-outlined text-sm">check</span>
+                                                                    </button>
+                                                                ) : (
+                                                                    <button onClick={() => setEditingTier(index)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
+                                                                        <span className="material-symbols-outlined text-sm">edit</span>
+                                                                    </button>
+                                                                )}
+                                                                <button onClick={() => handleDeleteTier(index)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors">
+                                                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {/* Out of range row */}
+                                                <tr className="bg-red-50/50 dark:bg-red-900/10">
+                                                    <td className="px-4 py-3"><span className="text-sm text-red-500 font-medium">&gt; {tiersConfig.max_radius_km} km</span></td>
+                                                    <td colSpan="3" className="px-4 py-3 text-center"><span className="text-xs text-red-500 font-medium flex items-center justify-center gap-1"><span className="material-symbols-outlined text-sm">block</span>Order ditolak (di luar jangkauan)</span></td>
+                                                    <td></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {/* Add tier button */}
+                                    <div className="p-3 border-t border-gray-100 dark:border-gray-700">
+                                        <button onClick={handleAddTier} className="w-full py-2.5 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2">
+                                            <span className="material-symbols-outlined text-lg">add</span>Tambah Tier
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Simulation Card */}
+                                <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="material-symbols-outlined text-primary">calculate</span>
+                                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">Simulasi Ongkir</h4>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mb-4">Masukkan jarak untuk melihat kalkulasi ongkir.</p>
+                                    <div className="relative mb-4">
+                                        <input className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none text-lg font-bold text-center text-gray-900 dark:text-white" type="number" step="0.1" min="0" max="50" placeholder="0" value={simDistance} onChange={e => setSimDistance(e.target.value)} />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">km</span>
+                                    </div>
+                                    {simResult && (
+                                        <div className={`rounded-xl p-4 space-y-3 ${simResult.outOfRange ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'}`}>
+                                            {simResult.outOfRange ? (
+                                                <div className="text-center">
+                                                    <span className="material-symbols-outlined text-red-500 text-3xl">location_off</span>
+                                                    <p className="text-sm font-bold text-red-600 mt-1">Di luar jangkauan</p>
+                                                    <p className="text-xs text-red-500">Maks {tiersConfig.max_radius_km} km</p>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="text-center">
+                                                        <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Tier: {simResult.tierLabel}</p>
+                                                        <p className="text-2xl font-black text-gray-900 dark:text-white">{formatCurrency(simResult.totalFee)}</p>
+                                                    </div>
+                                                    <div className="border-t border-green-200 dark:border-green-700 pt-3 space-y-2">
+                                                        <div className="flex justify-between text-xs">
+                                                            <span className="text-gray-500">Admin Fee</span>
+                                                            <span className="font-semibold text-orange-600">{formatCurrency(simResult.adminFee)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-xs">
+                                                            <span className="text-gray-500">Pendapatan Driver</span>
+                                                            <span className="font-bold text-green-600">{formatCurrency(simResult.driverNet)}</span>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                    {!simResult && (
+                                        <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
+                                            <span className="material-symbols-outlined text-gray-300 text-4xl mb-2">straighten</span>
+                                            <p className="text-xs text-gray-400">Masukkan jarak di atas</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

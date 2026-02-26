@@ -30,7 +30,8 @@ export function useNotification() {
 }
 
 export function NotificationsProvider({ children }) {
-    const { user, activeRole } = useAuth()
+    const { user } = useAuth()
+    const activeRole = user?.activeRole
 
     // ===== Persistent Notifications State =====
     const [allNotifications, setAllNotifications] = useState([])
@@ -263,7 +264,9 @@ function getIconForType(type) {
         success: 'check_circle',
         warning: 'warning',
         alert: 'gpp_bad',
-        security: 'security'
+        security: 'security',
+        cod_fee: 'payments',
+        payment: 'account_balance_wallet'
     }
     return icons[type] || 'notifications'
 }
@@ -279,7 +282,9 @@ function getColorForType(type) {
         success: 'green',
         warning: 'orange',
         alert: 'red',
-        security: 'red'
+        security: 'red',
+        cod_fee: 'amber',
+        payment: 'green'
     }
     return colors[type] || 'gray'
 }

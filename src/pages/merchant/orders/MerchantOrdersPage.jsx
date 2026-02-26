@@ -264,12 +264,15 @@ function MerchantOrdersPage() {
         setActionLoading(true)
 
         try {
-            // Update order status â€” set to 'preparing' so customer sees "Sedang Dimasak"
+            // Update order status — set to 'preparing' so customer sees "Sedang Dimasak"
             await orderService.updateStatus(selectedOrder.dbId, 'preparing', { prep_time: prepTime })
 
             // Refresh orders
             setOrders(orders.filter(o => o.id !== selectedOrder.id))
+            // Save selectedOrder ref before closeModal clears it
+            const acceptedOrder = selectedOrder
             closeModal()
+            setSelectedOrder(acceptedOrder) // Restore for success screen display
             setShowSuccess(true)
 
             // Auto-hide success message

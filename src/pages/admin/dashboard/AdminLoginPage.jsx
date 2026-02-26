@@ -151,22 +151,6 @@ export default function AdminLoginPage() {
                             )}
                         </button>
                     </form>
-
-                    {/* Divider */}
-                    <div className="flex items-center gap-3 my-6">
-                        <div className="flex-1 h-px bg-[#2a3b4d]"></div>
-                        <span className="text-xs text-[#617589]">atau</span>
-                        <div className="flex-1 h-px bg-[#2a3b4d]"></div>
-                    </div>
-
-                    {/* Create Admin Link */}
-                    <Link
-                        to="/create-admin-secret"
-                        className="w-full h-12 border border-[#2a3b4d] text-[#94a3b8] hover:text-white hover:border-[#3a4b5d] font-medium rounded-xl transition-all flex items-center justify-center gap-2"
-                    >
-                        <span className="material-symbols-outlined text-[20px]">person_add</span>
-                        Buat Akun Admin Baru
-                    </Link>
                 </div>
 
                 {/* Footer */}

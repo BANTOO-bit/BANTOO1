@@ -22,8 +22,9 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
 
     // Check if account is suspended — admin is NEVER redirected to suspended page
     if (!isAdmin && (user?.status === 'suspended' || user?.merchantStatus === 'suspended' || user?.driverStatus === 'suspended')) {
-        // Allow access to the suspended page and logout flow
-        if (location.pathname !== '/account-suspended') {
+        // Allow access to suspended page, deposit flow, and logout
+        const allowedSuspendPaths = ['/account-suspended', '/driver/deposit', '/driver/deposit/verification']
+        if (!allowedSuspendPaths.some(p => location.pathname.startsWith(p))) {
             return <Navigate to="/account-suspended" replace />
         }
     }

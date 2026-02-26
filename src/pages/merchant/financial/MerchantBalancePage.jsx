@@ -143,7 +143,10 @@ function MerchantBalancePage() {
                         <section>
                             <div className="flex items-center justify-between mb-3 px-1">
                                 <h3 className="text-base font-bold text-text-main dark:text-white">Penghasilan Minggu Ini</h3>
-                                <button className="text-xs font-medium text-primary flex items-center">
+                                <button
+                                    onClick={() => navigate('/merchant/sales-report')}
+                                    className="text-xs font-medium text-primary flex items-center"
+                                >
                                     Lihat Detail <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                                 </button>
                             </div>

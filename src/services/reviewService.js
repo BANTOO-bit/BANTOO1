@@ -7,7 +7,7 @@ export const reviewService = {
     /**
      * Create a review for completed order
      */
-    async createReview({ orderId, merchantRating, driverRating, comment }) {
+    async createReview({ orderId, merchantRating, driverRating, comment, tags }) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
@@ -20,19 +20,26 @@ export const reviewService = {
             .single()
 
         if (orderError) throw orderError
-        if (order.status !== 'completed') throw new Error('Can only review completed orders')
+        if (!['delivered', 'completed'].includes(order.status)) throw new Error('Can only review delivered or completed orders')
+
+        const reviewData = {
+            order_id: orderId,
+            customer_id: user.id,
+            merchant_id: order.merchant_id,
+            driver_id: order.driver_id,
+            merchant_rating: merchantRating,
+            driver_rating: driverRating,
+            comment
+        }
+
+        // Add tags if the column exists in the schema
+        if (tags && tags.length > 0) {
+            reviewData.tags = tags
+        }
 
         const { data, error } = await supabase
             .from('reviews')
-            .insert({
-                order_id: orderId,
-                customer_id: user.id,
-                merchant_id: order.merchant_id,
-                driver_id: order.driver_id,
-                merchant_rating: merchantRating,
-                driver_rating: driverRating,
-                comment
-            })
+            .insert(reviewData)
             .select()
             .single()
 
@@ -86,7 +93,7 @@ export const reviewService = {
             .from('reviews')
             .update({
                 merchant_reply: reply,
-                replied_at: new Date().toISOString()
+                replied_at: new Date().toISOString() // Note: ideally server-side, but RLS prevents RPC for this
             })
             .eq('id', reviewId)
             .select()

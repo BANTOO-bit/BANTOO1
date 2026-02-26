@@ -137,8 +137,8 @@ export function PartnerRegistrationProvider({ children }) {
                 address: finalData.step1.address || null,
                 phone: finalData.step1.phoneNumber || null,
                 bank_name: finalData.step3.bankName || null,
-                bank_account_name: finalData.step3.accountName || null,
-                bank_account_number: finalData.step3.accountNumber || null,
+                bank_account_name: finalData.step3.bankAccountName || null,
+                bank_account_number: finalData.step3.bankAccountNumber || null,
                 status: 'pending'
             })
 
@@ -195,8 +195,8 @@ export function PartnerRegistrationProvider({ children }) {
                 image_url: shopPhotoUrl,
                 ktp_url: idCardUrl,
                 bank_name: finalData.step2.bankName || null,
-                bank_account_name: finalData.step2.accountName || null,
-                bank_account_number: finalData.step2.accountNumber || null,
+                bank_account_name: finalData.step2.bankAccountName || null,
+                bank_account_number: finalData.step2.bankAccountNumber || null,
                 status: 'pending'
             }
 

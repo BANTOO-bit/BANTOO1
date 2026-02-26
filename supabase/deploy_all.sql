@@ -1895,10 +1895,141 @@ CREATE INDEX IF NOT EXISTS idx_drivers_user_id ON public.drivers(user_id);
 CREATE INDEX IF NOT EXISTS idx_drivers_active ON public.drivers(is_active) WHERE is_active = true;
 
 -- ==========================================
+-- 10. COD SYSTEM (Migration 2026-02-25)
+-- ==========================================
+-- See individual migration files for full details:
+--   cod_backend_architecture.sql
+--   cod_auto_unsuspend_and_notifications.sql
+--   security_constraints.sql
+--   cod_business_features.sql
+--   performance_indexes.sql
+--   wallet_security.sql
+--
+-- IMPORTANT: Run these migration files SEPARATELY in order
+-- after running this base deploy script.
+-- ==========================================
+
+-- COD Ledger Table
+CREATE TABLE IF NOT EXISTS public.cod_ledger (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    driver_id UUID REFERENCES public.profiles(id),
+    order_id UUID REFERENCES public.orders(id),
+    type TEXT CHECK (type IN ('fee_accrued', 'deposit', 'adjustment')),
+    amount INTEGER NOT NULL CHECK (amount > 0 AND amount <= 10000000),
+    balance_after INTEGER DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Deposits Table
+CREATE TABLE IF NOT EXISTS public.deposits (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id),
+    amount INTEGER NOT NULL CHECK (amount >= 1000 AND amount <= 10000000),
+    payment_method TEXT DEFAULT 'transfer',
+    bank_name TEXT,
+    proof_url TEXT,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewed_by UUID REFERENCES public.profiles(id),
+    reviewed_at TIMESTAMPTZ,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- App Settings Table
+CREATE TABLE IF NOT EXISTS public.app_settings (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS on new tables
+ALTER TABLE cod_ledger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deposits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+
+-- COD Ledger Policies
+DROP POLICY IF EXISTS "Users view own cod_ledger" ON cod_ledger;
+CREATE POLICY "Users view own cod_ledger" ON cod_ledger FOR SELECT USING (
+    auth.uid() = driver_id OR
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- Deposits Policies
+DROP POLICY IF EXISTS "Users view own deposits" ON deposits;
+CREATE POLICY "Users view own deposits" ON deposits FOR SELECT USING (
+    auth.uid() = user_id OR
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Users create deposits" ON deposits;
+CREATE POLICY "Users create deposits" ON deposits FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin update deposits" ON deposits;
+CREATE POLICY "Admin update deposits" ON deposits FOR UPDATE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- App Settings Policies
+DROP POLICY IF EXISTS "Everyone can read settings" ON app_settings;
+CREATE POLICY "Everyone can read settings" ON app_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admin manage settings" ON app_settings;
+CREATE POLICY "Admin manage settings" ON app_settings FOR ALL USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 11. SECURITY CONSTRAINTS (Migration 2026-02-25)
+-- ==========================================
+
+-- Withdrawal amount range
+DO $$
+BEGIN
+    ALTER TABLE withdrawals DROP CONSTRAINT IF EXISTS chk_withdrawal_amount_range;
+    ALTER TABLE withdrawals ADD CONSTRAINT chk_withdrawal_amount_range
+        CHECK (amount >= 10000 AND amount <= 10000000);
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Could not add withdrawal constraint: %', SQLERRM;
+END;
+$$;
+
+-- Wallet balance non-negative
+DO $$
+BEGIN
+    ALTER TABLE wallets DROP CONSTRAINT IF EXISTS chk_wallet_balance_non_negative;
+    ALTER TABLE wallets ADD CONSTRAINT chk_wallet_balance_non_negative
+        CHECK (balance >= 0);
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Could not add wallet balance constraint: %', SQLERRM;
+END;
+$$;
+
+-- ==========================================
+-- 12. PERFORMANCE INDEXES (Migration 2026-02-25)
+-- ==========================================
+
+CREATE INDEX IF NOT EXISTS idx_cod_ledger_driver_type ON cod_ledger (driver_id, type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cod_ledger_driver_created ON cod_ledger (driver_id, created_at) WHERE type = 'fee_accrued';
+CREATE INDEX IF NOT EXISTS idx_deposits_status_created ON deposits (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_deposits_user_created ON deposits (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications (user_id, created_at DESC) WHERE is_read = FALSE;
+CREATE INDEX IF NOT EXISTS idx_notifications_user_type ON notifications (user_id, type) WHERE type IN ('cod_fee', 'system');
+CREATE INDEX IF NOT EXISTS idx_orders_payment_method ON orders (payment_method, status) WHERE payment_method = 'cod';
+CREATE INDEX IF NOT EXISTS idx_drivers_status ON drivers (status) WHERE status = 'suspended';
+
+-- Realtime for new tables
+ALTER PUBLICATION supabase_realtime ADD TABLE cod_ledger;
+ALTER PUBLICATION supabase_realtime ADD TABLE deposits;
+
+-- ==========================================
 -- DEPLOYMENT COMPLETE!
 -- ==========================================
 -- 
 -- Next steps:
 -- 1. Set admin user: Run supabase/seeds/set_admin.sql
--- 2. Verify: Check Tables, Functions, and Policies in Supabase Dashboard
+-- 2. Run COD migrations: cod_backend_architecture.sql (for triggers/RPCs)
+-- 3. Run COD features: cod_business_features.sql (for admin dashboard RPCs)
+-- 4. Verify: Check Tables, Functions, and Policies in Supabase Dashboard
 -- ==========================================
+

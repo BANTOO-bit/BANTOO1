@@ -21,53 +21,56 @@ function MerchantOrderHistoryPage() {
     ]
 
     useEffect(() => {
-        if (user?.merchantId) {
-            fetchOrders()
-        }
-    }, [user?.merchantId, selectedPeriod, searchQuery])
+        if (!user?.merchantId) return
 
-    const fetchOrders = async () => {
-        setIsLoading(true)
-        try {
-            const now = new Date()
-            let startDate = null
+        const timer = setTimeout(() => {
+            const fetchOrders = async () => {
+                setIsLoading(true)
+                try {
+                    const now = new Date()
+                    let startDate = null
 
-            if (selectedPeriod === 'today') {
-                startDate = new Date()
-                startDate.setHours(0, 0, 0, 0)
-            } else if (selectedPeriod === '7days') {
-                startDate = new Date()
-                startDate.setDate(now.getDate() - 7)
-                startDate.setHours(0, 0, 0, 0)
-            } else if (selectedPeriod === '30days') {
-                startDate = new Date()
-                startDate.setDate(now.getDate() - 30)
-                startDate.setHours(0, 0, 0, 0)
+                    if (selectedPeriod === 'today') {
+                        startDate = new Date()
+                        startDate.setHours(0, 0, 0, 0)
+                    } else if (selectedPeriod === '7days') {
+                        startDate = new Date()
+                        startDate.setDate(now.getDate() - 7)
+                        startDate.setHours(0, 0, 0, 0)
+                    } else if (selectedPeriod === '30days') {
+                        startDate = new Date()
+                        startDate.setDate(now.getDate() - 30)
+                        startDate.setHours(0, 0, 0, 0)
+                    }
+
+                    const data = await orderService.getMerchantOrderHistory(user.merchantId, {
+                        startDate,
+                        endDate: now,
+                        search: searchQuery
+                    })
+
+                    // Transform data to UI format
+                    const formattedOrders = data.map(order => ({
+                        id: order.id,
+                        date: new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                        status: order.status,
+                        customerName: order.customer?.full_name || 'Pelanggan',
+                        items: order.items?.map(i => `${i.quantity}x ${i.product_name}`).join(', ') || '',
+                        earnings: order.subtotal // Assuming subtotal is what merchant earns (approximation)
+                    }))
+
+                    setOrders(formattedOrders)
+                } catch (error) {
+                    if (import.meta.env.DEV) console.error('Failed to fetch order history:', error)
+                } finally {
+                    setIsLoading(false)
+                }
             }
+            fetchOrders()
+        }, searchQuery ? 300 : 0) // debounce only on search changes
 
-            const data = await orderService.getMerchantOrderHistory(user.merchantId, {
-                startDate,
-                endDate: now,
-                search: searchQuery
-            })
-
-            // Transform data to UI format
-            const formattedOrders = data.map(order => ({
-                id: order.id,
-                date: new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
-                status: order.status,
-                customerName: order.customer?.full_name || 'Pelanggan',
-                items: order.items?.map(i => `${i.quantity}x ${i.product_name}`).join(', ') || '',
-                earnings: order.subtotal // Assuming subtotal is what merchant earns (approximation)
-            }))
-
-            setOrders(formattedOrders)
-        } catch (error) {
-            if (import.meta.env.DEV) console.error('Failed to fetch order history:', error)
-        } finally {
-            setIsLoading(false)
-        }
-    }
+        return () => clearTimeout(timer)
+    }, [user?.merchantId, selectedPeriod, searchQuery])
 
     const getStatusBadge = (status) => {
         if (status === 'completed') {

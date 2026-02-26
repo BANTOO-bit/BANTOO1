@@ -6,6 +6,7 @@ import { useToast } from '../../../context/ToastContext'
 import { handleError } from '../../../utils/errorHandler'
 import { formatId } from '../../../utils/formatters'
 import PhotoPickerModal from '../../../components/shared/PhotoPickerModal'
+import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
 import orderService from '../../../services/orderService'
 
 function DriverPaymentConfirmation() {
@@ -14,15 +15,6 @@ function DriverPaymentConfirmation() {
     const { user } = useAuth()
     const { activeOrder, setActiveOrder, orders } = useOrder()
     const toast = useToast()
-
-    // Protected route: redirect if no active order
-    useEffect(() => {
-        if (!activeOrder) {
-            navigate('/driver/dashboard')
-        }
-    }, [activeOrder, navigate])
-
-    if (!activeOrder) return null
 
     const [checks, setChecks] = useState({
         moneyReceived: false,
@@ -34,6 +26,15 @@ function DriverPaymentConfirmation() {
     const [isConfirming, setIsConfirming] = useState(false)
     const fileInputRef = useRef(null)
     const cameraInputRef = useRef(null)
+
+    // Protected route: redirect if no active order
+    useEffect(() => {
+        if (!activeOrder) {
+            navigate('/driver/dashboard')
+        }
+    }, [activeOrder, navigate])
+
+    if (!activeOrder) return null
 
     const handleCheck = (e) => {
         const { name, checked } = e.target
@@ -51,7 +52,7 @@ function DriverPaymentConfirmation() {
             // Confirm COD payment & Complete Order via Driver Service
             // The RPC 'completed' status sets payment_status='paid' and delivered_at=NOW()
             const { driverService } = await import('../../../services/driverService')
-            await driverService.updateOrderStatus(activeOrder.dbId, 'completed')
+            await driverService.updateOrderStatus(activeOrder.dbId || activeOrder.id, 'completed')
 
             // Update context
             setActiveOrder({ ...activeOrder, status: 'completed', proofPhoto: photo })
@@ -120,8 +121,8 @@ function DriverPaymentConfirmation() {
                         <span className="material-symbols-outlined text-[20px]">person</span>
                     </div>
                     <div>
-                        <h2 className="text-sm font-bold text-slate-900">{activeOrder.customerName}</h2>
-                        <p className="text-xs text-slate-500 truncate max-w-[200px]">{activeOrder.customerAddress}</p>
+                        <h2 className="text-sm font-bold text-slate-900">{activeOrder.customerName || activeOrder.customer?.full_name || 'Pelanggan'}</h2>
+                        <p className="text-xs text-slate-500 truncate max-w-[200px]">{activeOrder.customerAddress || activeOrder.delivery_address || ''}</p>
                     </div>
                 </div>
 
@@ -132,7 +133,7 @@ function DriverPaymentConfirmation() {
                     </div>
                     <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1 relative z-10">Total COD</p>
                     <h3 className="text-4xl font-extrabold text-slate-900 mb-1 relative z-10">
-                        <span className="text-xl font-bold text-slate-500 align-top mr-1">Rp</span>{activeOrder.totalAmount.toLocaleString('id-ID')}
+                        <span className="text-xl font-bold text-slate-500 align-top mr-1">Rp</span>{(activeOrder.totalAmount || activeOrder.total_amount || 0).toLocaleString('id-ID')}
                     </h3>
                     <p className="text-[10px] text-red-600/80 mt-1 font-medium relative z-10 bg-red-100 inline-block px-2 py-0.5 rounded-full">
                         Wajib Terima Tunai
@@ -156,7 +157,7 @@ function DriverPaymentConfirmation() {
                             />
                             <div className="flex flex-col">
                                 <span className="font-bold text-slate-800 text-base group-hover:text-green-700">Uang diterima sesuai nominal</span>
-                                <span className="text-xs text-slate-500">Pastikan jumlah uang pas Rp {activeOrder.totalAmount.toLocaleString('id-ID')}</span>
+                                <span className="text-xs text-slate-500">Pastikan jumlah uang pas Rp {(activeOrder.totalAmount || activeOrder.total_amount || 0).toLocaleString('id-ID')}</span>
                             </div>
                         </label>
                         <label className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-green-500 transition-colors group">

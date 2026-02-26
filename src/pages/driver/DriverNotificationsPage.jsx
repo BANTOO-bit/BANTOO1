@@ -29,10 +29,14 @@ function DriverNotificationsPage() {
         }
     }
 
-    const handleMarkAllRead = () => {
+    const handleMarkAllRead = async () => {
         setNotifications(prev => prev.map(n => ({ ...n, isUnread: false })))
         setAllRead(true)
-        // In a real app, you would also update the read status in the backend here
+        try {
+            await driverService.markAllNotificationsRead(user.id)
+        } catch (error) {
+            if (import.meta.env.DEV) console.error('Failed to mark notifications as read:', error)
+        }
     }
 
     const getNotificationStyles = (type, isUnread) => {
@@ -68,6 +72,17 @@ function DriverNotificationsPage() {
                 titleColor: 'text-gray-900 dark:text-white',
                 dotColor: 'bg-orange-600',
                 timeColor: 'text-gray-400 dark:text-gray-500'
+            }
+        } else if (type === 'cod_fee') {
+            return {
+                container: isUnread
+                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/50'
+                    : 'bg-white dark:bg-gray-800 border-transparent dark:border-gray-700',
+                iconBg: 'bg-amber-100 dark:bg-amber-900/40',
+                iconColor: 'text-amber-600',
+                titleColor: 'text-amber-700 dark:text-amber-400',
+                dotColor: 'bg-amber-600',
+                timeColor: 'text-amber-500/80 dark:text-amber-400/60'
             }
         } else {
             return {
@@ -136,9 +151,11 @@ function DriverNotificationsPage() {
                                         onClick={() => {
                                             if (notification.type === 'order' && notification.orderId) {
                                                 navigate(`/driver/order/incoming/${notification.orderId}`)
+                                            } else if (notification.type === 'cod_fee' || notification.type === 'system') {
+                                                navigate('/driver/deposit')
                                             }
                                         }}
-                                        className={`relative p-4 rounded-xl border transition-all duration-200 ${styles.container} ${notification.type === 'order' ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                                        className={`relative p-4 rounded-xl border transition-all duration-200 ${styles.container} ${(notification.type === 'order' || notification.type === 'cod_fee' || notification.type === 'system') ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                                     >
                                         <div className="flex gap-3">
                                             {/* Icon */}

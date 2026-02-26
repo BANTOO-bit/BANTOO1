@@ -287,11 +287,51 @@ export const profileSchema = {
 }
 
 /**
+ * Clean price string: strip dots, commas, spaces → pure digit string
+ * "13.000" → "13000", "13,000" → "13000", "Rp 13.000" → "13000"
+ */
+export const cleanPriceValue = (value) => {
+    if (!value) return ''
+    return String(value).replace(/[^0-9]/g, '')
+}
+
+/**
+ * Format price for display with Indonesian thousands separator (dot)
+ * "13000" → "13.000", "" → ""
+ */
+export const formatPriceDisplay = (value) => {
+    const digits = cleanPriceValue(value)
+    if (!digits) return ''
+    return Number(digits).toLocaleString('id-ID')
+}
+
+/**
+ * Parse price string to integer for storage
+ * "13.000" → 13000, "13,000" → 13000
+ */
+export const parsePriceToNumber = (value) => {
+    const digits = cleanPriceValue(value)
+    return parseInt(digits, 10) || 0
+}
+
+/**
  * Menu item validation schema
  */
 export const menuItemSchema = {
     name: [required('Nama menu wajib diisi'), minLength(3)],
-    price: [required('Harga wajib diisi'), numeric(), min(0, 'Harga tidak boleh negatif')],
+    price: [
+        required('Harga wajib diisi'),
+        (value) => {
+            const clean = cleanPriceValue(value)
+            if (!clean || isNaN(Number(clean))) return 'Harus berupa angka'
+            return null
+        },
+        (value) => {
+            const num = parsePriceToNumber(value)
+            if (num < 1000) return 'Harga minimal Rp 1.000'
+            return null
+        },
+    ],
     description: [maxLength(200, 'Deskripsi maksimal 200 karakter')],
     category: [required('Kategori wajib dipilih')],
 }

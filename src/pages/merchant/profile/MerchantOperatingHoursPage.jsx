@@ -73,6 +73,30 @@ function MerchantOperatingHoursPage() {
         }))
     }
 
+    const handleTimeChange = (dayId, field, value) => {
+        setSchedule(prev => ({
+            ...prev,
+            [dayId]: { ...prev[dayId], [field]: value }
+        }))
+    }
+
+    const handleApplyToAll = () => {
+        const firstOpenDay = days.find(d => schedule[d.id]?.isOpen)
+        if (!firstOpenDay) {
+            toast.error('Tidak ada hari yang dibuka')
+            return
+        }
+        const sourceSchedule = schedule[firstOpenDay.id]
+        setSchedule(prev => {
+            const updated = { ...prev }
+            days.forEach(d => {
+                updated[d.id] = { ...updated[d.id], open: sourceSchedule.open, close: sourceSchedule.close }
+            })
+            return updated
+        })
+        toast.success(`Jam ${sourceSchedule.open} - ${sourceSchedule.close} diterapkan ke semua hari`)
+    }
+
     const handleSave = async () => {
         setIsSaving(true)
         try {
@@ -119,16 +143,21 @@ function MerchantOperatingHoursPage() {
                 <section className="flex flex-col gap-4">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-base font-bold text-text-main dark:text-white">Jadwal Mingguan</h3>
-                        <button className="text-sm font-medium text-primary hover:text-primary-dark transition-colors">Terapkan ke semua hari</button>
+                        <button
+                            onClick={handleApplyToAll}
+                            className="text-sm font-medium text-primary hover:text-primary-dark transition-colors"
+                        >Terapkan ke semua hari</button>
                     </div>
 
                     <div className="flex flex-col gap-3">
                         {days.map(day => (
                             <OperatingDayCard
                                 key={day.id}
+                                dayId={day.id}
                                 label={day.label}
                                 data={schedule[day.id]}
                                 onToggle={() => handleToggle(day.id)}
+                                onTimeChange={(field, value) => handleTimeChange(day.id, field, value)}
                             />
                         ))}
                     </div>
@@ -152,8 +181,7 @@ function MerchantOperatingHoursPage() {
     )
 }
 
-function OperatingDayCard({ label, data, onToggle }) {
-    const dayId = label.toLowerCase();
+function OperatingDayCard({ dayId, label, data, onToggle, onTimeChange }) {
 
     return (
         <article className="bg-card-light dark:bg-card-dark p-4 rounded-2xl shadow-soft border border-border-color dark:border-gray-700 transition-colors">
@@ -178,16 +206,24 @@ function OperatingDayCard({ label, data, onToggle }) {
                     <div className="flex-1 relative">
                         <label className="absolute -top-2 left-2 px-1 bg-card-light dark:bg-card-dark text-[10px] font-semibold text-text-secondary">Jam Buka</label>
                         <div className="flex items-center bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5">
-                            <span className="text-sm font-medium text-text-main dark:text-white flex-1">{data.open}</span>
-                            <span className="material-symbols-outlined text-gray-400 text-[18px]">schedule</span>
+                            <input
+                                type="time"
+                                value={data.open}
+                                onChange={(e) => onTimeChange('open', e.target.value)}
+                                className="text-sm font-medium text-text-main dark:text-white flex-1 bg-transparent outline-none [&::-webkit-calendar-picker-indicator]:dark:invert"
+                            />
                         </div>
                     </div>
                     <span className="text-gray-400">-</span>
                     <div className="flex-1 relative">
                         <label className="absolute -top-2 left-2 px-1 bg-card-light dark:bg-card-dark text-[10px] font-semibold text-text-secondary">Jam Tutup</label>
                         <div className="flex items-center bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5">
-                            <span className="text-sm font-medium text-text-main dark:text-white flex-1">{data.close}</span>
-                            <span className="material-symbols-outlined text-gray-400 text-[18px]">schedule</span>
+                            <input
+                                type="time"
+                                value={data.close}
+                                onChange={(e) => onTimeChange('close', e.target.value)}
+                                className="text-sm font-medium text-text-main dark:text-white flex-1 bg-transparent outline-none [&::-webkit-calendar-picker-indicator]:dark:invert"
+                            />
                         </div>
                     </div>
                 </div>

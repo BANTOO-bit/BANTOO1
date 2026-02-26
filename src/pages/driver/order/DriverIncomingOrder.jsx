@@ -116,7 +116,10 @@ function DriverIncomingOrder() {
                 customerName: availableOrder.customer?.full_name || 'Customer',
                 customerAddress: availableOrder.delivery_address || '',
                 totalAmount: availableOrder.total_amount,
+                delivery_fee: availableOrder.delivery_fee || 0,
+                service_fee: availableOrder.service_fee || 0,
                 paymentMethod: availableOrder.payment_method === 'cod' ? 'COD' : availableOrder.payment_method.toUpperCase(),
+                payment_method: availableOrder.payment_method, // raw value for COD checks
                 status: 'pickup', // Update to pickup immediately
                 items: availableOrder.items?.map(item => ({
                     name: item.product_name,
@@ -128,12 +131,19 @@ function DriverIncomingOrder() {
                     toMerchant: distToMerchant,
                     toCustomer: distToCustomer
                 },
-                customerNote: availableOrder.notes || ''
+                customerNote: availableOrder.notes || '',
+                // Include location data for downstream pages
+                merchant: availableOrder.merchant,
+                customer: availableOrder.customer,
+                customer_lat: availableOrder.customer_lat,
+                customer_lng: availableOrder.customer_lng,
+                delivery_address: availableOrder.delivery_address,
+                notes: availableOrder.notes
             })
 
             toast.success('Order berhasil diterima!')
             // Navigate to pickup page
-            navigate('/driver/order/pickup')
+            navigate(`/driver/order/pickup/${availableOrder.id}`)
         } catch (error) {
             console.error('Error accepting order:', error)
             handleError(error, toast, { context: 'Accept Order' })
@@ -185,16 +195,14 @@ function DriverIncomingOrder() {
         <div className="font-display bg-background-light text-slate-900 antialiased min-h-screen relative flex flex-col overflow-x-hidden max-w-md mx-auto bg-white shadow-none sm:shadow-2xl">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 transition-colors duration-300">
-                <div className="flex items-center p-4 pb-3 justify-between">
+                <div className="flex items-center p-4 pb-3 justify-between h-[72px]">
                     <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-[#0d59f2]/20" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBbrWfUKf0v3ygsHK1Gd08zoduoiOHyK-AzHdSjbcrg-uJJcqfeBou-uEGP9nsqoEjQe_HeTGeRfUq3tMA0xDsdoeQbX_WQr9RZDIlAbT4u29ITJuCJAq8hXRZmjfPm4Vh2VJP7RZ0urGXOPUvNj1H_ggdF-JS0OBQ0Cf6ld73t9kKCtRoecNq0qHmHIJNL9AyMPKeZhZMzVlWfQ6NbVlkNe7LPVQjnVKIpSMVCeRGY_zCv2G4v9EDM6KFZq-jHgctmifnVATzUlQ")' }}>
-                            </div>
-                            <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
-                        </div>
-                        <div className="flex flex-col">
-                            <h2 className="text-slate-900 text-base font-bold leading-tight tracking-tight">Distrik Pusat Kota</h2>
-                            <span className="text-xs text-green-600 font-bold">Status: Online</span>
+                        <button onClick={() => navigate('/driver/dashboard')} className="rounded-full p-2 -ml-2 hover:bg-slate-100 transition-colors">
+                            <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+                        </button>
+                        <div>
+                            <h1 className="text-lg font-bold text-slate-900 leading-tight">Pesanan Masuk</h1>
+                            <p className="text-xs font-medium text-slate-500">Order ID #{formatId(availableOrder?.id)}</p>
                         </div>
                     </div>
                 </div>
@@ -230,7 +238,7 @@ function DriverIncomingOrder() {
                             Pesanan akan hilang dalam {timeLeft} detik
                         </div>
                         <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-red-500 transition-all duration-1000 ease-linear" style={{ width: `${(timeLeft / 30) * 100}% ` }}></div>
+                            <div className="h-full bg-red-500 transition-all duration-1000 ease-linear" style={{ width: `${(timeLeft / 25) * 100}%` }}></div>
                         </div>
                     </div>
                     <div className="p-4 flex flex-col gap-3">

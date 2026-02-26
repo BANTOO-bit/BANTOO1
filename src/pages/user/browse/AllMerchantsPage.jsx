@@ -109,7 +109,7 @@ function AllMerchantsPage() {
                 >
                     <span className="material-symbols-outlined">shopping_cart</span>
                     {cartItemCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                             {cartItemCount > 99 ? '99+' : cartItemCount}
                         </span>
                     )}

@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../../components/admin/AdminLayout'
 import merchantService from '../../../services/merchantService'
 import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../components/admin/AdminToast'
 
 export default function AdminMerchantsReviewPage() {
     const { id } = useParams()
     const navigate = useNavigate()
     const { user } = useAuth()
+    const { addToast } = useToast()
 
     const [merchant, setMerchant] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -37,7 +39,7 @@ export default function AdminMerchantsReviewPage() {
 
     const handleApprove = async () => {
         if (!user?.id) {
-            alert('Anda harus login sebagai admin')
+            addToast('Anda harus login sebagai admin', 'error')
             return
         }
 
@@ -46,11 +48,11 @@ export default function AdminMerchantsReviewPage() {
         try {
             setIsApproving(true)
             await merchantService.approveMerchant(id, user.id)
-            alert('Warung berhasil disetujui!')
+            addToast('Warung berhasil disetujui!', 'success')
             navigate('/admin/merchants')
         } catch (err) {
             console.error('Failed to approve merchant:', err)
-            alert('Gagal menyetujui warung')
+            addToast('Gagal menyetujui warung', 'error')
         } finally {
             setIsApproving(false)
         }
@@ -58,23 +60,23 @@ export default function AdminMerchantsReviewPage() {
 
     const handleReject = async () => {
         if (!user?.id) {
-            alert('Anda harus login sebagai admin')
+            addToast('Anda harus login sebagai admin', 'error')
             return
         }
 
         if (!rejectionReason.trim()) {
-            alert('Harap masukkan alasan penolakan')
+            addToast('Harap masukkan alasan penolakan', 'error')
             return
         }
 
         try {
             setIsRejecting(true)
             await merchantService.rejectMerchant(id, rejectionReason)
-            alert('Warung berhasil ditolak')
+            addToast('Warung berhasil ditolak', 'success')
             navigate('/admin/merchants/verification')
         } catch (err) {
             console.error('Failed to reject merchant:', err)
-            alert('Gagal menolak warung')
+            addToast('Gagal menolak warung', 'error')
         } finally {
             setIsRejecting(false)
             setShowRejectModal(false)

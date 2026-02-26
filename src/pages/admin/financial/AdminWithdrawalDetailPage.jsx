@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../services/supabaseClient'
 import AdminLayout from '../../../components/admin/AdminLayout'
+import { useToast } from '../../../components/admin/AdminToast'
 
 export default function AdminWithdrawalDetailPage() {
     const { id } = useParams()
@@ -10,6 +11,7 @@ export default function AdminWithdrawalDetailPage() {
     const [loading, setLoading] = useState(true)
     const [processing, setProcessing] = useState(false)
     const [error, setError] = useState(null)
+    const { addToast } = useToast()
 
     const formatCurrency = (val) => `Rp ${(val || 0).toLocaleString('id-ID')}`
 
@@ -57,10 +59,10 @@ export default function AdminWithdrawalDetailPage() {
                 .update({ status: 'approved', processed_at: new Date().toISOString() })
                 .eq('id', id)
             if (updateErr) throw updateErr
-            alert('Penarikan telah disetujui')
+            addToast('Penarikan telah disetujui', 'success')
             fetchWithdrawal()
         } catch (err) {
-            alert('Gagal memproses: ' + err.message)
+            addToast('Gagal memproses: ' + err.message, 'error')
         } finally {
             setProcessing(false)
         }
@@ -76,10 +78,10 @@ export default function AdminWithdrawalDetailPage() {
                 .update({ status: 'rejected', rejection_reason: reason, processed_at: new Date().toISOString() })
                 .eq('id', id)
             if (updateErr) throw updateErr
-            alert('Penarikan telah ditolak')
+            addToast('Penarikan telah ditolak', 'success')
             fetchWithdrawal()
         } catch (err) {
-            alert('Gagal memproses: ' + err.message)
+            addToast('Gagal memproses: ' + err.message, 'error')
         } finally {
             setProcessing(false)
         }
@@ -126,7 +128,7 @@ export default function AdminWithdrawalDetailPage() {
 
             {!isPending && (
                 <div className={`mb-6 rounded-xl p-4 flex items-start gap-3 border ${withdrawal.status === 'approved' ? 'bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-900/30' :
-                        'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30'
+                    'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30'
                     }`}>
                     <span className={`material-symbols-outlined mt-0.5 ${withdrawal.status === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
                         {withdrawal.status === 'approved' ? 'check_circle' : 'cancel'}
@@ -212,7 +214,7 @@ export default function AdminWithdrawalDetailPage() {
                                             <span className="text-sm text-[#617589] dark:text-[#94a3b8]">Nomor Rekening</span>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-mono font-semibold text-[#111418] dark:text-white tracking-wide">{withdrawal.account_number}</span>
-                                                <button onClick={() => { navigator.clipboard.writeText(withdrawal.account_number); alert('Disalin!') }} className="text-[#617589] hover:text-primary transition-colors">
+                                                <button onClick={() => { navigator.clipboard.writeText(withdrawal.account_number); addToast('Disalin!', 'success') }} className="text-[#617589] hover:text-primary transition-colors">
                                                     <span className="material-symbols-outlined text-[16px]">content_copy</span>
                                                 </button>
                                             </div>
@@ -270,7 +272,7 @@ export default function AdminWithdrawalDetailPage() {
                             <div className="flex justify-between">
                                 <span className="text-[#617589] dark:text-[#94a3b8]">Status</span>
                                 <span className={`font-medium ${withdrawal.status === 'pending' ? 'text-amber-600' :
-                                        withdrawal.status === 'approved' ? 'text-green-600' : 'text-red-600'
+                                    withdrawal.status === 'approved' ? 'text-green-600' : 'text-red-600'
                                     }`}>
                                     {withdrawal.status === 'pending' ? 'Menunggu' : withdrawal.status === 'approved' ? 'Disetujui' : 'Ditolak'}
                                 </span>

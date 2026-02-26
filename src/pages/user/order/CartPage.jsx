@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../../context/CartContext'
 import { useAuth } from '../../../context/AuthContext'
@@ -12,10 +12,14 @@ function CartPage() {
         cartItems,
         merchantInfo,
         cartTotal,
+        deliveryFee,
+        deliveryFeeLoading,
+        grandTotal,
         updateQuantity,
         removeFromCart,
         getMerchantNotes,
-        updateMerchantNotes
+        updateMerchantNotes,
+        calculateDeliveryFee
     } = useCart()
     const { selectedAddress, addresses, selectAddress } = useAddress()
 
@@ -24,12 +28,16 @@ function CartPage() {
     // State for address modal
     const [showAddressModal, setShowAddressModal] = useState(false)
 
-    // Service fee and total calculation
-    // Calculate per-merchant delivery fee (multiple merchants)
+    // Group items by merchant
     const merchantGroups = groupByMerchant(cartItems)
-    const totalMerchants = Object.keys(merchantGroups).length
-    const totalDeliveryFee = totalMerchants * 8000 // Rp 8k per merchant (base)
-    const totalPayment = cartTotal + totalDeliveryFee
+
+    // Calculate delivery fee based on selected address
+    useEffect(() => {
+        const effectiveMerchantId = merchantInfo?.id || (cartItems.length > 0 ? cartItems[0].merchantId : null)
+        if (effectiveMerchantId && selectedAddress?.lat && selectedAddress?.lng) {
+            calculateDeliveryFee(effectiveMerchantId, selectedAddress.lat, selectedAddress.lng)
+        }
+    }, [merchantInfo, cartItems, selectedAddress, calculateDeliveryFee])
 
     // Group items by merchant
     function groupByMerchant(items) {
@@ -185,7 +193,7 @@ function CartPage() {
                                 <div className="flex-1">
                                     <p className="font-bold text-sm text-text-main">{merchantName}</p>
                                     <p className="text-[10px] text-text-secondary">
-                                        {getMerchantItemCount(items)} item • 20-30 menit
+                                        {getMerchantItemCount(items)} item • Estimasi 20-30 mnt
                                     </p>
                                 </div>
                             </div>
@@ -285,13 +293,17 @@ function CartPage() {
                             {/* Merchant Subtotal */}
                             <div className="px-4 py-3 bg-gray-50 border-t border-border-color flex justify-between">
                                 <div className="flex items-center gap-2 text-text-secondary text-xs">
-                                    <span>Ongkir</span>
+                                    <span>Estimasi ongkir</span>
                                 </div>
-                                <span className="text-xs font-semibold text-text-main">Rp 8.000</span>
+                                <span className="text-xs font-semibold text-text-main">
+                                    {deliveryFeeLoading ? 'Menghitung...' : `Rp ${deliveryFee.toLocaleString('id-ID')}`}
+                                </span>
                             </div>
                             <div className="px-4 py-3 bg-gray-50 flex justify-between border-t border-border-color">
                                 <span className="text-sm text-text-secondary">Subtotal Toko</span>
-                                <span className="font-bold text-sm text-text-main">Rp {(getMerchantSubtotal(items) + 8000).toLocaleString()}</span>
+                                <span className="font-bold text-sm text-text-main">
+                                    {deliveryFeeLoading ? 'Menghitung...' : `Rp ${(getMerchantSubtotal(items) + deliveryFee).toLocaleString('id-ID')}`}
+                                </span>
                             </div>
                         </section>
                     )
@@ -303,15 +315,19 @@ function CartPage() {
                     <div className="space-y-2.5">
                         <div className="flex justify-between text-sm">
                             <span className="text-text-secondary">Total Harga ({cartItems.reduce((s, i) => s + i.quantity, 0)} item)</span>
-                            <span className="font-semibold text-text-main">Rp {cartTotal.toLocaleString()}</span>
+                            <span className="font-semibold text-text-main">Rp {cartTotal.toLocaleString('id-ID')}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-text-secondary">Total Ongkos Kirim ({totalMerchants} Merchant)</span>
-                            <span className="font-semibold text-text-main">Rp {totalDeliveryFee.toLocaleString()}</span>
+                            <span className="text-text-secondary">Ongkos Kirim</span>
+                            <span className="font-semibold text-text-main">
+                                {deliveryFeeLoading ? 'Menghitung...' : `Rp ${deliveryFee.toLocaleString('id-ID')}`}
+                            </span>
                         </div>
                         <div className="flex justify-between text-base pt-2 border-t border-border-color">
                             <span className="font-bold text-text-main">Total Pembayaran</span>
-                            <span className="font-bold text-primary">Rp {totalPayment.toLocaleString()}</span>
+                            <span className="font-bold text-primary">
+                                {deliveryFeeLoading ? 'Menghitung...' : `Rp ${grandTotal.toLocaleString('id-ID')}`}
+                            </span>
                         </div>
                     </div>
                 </section>

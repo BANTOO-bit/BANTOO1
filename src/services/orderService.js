@@ -57,7 +57,8 @@ export const orderService = {
             customerLng,
             paymentMethod = 'cod',
             promoCode = null,
-            notes = null
+            notes = null,
+            deliveryFee = null
         } = orderData
 
         // Prepare items for RPC (only IDs and quantities — prices come from DB)
@@ -84,7 +85,8 @@ export const orderService = {
                 p_customer_lng: customerLng || null,
                 p_payment_method: paymentMethod,
                 p_promo_code: promoCode,
-                p_notes: notes
+                p_notes: notes,
+                p_delivery_fee: deliveryFee
             })
 
             if (rpcError) {
@@ -366,36 +368,25 @@ export const orderService = {
 
     /**
      * Confirm payment received (for COD orders)
-     * Only the assigned driver can confirm payment.
+     * Uses server-side RPC for atomic verification and server-side timestamp.
      */
     async confirmPayment(orderId, amount, paymentMethod = 'cod') {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
-        // Verify caller is the assigned driver
-        const { data: order, error: fetchError } = await supabase
-            .from('orders')
-            .select('id, driver_id, payment_status, status')
-            .eq('id', orderId)
-            .single()
+        // Use server-side RPC for atomic payment confirmation with server timestamp
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('confirm_cod_payment', {
+            p_order_id: orderId
+        })
 
-        if (fetchError || !order) throw new Error('Order not found')
-        if (order.driver_id !== user.id) throw new Error('Only the assigned driver can confirm payment')
-        if (order.payment_status === 'paid') throw new Error('Payment already confirmed')
+        if (rpcError) throw new Error(rpcError.message || 'Gagal konfirmasi pembayaran')
 
-        const { data, error } = await supabase
-            .from('orders')
-            .update({
-                payment_status: 'paid',
-                paid_at: new Date().toISOString()
-            })
-            .eq('id', orderId)
-            .eq('driver_id', user.id)
-            .select()
-            .single()
+        // Check RPC result
+        if (rpcResult && !rpcResult.success) {
+            throw new Error(rpcResult.message || 'Gagal konfirmasi pembayaran')
+        }
 
-        if (error) throw error
-        return data
+        return rpcResult
     },
 
     /**

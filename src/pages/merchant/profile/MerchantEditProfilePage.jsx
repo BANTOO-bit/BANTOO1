@@ -16,6 +16,8 @@ function MerchantEditProfilePage() {
 
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [imageFile, setImageFile] = useState(null)
+    const [imagePreview, setImagePreview] = useState(null)
     const [formData, setFormData] = useState({
         name: '',
         category: '',
@@ -67,6 +69,23 @@ function MerchantEditProfilePage() {
         }))
     }
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0]
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                toast.error('Ukuran gambar maksimal 2MB')
+                return
+            }
+            setImageFile(file)
+            // Only update preview display, NOT formData.image (which holds the real URL)
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setImagePreview(reader.result)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
     const handleLocationSelect = async (latlng) => {
         setFormData(prev => ({ ...prev, location: latlng }))
         setLocationSelected(true)
@@ -93,11 +112,20 @@ function MerchantEditProfilePage() {
 
         setIsSaving(true)
         try {
+            let finalImageUrl = formData.image
+
+            // Upload new image if file was selected
+            if (imageFile) {
+                const { storageService, STORAGE_PATHS } = await import('../../../services/storageService')
+                finalImageUrl = await storageService.upload(imageFile, STORAGE_PATHS.MERCHANT_LOGO, user?.id)
+            }
+
             await merchantService.updateMerchant(user.merchantId, {
                 name: formData.name,
                 category: formData.category,
                 address: formData.address,
                 description: formData.description,
+                image_url: finalImageUrl,
                 latitude: formData.location?.lat || null,
                 longitude: formData.location?.lng || null
             })
@@ -132,21 +160,31 @@ function MerchantEditProfilePage() {
 
             <main className="flex flex-col gap-6 px-4 pt-2">
                 <section className="flex flex-col items-center pt-4 pb-2">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        id="profile-image-upload"
+                        className="hidden"
+                        onChange={handleImageChange}
+                    />
                     <div className="relative w-28 h-28 mb-4">
-                        {formData.image ? (
+                        {(imagePreview || formData.image) ? (
                             <img
                                 alt="Warung Profile"
                                 className="w-full h-full object-cover rounded-full shadow-md border-4 border-white dark:border-gray-700"
-                                src={formData.image}
+                                src={imagePreview || formData.image}
                             />
                         ) : (
                             <div className="w-full h-full rounded-full shadow-md border-4 border-white dark:border-gray-700 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-4xl text-gray-400">store</span>
                             </div>
                         )}
-                        <button className="absolute bottom-1 right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white shadow-sm border-2 border-white dark:border-gray-800 hover:bg-primary-dark transition-colors">
+                        <label
+                            htmlFor="profile-image-upload"
+                            className="absolute bottom-1 right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white shadow-sm border-2 border-white dark:border-gray-800 hover:bg-primary-dark transition-colors cursor-pointer"
+                        >
                             <span className="material-symbols-outlined text-[18px]">photo_camera</span>
-                        </button>
+                        </label>
                     </div>
                 </section>
 
@@ -184,8 +222,8 @@ function MerchantEditProfilePage() {
                         <div
                             onClick={() => setShowMapSelector(true)}
                             className={`relative w-full h-auto min-h-[5rem] py-4 rounded-xl overflow-hidden border ${locationSelected
-                                    ? 'border-green-400 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
-                                    : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
+                                ? 'border-green-400 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
+                                : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
                                 } shadow-sm cursor-pointer hover:border-primary transition-all`}
                         >
                             <div className="w-full h-full flex items-center justify-between px-4">

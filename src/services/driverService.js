@@ -17,7 +17,7 @@ export const driverService = {
 
             const rejected = JSON.parse(localStorage.getItem('rejected_orders') || '[]')
 
-            console.log('--- DB RPC get_available_orders output ---', data, error)
+            if (import.meta.env.DEV) console.log('--- DB RPC get_available_orders output ---', data, error)
 
             if (!error && data !== null) {
                 return data.filter(o => !rejected.includes(o.id))
@@ -315,19 +315,22 @@ export const driverService = {
 
             if (tripsError) throw tripsError
 
-            // 3. Get Average Rating
-            // Note: Schema might vary. Assuming 'reviews' table linked to 'orders' or 'driver_id'
-            // For now, if no review table is clear, we return '-' or a mock if DB not ready.
-            // Let's assume a 'reviews' table exists for now
-            /* 
-            const { data: reviews, error: reviewsError } = await supabase
-                .from('reviews')
-                .select('rating')
-                .eq('driver_id', userId)
-            */
+            // 3. Get Average Rating from reviews table
+            let rating = '-'
+            try {
+                const { data: reviews, error: reviewsError } = await supabase
+                    .from('reviews')
+                    .select('driver_rating')
+                    .eq('driver_id', userId)
+                    .not('driver_rating', 'is', null)
 
-            // Placeholder rating until reviews table confirmed active
-            const rating = '-'
+                if (!reviewsError && reviews && reviews.length > 0) {
+                    const avg = reviews.reduce((sum, r) => sum + r.driver_rating, 0) / reviews.length
+                    rating = avg.toFixed(1)
+                }
+            } catch {
+                // Reviews table may not exist yet, keep default '-'
+            }
 
             return {
                 rating: rating,
@@ -619,10 +622,17 @@ export const driverService = {
 
             if (error) throw error
 
-            // Also update the profile role/active_role if needed
-            // But usually we just rely on the driver record existing.
-            // Let's ensure the user has 'driver' in their roles list if we store roles in profile
-            // For this schema, we seem to rely on separate tables.
+            // Update the owner's profile role to 'driver' so they can access driver dashboard
+            if (data?.user_id) {
+                await supabase
+                    .from('profiles')
+                    .update({
+                        role: 'driver',
+                        active_role: 'driver',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', data.user_id)
+            }
 
             return data
         } catch (error) {
@@ -676,9 +686,8 @@ export const driverService = {
 
             // 2. Fallback: Manual Calculation
             // Get today's start and end
-            const now = new Date()
-            const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString()
-            const endOfDay = new Date(now.setHours(23, 59, 59, 999)).toISOString()
+            const startOfDay = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
+            const endOfDay = new Date(new Date().setHours(23, 59, 59, 999)).toISOString()
 
             const { data: orders, error } = await supabase
                 .from('orders')
@@ -693,7 +702,7 @@ export const driverService = {
             const todayOrders = orders.length
             // Calculate revenue (using delivery_fee or a percentage of total? 
             // Usually driver gets delivery_fee. Let's assume delivery_fee is the earnings for now)
-            const todayRevenue = orders.reduce((sum, order) => sum + (order.delivery_fee || 10000), 0)
+            const todayRevenue = orders.reduce((sum, order) => sum + (order.delivery_fee || 0), 0)
 
             return {
                 todayOrders,
@@ -743,6 +752,62 @@ export const driverService = {
         } catch (error) {
             console.error('Error fetching bank details:', error)
             return null
+        }
+    },
+
+    // Cache for COD balance (30s TTL to prevent RPC spam)
+    _codBalanceCache: {},
+
+    /**
+     * Get accumulated COD admin fee balance for a driver.
+     * All calculations are done server-side via Supabase RPC.
+     * Results are cached for 30 seconds to prevent excessive DB calls.
+     * 
+     * @param {string} driverId - Driver user ID
+     * @param {boolean} forceRefresh - Bypass cache
+     * @returns {Promise<Object>} COD balance data from backend
+     */
+    async getCodAdminFeeBalance(driverId, forceRefresh = false) {
+        // Check cache (30s TTL)
+        const cached = this._codBalanceCache[driverId]
+        if (!forceRefresh && cached && (Date.now() - cached.ts < 30000)) {
+            return cached.data
+        }
+
+        try {
+            const { data, error } = await supabase.rpc('get_cod_balance', {
+                p_driver_id: driverId
+            })
+
+            if (error) throw error
+
+            // Map snake_case RPC response to camelCase for frontend
+            const result = {
+                totalOwed: data?.total_owed ?? 0,
+                depositsMade: data?.deposits_made ?? 0,
+                balance: data?.balance ?? 0,
+                limit: data?.limit ?? 10000,
+                timeLimitHours: data?.time_limit_hours ?? 48,
+                hoursElapsed: data?.hours_elapsed ?? 0,
+                oldestUnpaidAt: data?.oldest_unpaid_at ?? null,
+                isOverLimit: data?.is_over_limit ?? false,
+                isOverNominal: data?.is_over_nominal ?? false,
+                isOverTimeLimit: data?.is_over_time_limit ?? false,
+                percentage: data?.percentage ?? 0,
+                ledger: data?.ledger ?? []
+            }
+
+            // Store in cache
+            this._codBalanceCache[driverId] = { data: result, ts: Date.now() }
+            return result
+        } catch (error) {
+            console.error('Error fetching COD balance from RPC:', error)
+            return {
+                totalOwed: 0, depositsMade: 0, balance: 0, limit: 10000,
+                timeLimitHours: 48, hoursElapsed: 0, oldestUnpaidAt: null,
+                isOverLimit: false, isOverNominal: false, isOverTimeLimit: false,
+                percentage: 0, ledger: []
+            }
         }
     }
 }

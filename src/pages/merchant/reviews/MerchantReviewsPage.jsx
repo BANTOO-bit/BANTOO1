@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
 import { reviewService } from '../../../services/reviewService'
 import merchantService from '../../../services/merchantService'
 import logger from '../../../utils/logger'
@@ -8,6 +9,7 @@ import logger from '../../../utils/logger'
 function MerchantReviewsPage() {
     const navigate = useNavigate()
     const { user } = useAuth()
+    const toast = useToast()
     const [activeFilter, setActiveFilter] = useState('all') // all, with_photo, reply_needed
     const [reviews, setReviews] = useState([])
     const [loading, setLoading] = useState(true)
@@ -208,7 +210,7 @@ function MerchantReviewsPage() {
                                         onClick={() => {
                                             // Handle reply logic - maybe open modal
                                             // For now just console log
-                                            logger.debug('Reply to', review.id)
+                                            toast.info('Fitur balas ulasan akan segera hadir')
                                         }}
                                         className="self-end mt-2 px-4 py-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-primary hover:bg-orange-100 transition-colors text-xs font-bold flex items-center gap-1"
                                     >

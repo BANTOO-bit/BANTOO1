@@ -48,8 +48,10 @@ const STATUS_INDEX_MAP = {
 function OrderDetailModal({ isOpen, onClose, order }) {
     if (!isOpen || !order) return null
 
-    const deliveryFee = order.delivery_fee || 5000
-    const subtotal = order.subtotal || (order.total_amount - deliveryFee)
+    const deliveryFee = order.delivery_fee || 0
+    const serviceFee = order.service_fee || 0
+    const discount = order.discount || 0
+    const subtotal = order.subtotal || (order.total_amount - deliveryFee - serviceFee + discount)
 
     // Get merchant image
     const getMerchantImage = (orderData) => {
@@ -229,6 +231,24 @@ function TrackingPage() {
     // Cancel Modal State
     const [cancelModalOpen, setCancelModalOpen] = useState(false)
     const [isCancelling, setIsCancelling] = useState(false)
+    const [timeRemaining, setTimeRemaining] = useState(null) // seconds until auto-cancel
+
+    // Countdown timer for pending orders (15 min auto-cancel)
+    useEffect(() => {
+        if (order?.status !== 'pending' || !order?.created_at) {
+            setTimeRemaining(null)
+            return
+        }
+        const updateTimer = () => {
+            const created = new Date(order.created_at).getTime()
+            const deadline = created + (15 * 60 * 1000)
+            const remaining = Math.max(0, Math.floor((deadline - Date.now()) / 1000))
+            setTimeRemaining(remaining)
+        }
+        updateTimer()
+        const interval = setInterval(updateTimer, 1000)
+        return () => clearInterval(interval)
+    }, [order?.status, order?.created_at])
 
     // Derived data
     const merchantLocation = order?.merchant
@@ -296,10 +316,13 @@ function TrackingPage() {
     useEffect(() => {
         if (!order?.id) return
 
-        // Subscribe to order changes via Supabase Realtime
+        let channelRef = null
+        let supabaseRef = null
+
         // Subscribe to order changes via Supabase Realtime
         import('../../../services/supabaseClient').then(({ supabase }) => {
-            const channel = supabase
+            supabaseRef = supabase
+            channelRef = supabase
                 .channel(`tracking-order-${order.id}`)
                 .on(
                     'postgres_changes',
@@ -320,11 +343,14 @@ function TrackingPage() {
                     }
                 )
                 .subscribe()
-
-            return () => {
-                supabase.removeChannel(channel)
-            }
         })
+
+        return () => {
+            // Synchronous cleanup using refs — no async import needed
+            if (channelRef && supabaseRef) {
+                supabaseRef.removeChannel(channelRef)
+            }
+        }
 
     }, [order?.id])
 
@@ -371,7 +397,7 @@ function TrackingPage() {
         } else if (isDelivered) {
             setEstimatedTime(0)
         }
-    }, [order?.status, merchantLocation, userLocation])
+    }, [order?.status, merchantLocation, userLocation, estimatedTime, isDelivered])
 
     // ============================================
     // HANDLE CANCEL
@@ -519,8 +545,26 @@ function TrackingPage() {
                     </div>
 
                     <div className="mt-8 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-semibold text-slate-600">Mohon Ditunggu Ya</span>
+                        {order.status === 'pending' && timeRemaining !== null ? (
+                            timeRemaining > 0 ? (
+                                <>
+                                    <span className="material-symbols-outlined text-sm text-amber-500">timer</span>
+                                    <span className="text-xs font-semibold text-amber-600">
+                                        Auto-cancel dalam {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                                    <span className="text-xs font-semibold text-red-500">Segera dikonfirmasi...</span>
+                                </>
+                            )
+                        ) : (
+                            <>
+                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                                <span className="text-xs font-semibold text-slate-600">Mohon Ditunggu Ya</span>
+                            </>
+                        )}
                     </div>
                 </div>
             ) : (

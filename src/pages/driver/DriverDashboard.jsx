@@ -33,6 +33,8 @@ function DriverDashboard() {
     const [isLoadingProfile, setIsLoadingProfile] = useState(true)
     const [availableOrders, setAvailableOrders] = useState([])
     const [hasUnreadNotification, setHasUnreadNotification] = useState(false)
+    const [codFeeBalance, setCodFeeBalance] = useState(null) // COD admin fee tracking
+    const seenOrderIdsRef = useRef(new Set())
 
     useEffect(() => {
         let mounted = true
@@ -103,11 +105,30 @@ function DriverDashboard() {
             }
         }
 
+        // Check COD admin fee balance (all calculation + auto-suspend handled by backend)
+        async function checkCodFeeBalance() {
+            if (!user?.id) return
+            try {
+                const feeData = await driverService.getCodAdminFeeBalance(user.id)
+                if (mounted) {
+                    setCodFeeBalance(feeData)
+                    // If backend already suspended (via DB trigger), sync UI state
+                    if (feeData.isOverLimit && driverStatus === 'active') {
+                        setDriverStatus('suspended')
+                        sessionStorage.setItem('driver_status', 'suspended')
+                    }
+                }
+            } catch (error) {
+                if (import.meta.env.DEV) console.error('Error checking COD fee balance:', error)
+            }
+        }
+
         if (user?.id) {
             fetchEarnings()
             fetchProfile()
             checkActiveOrder()
             checkNotifications()
+            checkCodFeeBalance()
         }
 
         // Refresh every 30 seconds
@@ -116,6 +137,7 @@ function DriverDashboard() {
                 fetchEarnings()
                 checkActiveOrder()
                 checkNotifications()
+                checkCodFeeBalance()
             }
         }, 30000)
 
@@ -148,15 +170,18 @@ function DriverDashboard() {
 
             if (orders && orders.length > 0) {
                 const order = orders[0]
-                // Only notify if new/unseen (simple check)
-                addNotification({
-                    type: 'order',
-                    title: 'Pesanan Baru Masuk!',
-                    message: `Jarak: ${order.distance_to_merchant?.toFixed(1) || '?'}km - ${order.merchant_name}`,
-                    actionLabel: 'Ambil Order',
-                    actionUrl: `/driver/order/incoming/${order.id}`,
-                    sticky: true
-                })
+                // Only notify if this order hasn't been seen before
+                if (!seenOrderIdsRef.current.has(order.id)) {
+                    seenOrderIdsRef.current.add(order.id)
+                    addNotification({
+                        type: 'order',
+                        title: 'Pesanan Baru Masuk!',
+                        message: `Jarak: ${order.distance_to_merchant?.toFixed(1) || '?'}km - ${order.merchant_name}`,
+                        actionLabel: 'Ambil Order',
+                        actionUrl: `/driver/order/incoming/${order.id}`,
+                        sticky: true
+                    })
+                }
             }
         } catch (error) {
             if (import.meta.env.DEV) console.error('Error checking orders:', error)
@@ -167,6 +192,7 @@ function DriverDashboard() {
     useEffect(() => {
         let locationWatchId = null
         let isMounted = true
+        let pollInterval = null
 
         const updateDriverStatus = async () => {
             if (!user?.id) return
@@ -176,7 +202,7 @@ function DriverDashboard() {
 
                 if (isOnline) {
                     // Set up explicit polling just in case geolocation or realtime fails
-                    const pollInterval = setInterval(() => {
+                    pollInterval = setInterval(() => {
                         if (!isMounted || !isOnline) {
                             clearInterval(pollInterval)
                             return
@@ -238,6 +264,9 @@ function DriverDashboard() {
             isMounted = false
             if (locationWatchId !== null) {
                 navigator.geolocation.clearWatch(locationWatchId)
+            }
+            if (pollInterval) {
+                clearInterval(pollInterval)
             }
         }
     }, [isOnline, user?.id, navigate])
@@ -387,7 +416,10 @@ function DriverDashboard() {
                                     : 'Mohon maaf, Anda tidak dapat menerima pesanan saat ini karena akun sedang dalam penangguhan sementara. Silakan hubungi tim Admin untuk bantuan lebih lanjut.'
                                 }
                             </p>
-                            <button className="w-full max-w-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-6 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 group">
+                            <button
+                                onClick={() => navigate('/driver/help')}
+                                className="w-full max-w-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-6 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 group"
+                            >
                                 <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform text-white">support_agent</span>
                                 Hubungi Pusat Bantuan
                             </button>
@@ -445,6 +477,62 @@ function DriverDashboard() {
                                 </div>
                             </div>
 
+                            {/* COD Admin Fee Warning Banner */}
+                            {codFeeBalance && codFeeBalance.balance > 0 && (
+                                <div className="px-4 pb-2">
+                                    <div className={`rounded-xl p-4 border-2 ${codFeeBalance.isOverLimit ? 'bg-red-50 border-red-300' : codFeeBalance.percentage >= 70 ? 'bg-amber-50 border-amber-300' : 'bg-blue-50 border-blue-200'}`}>
+                                        <div className="flex items-start gap-3">
+                                            <span className={`material-symbols-outlined text-2xl mt-0.5 ${codFeeBalance.isOverLimit ? 'text-red-500' : codFeeBalance.percentage >= 70 ? 'text-amber-500' : 'text-blue-500'}`}>
+                                                {codFeeBalance.isOverLimit ? 'error' : 'warning'}
+                                            </span>
+                                            <div className="flex-1">
+                                                <p className={`text-sm font-bold mb-1 ${codFeeBalance.isOverLimit ? 'text-red-800' : codFeeBalance.percentage >= 70 ? 'text-amber-800' : 'text-blue-800'}`}>
+                                                    {codFeeBalance.isOverLimit
+                                                        ? (codFeeBalance.isOverTimeLimit ? 'Batas Waktu Setoran Terlampaui!' : 'Batas Fee COD Tercapai!')
+                                                        : 'Fee COD Admin Belum Disetor'
+                                                    }
+                                                </p>
+                                                <p className={`text-xs mb-1 ${codFeeBalance.isOverLimit ? 'text-red-600' : codFeeBalance.percentage >= 70 ? 'text-amber-600' : 'text-blue-600'}`}>
+                                                    Saldo fee: {formatCurrency(codFeeBalance.balance)} / {formatCurrency(codFeeBalance.limit)}
+                                                </p>
+                                                {codFeeBalance.hoursElapsed > 0 && (() => {
+                                                    const remaining = codFeeBalance.timeLimitHours - codFeeBalance.hoursElapsed
+                                                    return (
+                                                        <p className={`text-[11px] mb-2 flex items-center gap-1 ${codFeeBalance.isOverTimeLimit ? 'text-red-600 font-bold' : remaining <= 12 ? 'text-amber-600 font-bold' : 'text-slate-500'}`}>
+                                                            <span className="material-symbols-outlined text-sm">{codFeeBalance.isOverTimeLimit ? 'error' : 'timer'}</span>
+                                                            {codFeeBalance.isOverTimeLimit
+                                                                ? `⚠️ Terlambat ${Math.abs(Math.round(remaining))} jam — segera setor!`
+                                                                : `⏳ Setor dalam ${Math.round(remaining)} jam lagi`}
+                                                        </p>
+                                                    )
+                                                })()}
+                                                {/* Progress bar */}
+                                                <div className="w-full h-2 rounded-full bg-white/60 mb-3">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all ${codFeeBalance.isOverLimit ? 'bg-red-500' : codFeeBalance.percentage >= 70 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                                                        style={{ width: `${Math.min(100, codFeeBalance.percentage)}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => navigate('/driver/deposit', { state: { amount: codFeeBalance.balance } })}
+                                                        className={`flex-1 py-2.5 rounded-lg text-white text-sm font-bold transition-colors ${codFeeBalance.isOverLimit ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+                                                    >
+                                                        Setor Sekarang
+                                                    </button>
+                                                    <button
+                                                        onClick={() => navigate('/driver/deposit/history')}
+                                                        className="px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors"
+                                                    >
+                                                        Riwayat
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Stats Cards */}
                             <div className="px-4 pb-2">
                                 <div className="grid grid-cols-2 gap-3">
@@ -485,7 +573,7 @@ function DriverDashboard() {
                             <div className="px-4 pb-6">
                                 <div className="flex items-center justify-between rounded-lg bg-white border border-slate-200 px-4 py-3 shadow-sm">
                                     <span className="text-sm font-medium text-slate-600">Order Selesai Hari Ini</span>
-                                    <span className="text-base font-bold text-slate-900">0</span>
+                                    <span className="text-base font-bold text-slate-900">{earnings.completedOrders}</span>
                                 </div>
                             </div>
 

@@ -377,10 +377,10 @@ export function AuthProvider({ children }) {
             setUser(null);
             setIsAuthenticated(false);
             // Also need to clear Supabase local storage tokens directly as a last resort
-            const supabaseProjectRef = "qjahjizblrrdhlllymoe"; // from env
-            localStorage.removeItem(`sb-${supabaseProjectRef}-auth-token`);
+            const supabaseProjectRef = (import.meta.env.VITE_SUPABASE_URL || '').match(/\/\/([^.]+)/)?.[1] || ''
+            if (supabaseProjectRef) localStorage.removeItem(`sb-${supabaseProjectRef}-auth-token`)
         }
-        
+
         // State updates usually handled by onAuthStateChange, but if forced above, 
         // it's already handled locally.
     }

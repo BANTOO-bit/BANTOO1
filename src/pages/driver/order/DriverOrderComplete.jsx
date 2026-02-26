@@ -6,8 +6,13 @@ function DriverOrderComplete() {
     const navigate = useNavigate()
     const { activeOrder, clearOrder } = useOrder()
 
-    const isCOD = activeOrder?.paymentMethod === 'COD'
-    const orderId = activeOrder?.id ? activeOrder.id.split('-')[2] : '00000'
+    const isCOD = activeOrder?.paymentMethod === 'COD' || activeOrder?.payment_method === 'cod'
+    const orderId = activeOrder?.id ? (activeOrder.id.includes('-') ? activeOrder.id.split('-')[2] : activeOrder.id.substring(0, 5)) : '00000'
+    const deliveryFee = activeOrder?.delivery_fee || activeOrder?.deliveryFee || 0
+    const serviceFee = activeOrder?.service_fee || activeOrder?.serviceFee || 0
+    const driverEarnings = deliveryFee - serviceFee
+
+    const formatCurrency = (value) => `Rp ${(value || 0).toLocaleString('id-ID')}`
 
     return (
         <div className="font-display bg-background-light text-slate-900 antialiased min-h-screen relative flex flex-col overflow-x-hidden max-w-md mx-auto bg-white border-x border-slate-100">
@@ -24,8 +29,10 @@ function DriverOrderComplete() {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button className="flex items-center justify-center rounded-full size-10 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors">
-                            <span className="material-symbols-outlined text-[24px]">history</span>
+                        <button
+                            onClick={() => navigate('/driver/orders')}
+                            className="flex items-center justify-center rounded-full size-10 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors"
+                        >                            <span className="material-symbols-outlined text-[24px]">history</span>
                         </button>
                     </div>
                 </div>
@@ -47,7 +54,7 @@ function DriverOrderComplete() {
                     <div className="flex items-center justify-between mb-5">
                         <div>
                             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Pendapatan Anda</p>
-                            <h2 className="text-3xl font-bold text-green-600">Rp 7.200</h2>
+                            <h2 className="text-3xl font-bold text-green-600">{formatCurrency(driverEarnings)}</h2>
                         </div>
                         <div className="bg-green-50 p-3 rounded-full flex items-center justify-center">
                             <span className="material-symbols-outlined text-green-600">account_balance_wallet</span>
@@ -57,11 +64,11 @@ function DriverOrderComplete() {
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rincian</p>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-slate-600 font-medium">Ongkir</span>
-                            <span className="font-bold text-slate-900">Rp 8.000</span>
+                            <span className="font-bold text-slate-900">{formatCurrency(deliveryFee)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-slate-600 font-medium">Biaya Platform</span>
-                            <span className="font-bold text-red-500">-Rp 800</span>
+                            <span className="font-bold text-red-500">-{formatCurrency(serviceFee)}</span>
                         </div>
                     </div>
                 </div>
@@ -82,14 +89,14 @@ function DriverOrderComplete() {
                                 Simpan Potongan Ongkir COD
                             </p>
                             <div className="text-4xl font-black text-slate-900 mb-4 tracking-tight">
-                                <span className="text-xl font-bold text-slate-500 mr-0.5">Rp</span>800
+                                <span className="text-xl font-bold text-slate-500 mr-0.5">Rp</span>{(serviceFee || 0).toLocaleString('id-ID')}
                             </div>
 
                             <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-red-100 mb-3">
                                 <div className="flex gap-3 items-start">
                                     <span className="material-symbols-outlined text-red-500 text-[20px] shrink-0 mt-0.5">info</span>
                                     <p className="text-xs font-medium text-slate-700 leading-relaxed">
-                                        POTONGAN ONGKIR COD (Fee Admin) sebesar <span className="font-bold text-red-600">Rp 800</span> ini <span className="font-bold text-red-600">wajib disetorkan</span> ke Admin/Koordinator agar Anda bisa terus menerima order.
+                                        POTONGAN ONGKIR COD (Fee Admin) sebesar <span className="font-bold text-red-600">{formatCurrency(serviceFee)}</span> ini <span className="font-bold text-red-600">wajib disetorkan</span> ke Admin/Koordinator agar Anda bisa terus menerima order.
                                     </p>
                                 </div>
                             </div>
@@ -122,13 +129,13 @@ function DriverOrderComplete() {
                                 Fee Admin Otomatis Dipotong
                             </p>
                             <div className="text-4xl font-black text-slate-900 mb-4 tracking-tight">
-                                <span className="text-xl font-bold text-slate-500 mr-0.5">Rp</span>800
+                                <span className="text-xl font-bold text-slate-500 mr-0.5">Rp</span>{(serviceFee || 0).toLocaleString('id-ID')}
                             </div>
                             <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-blue-100">
                                 <div className="flex gap-3 items-start">
                                     <span className="material-symbols-outlined text-blue-500 text-[20px] shrink-0 mt-0.5">info</span>
                                     <p className="text-xs font-medium text-slate-700 leading-relaxed">
-                                        Karena pembayaran non-tunai, Fee Admin Rp 800 telah dipotong otomatis dari pendapatan digital Anda. Tidak perlu setor tunai.
+                                        Karena pembayaran non-tunai, Fee Admin {formatCurrency(serviceFee)} telah dipotong otomatis dari pendapatan digital Anda. Tidak perlu setor tunai.
                                     </p>
                                 </div>
                             </div>

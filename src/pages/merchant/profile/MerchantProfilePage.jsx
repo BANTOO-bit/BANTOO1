@@ -196,7 +196,10 @@ function MerchantProfilePage() {
                     <div>
                         <h3 className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-2 ml-2">Lainnya</h3>
                         <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-soft divide-y divide-border-light dark:divide-border-dark overflow-hidden">
-                            <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <div
+                                onClick={() => navigate('/merchant/help')}
+                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            >
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
                                         <span className="material-icons-round text-lg">help</span>
@@ -205,7 +208,10 @@ function MerchantProfilePage() {
                                 </div>
                                 <span className="material-icons-round text-gray-400 text-lg">chevron_right</span>
                             </div>
-                            <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <div
+                                onClick={() => navigate('/about')}
+                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            >
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
                                         <span className="material-icons-round text-lg">info</span>
@@ -214,7 +220,10 @@ function MerchantProfilePage() {
                                 </div>
                                 <span className="material-icons-round text-gray-400 text-lg">chevron_right</span>
                             </div>
-                            <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <div
+                                onClick={() => navigate('/terms')}
+                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            >
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
                                         <span className="material-icons-round text-lg">description</span>

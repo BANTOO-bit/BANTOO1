@@ -70,7 +70,7 @@ function DriverRegistrationStep3() {
             if (result.success) {
                 navigate('/partner/driver/status')
             } else {
-                alert(result.error || 'Pendaftaran gagal. Silakan coba lagi.')
+                toast.error(result.error || 'Pendaftaran gagal. Silakan coba lagi.')
             }
         } catch (error) {
             handleError(error, toast, { context: 'Pendaftaran driver' })

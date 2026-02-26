@@ -159,7 +159,7 @@ function RegisterPage() {
                                     checked={acceptTerms}
                                     onChange={(e) => {
                                         setAcceptTerms(e.target.checked)
-                                        if (errors.terms) setErrors(prev => ({ ...prev, terms: '' }))
+                                        if (errors.terms) setFormErrors({ terms: '' })
                                     }}
                                     className="sr-only peer"
                                 />

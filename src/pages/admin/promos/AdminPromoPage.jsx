@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../../services/supabaseClient'
 import AdminLayout from '../../../components/admin/AdminLayout'
 import AdminActionMenu from '../../../components/admin/AdminActionMenu'
+import { useToast } from '../../../components/admin/AdminToast'
 
 export default function AdminPromoPage() {
     const navigate = useNavigate()
@@ -12,6 +13,7 @@ export default function AdminPromoPage() {
     const [promos, setPromos] = useState([])
     const [loading, setLoading] = useState(true)
     const [activeRowId, setActiveRowId] = useState(null)
+    const { addToast } = useToast()
 
     const fetchPromos = async () => {
         try {
@@ -53,7 +55,12 @@ export default function AdminPromoPage() {
     const confirmDelete = async () => {
         if (!selectedPromo) return
         const { error } = await supabase.from('promos').delete().eq('id', selectedPromo.id)
-        if (!error) setPromos(promos.filter(p => p.id !== selectedPromo.id))
+        if (!error) {
+            setPromos(promos.filter(p => p.id !== selectedPromo.id))
+            addToast('Promo berhasil dihapus', 'success')
+        } else {
+            addToast('Gagal menghapus promo', 'error')
+        }
         setShowDeleteModal(false); setSelectedPromo(null)
     }
 

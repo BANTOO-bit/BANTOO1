@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import settingsService, { haversineDistance } from './settingsService'
 import logger from '../utils/logger'
 
 /**
@@ -140,7 +141,7 @@ export const merchantService = {
                     id, name, category, rating, rating_count,
                     delivery_time, delivery_fee, distance,
                     is_open, has_promo, image:image_url, address, phone,
-                    description, created_at
+                    description, created_at, latitude, longitude
                 `)
                 .eq('id', id)
                 .single()
@@ -264,7 +265,6 @@ export const merchantService = {
                 .eq('status', 'approved')
 
             if (error) throw error
-            if (error) throw error
             const categories = [...new Set((data || []).map(m => m.category))]
             this._setCache('categories', categories)
             return categories
@@ -275,29 +275,53 @@ export const merchantService = {
     },
 
     /**
-     * Calculate delivery fee based on distance
-     */
+ * Calculate delivery fee based on distance using tier config
+ * Uses OSRM for real road distance, falls back to haversine × 1.3
+ * @param {string} merchantId - Merchant ID
+ * @param {number} userLat - Customer latitude
+ * @param {number} userLng - Customer longitude
+ * @returns {Promise<Object>} { totalFee, adminFee, driverNet, distance, tierLabel, outOfRange, routeCoords, duration }
+ */
     async getDeliveryFee(merchantId, userLat, userLng) {
         try {
-            // Try to get from backend
-            const { data, error } = await supabase
-                .rpc('calculate_delivery_fee', {
-                    p_merchant_id: merchantId,
-                    p_user_lat: userLat,
-                    p_user_lng: userLng
-                })
-
-            if (error) throw error
-            return data || 8000
-        } catch {
-            // Fallback: base fee + distance-based calculation
-            // Base: Rp 5.000 + Rp 2.000 per km (estimated from merchant data)
+            // 1. Get merchant location
             const merchant = await this.getMerchantById(merchantId)
-            if (merchant?.distance) {
-                const distanceKm = parseFloat(merchant.distance) || 1
-                return Math.round(5000 + (distanceKm * 2000))
+            const merchantLat = merchant?.latitude || merchant?.lat
+            const merchantLng = merchant?.longitude || merchant?.lng
+
+            // 2. Calculate road distance via OSRM
+            let distanceKm = 1 // Default 1km if no coordinates
+            let routeCoords = null
+            let duration = null
+
+            if (merchantLat && merchantLng && userLat && userLng) {
+                try {
+                    const { getRoute } = await import('./routingService')
+                    const route = await getRoute([merchantLat, merchantLng], [userLat, userLng])
+                    distanceKm = route.distance
+                    routeCoords = route.routeCoords
+                    duration = route.duration
+                } catch {
+                    // Fallback to haversine × 1.3 if OSRM import/call fails
+                    const straightLine = haversineDistance(merchantLat, merchantLng, userLat, userLng)
+                    distanceKm = straightLine * 1.3
+                }
+            } else if (merchant?.distance) {
+                distanceKm = parseFloat(merchant.distance) || 1
             }
-            return 8000
+
+            // 3. Get tier config from settings
+            const tiersConfig = await settingsService.getDeliveryFeeTiers()
+
+            // 4. Calculate fee from tier
+            const feeResult = settingsService.calculateFeeFromTiers(distanceKm, tiersConfig)
+
+            // 5. Attach route data for map display
+            return { ...feeResult, routeCoords, duration }
+        } catch (err) {
+            console.error('Error calculating delivery fee:', err)
+            // Fallback: use default tiers with 1km distance
+            return settingsService.calculateFeeFromTiers(1, null)
         }
     },
 
@@ -587,18 +611,32 @@ export const merchantService = {
     },
 
     /**
-     * Request withdrawal
+     * Request withdrawal (with balance check and validation)
      */
     async requestWithdrawal(amount, bankDetails) {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('Not authenticated')
 
+            const parsedAmount = parseInt(amount)
+            if (!parsedAmount || parsedAmount <= 0) throw new Error('Nominal penarikan tidak valid')
+            if (parsedAmount < 10000) throw new Error('Minimum penarikan adalah Rp 10.000')
+            if (parsedAmount > 10000000) throw new Error('Maksimum penarikan adalah Rp 10.000.000')
+
+            // Check merchant balance before allowing withdrawal
+            const merchantId = user.merchantId || (await supabase.from('merchants').select('id').eq('owner_id', user.id).single()).data?.id
+            if (merchantId) {
+                const balanceData = await this.getBalance(merchantId)
+                if (parsedAmount > balanceData.balance) {
+                    throw new Error('Saldo tidak mencukupi untuk penarikan ini')
+                }
+            }
+
             const { data, error } = await supabase
                 .from('withdrawals')
                 .insert({
                     user_id: user.id,
-                    amount: parseInt(amount),
+                    amount: parsedAmount,
                     bank_name: bankDetails.bankName,
                     bank_account_number: bankDetails.accountNumber,
                     bank_account_name: bankDetails.accountName,

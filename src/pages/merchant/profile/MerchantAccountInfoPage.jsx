@@ -136,7 +136,10 @@ function MerchantAccountInfoPage() {
                     <p className="text-xs text-center text-text-secondary dark:text-gray-500 px-4">
                         Informasi di atas hanya dapat diubah melalui verifikasi Admin untuk keamanan akun Anda.
                     </p>
-                    <button className="w-full py-4 bg-primary hover:bg-primary-dark active:scale-[0.99] transition-all text-white font-semibold rounded-2xl shadow-md flex items-center justify-center gap-2">
+                    <button
+                        onClick={() => window.open('https://wa.me/6281234567890?text=Halo%20Admin%20Bantoo!%20Saya%20butuh%20bantuan%20untuk%20akun%20merchant%20saya', '_blank')}
+                        className="w-full py-4 bg-primary hover:bg-primary-dark active:scale-[0.99] transition-all text-white font-semibold rounded-2xl shadow-md flex items-center justify-center gap-2"
+                    >
                         <span className="material-symbols-outlined text-[20px]">support_agent</span>
                         Hubungi Admin
                     </button>

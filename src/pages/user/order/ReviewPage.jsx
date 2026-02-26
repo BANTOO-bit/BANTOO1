@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import BackButton from '../../../components/shared/BackButton'
 import { useToast } from '../../../context/ToastContext'
-import { handleSuccess, handleWarning } from '../../../utils/errorHandler'
+import { reviewService } from '../../../services/reviewService'
+import orderService from '../../../services/orderService'
+import { handleError } from '../../../utils/errorHandler'
 
 // Preset review tags
 const reviewTags = [
@@ -23,10 +25,9 @@ function StarRating({ rating, setRating, size = 'lg' }) {
                 <button
                     key={star}
                     onClick={() => setRating(star)}
-                    className={`${starSize} transition - transform active: scale - 110`}
+                    className={`${starSize} transition-transform active:scale-110`}
                 >
-                    <span className={`material - symbols - outlined ${star <= rating ? 'text-yellow-400' : 'text-gray-300'
-                        } `} style={{ fontVariationSettings: star <= rating ? "'FILL' 1" : "'FILL' 0" }}>
+                    <span className={`material-symbols-outlined ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`} style={{ fontVariationSettings: star <= rating ? "'FILL' 1" : "'FILL' 0" }}>
                         star
                     </span>
                 </button>
@@ -46,12 +47,42 @@ function ReviewPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
 
-    // Try to get order from review order (set from history) or current order (set from tracking)
-    const order = JSON.parse(
-        localStorage.getItem('bantoo_review_order') ||
-        localStorage.getItem('bantoo_current_order') ||
-        '{}'
-    )
+    // Fetch order data from API when orderId is available
+    const [order, setOrder] = useState({})
+
+    useEffect(() => {
+        async function fetchOrder() {
+            if (orderId) {
+                try {
+                    const data = await orderService.getOrder(orderId)
+                    if (data) {
+                        setOrder({
+                            id: data.id,
+                            merchantName: data.merchant?.name || 'Restoran',
+                            merchantId: data.merchant_id
+                        })
+                    }
+                } catch (err) {
+                    // Fallback to localStorage if API fails
+                    const stored = JSON.parse(
+                        localStorage.getItem('bantoo_review_order') ||
+                        localStorage.getItem('bantoo_current_order') ||
+                        '{}'
+                    )
+                    setOrder(stored)
+                }
+            } else {
+                // Fallback to localStorage for backward compat
+                const stored = JSON.parse(
+                    localStorage.getItem('bantoo_review_order') ||
+                    localStorage.getItem('bantoo_current_order') ||
+                    '{}'
+                )
+                setOrder(stored)
+            }
+        }
+        fetchOrder()
+    }, [orderId])
 
     const toggleTag = (tagId) => {
         setSelectedTags(prev =>
@@ -61,59 +92,44 @@ function ReviewPage() {
         )
     }
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (merchantRating === 0) {
             toast.warning('Mohon beri rating untuk restoran')
             return
         }
+        if (isSubmitting) return
 
         setIsSubmitting(true)
 
-        // Simulate API call
-        setTimeout(() => {
-            // Save review to localStorage
-            const reviews = JSON.parse(localStorage.getItem('bantoo_reviews') || '[]')
-            reviews.push({
-                orderId: order.id,
-                merchantName: order.merchantName,
+        try {
+            const reviewOrderId = orderId || order.id || order.dbId
+            if (!reviewOrderId) {
+                toast.error('ID pesanan tidak ditemukan')
+                setIsSubmitting(false)
+                return
+            }
+
+            await reviewService.createReview({
+                orderId: reviewOrderId,
                 merchantRating,
-                driverRating,
-                reviewText,
-                tags: selectedTags,
-                createdAt: new Date().toISOString()
+                driverRating: driverRating || null,
+                comment: reviewText || null,
+                tags: selectedTags.length > 0 ? selectedTags : null
             })
-            localStorage.setItem('bantoo_reviews', JSON.stringify(reviews))
 
-            // Update order status to hasReview: true in bantoo_orders
-            const savedOrders = JSON.parse(localStorage.getItem('bantoo_orders') || '[]')
-            const updatedOrders = savedOrders.map(o => {
-                if (String(o.id) === String(order.id)) {
-                    return { ...o, hasReview: true }
-                }
-                return o
-            })
-            localStorage.setItem('bantoo_orders', JSON.stringify(updatedOrders))
-
-            // Should also update view order if it exists
-            const viewOrder = JSON.parse(localStorage.getItem('bantoo_view_order') || '{}')
-            if (String(viewOrder.id) === String(order.id)) {
-                localStorage.setItem('bantoo_view_order', JSON.stringify({ ...viewOrder, hasReview: true }))
-            }
-
-            // Also update current order if it matches
-            const currentOrder = JSON.parse(localStorage.getItem('bantoo_current_order') || '{}')
-            if (String(currentOrder.id) === String(order.id)) {
-                localStorage.setItem('bantoo_current_order', JSON.stringify({ ...currentOrder, hasReview: true }))
-            }
+            // Clean up localStorage
+            localStorage.removeItem('bantoo_review_order')
 
             setIsSubmitting(false)
             setShowSuccess(true)
 
-            // Navigate to home after delay
             setTimeout(() => {
                 navigate('/orders')
             }, 2000)
-        }, 1000)
+        } catch (error) {
+            handleError(error, toast, { context: 'Submit Review' })
+            setIsSubmitting(false)
+        }
     }
 
     if (showSuccess) {
@@ -181,10 +197,10 @@ function ReviewPage() {
                             <button
                                 key={tag.id}
                                 onClick={() => toggleTag(tag.id)}
-                                className={`px - 3 py - 2 rounded - full text - sm font - medium transition - all flex items - center gap - 1 ${selectedTags.includes(tag.id)
+                                className={`px-3 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${selectedTags.includes(tag.id)
                                     ? 'bg-primary text-white'
                                     : 'bg-gray-100 text-text-main'
-                                    } `}
+                                    }`}
                             >
                                 <span>{tag.icon}</span>
                                 <span>{tag.label}</span>
@@ -210,10 +226,10 @@ function ReviewPage() {
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting || merchantRating === 0}
-                    className={`w - full py - 4 rounded - 2xl font - bold text - white shadow - lg transition - all ${isSubmitting || merchantRating === 0
+                    className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all ${isSubmitting || merchantRating === 0
                         ? 'bg-gray-400'
                         : 'bg-primary active:scale-[0.98]'
-                        } `}
+                        }`}
                 >
                     {isSubmitting ? 'Mengirim...' : 'Kirim Ulasan'}
                 </button>

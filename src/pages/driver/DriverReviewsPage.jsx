@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import driverService from '../../services/driverService'
 import { reviewService } from '../../services/reviewService'
+import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
 
 function DriverReviewsPage() {
     const navigate = useNavigate()
@@ -152,6 +153,8 @@ function DriverReviewsPage() {
                         )}
                     </div>
                 </main>
+
+                <DriverBottomNavigation />
             </div>
         </div>
     )

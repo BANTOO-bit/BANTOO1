@@ -40,18 +40,18 @@ function MenuCard({ item }) {
                 <h3 className="text-sm font-semibold text-text-main truncate">{item.name}</h3>
                 <p className="text-[10px] text-text-secondary truncate mt-0.5">{item.merchantName}</p>
                 <div className="flex items-center justify-between mt-auto pt-2">
-                    <span className="text-sm font-bold text-primary">
-                        Rp {item.price.toLocaleString().replace(',', '.')}
+                    <span className="text-xs font-bold text-primary whitespace-nowrap mr-1">
+                        Rp {item.price.toLocaleString('id-ID')}
                     </span>
                     {quantity === 0 ? (
                         <button
                             onClick={handleAdd}
-                            className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-md active:scale-95 transition-transform"
+                            className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-md active:scale-95 transition-transform shrink-0"
                         >
                             <span className="material-symbols-outlined text-[16px] font-bold">add</span>
                         </button>
                     ) : (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                             <button
                                 onClick={handleDecrease}
                                 className="w-6 h-6 rounded-full bg-gray-100 text-text-main flex items-center justify-center active:scale-95 transition-transform"

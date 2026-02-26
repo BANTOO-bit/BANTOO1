@@ -81,7 +81,7 @@ function DriverEarningsPage() {
                         method_color: isCOD ? 'text-orange-600' : 'text-purple-700',
                         method_icon_color: isCOD ? 'text-orange-500' : 'text-purple-600',
                         total_cod: o.total_amount,
-                        admin_fee: o.service_fee || Math.round(o.total_amount * 0.01),
+                        admin_fee: o.service_fee || 0,
                         delivery_fee: o.delivery_fee
                     }
                 })
@@ -164,8 +164,8 @@ function DriverEarningsPage() {
         if (filteredTransactions.length === 0) {
             return { driver: 0, codFee: 0 }
         }
-        const driverIncome = filteredTransactions.reduce((acc, curr) => acc + (curr.delivery_fee != null ? curr.delivery_fee : 0), 0)
-        const codFee = filteredTransactions.reduce((acc, curr) => acc + curr.admin_fee, 0)
+        const driverIncome = filteredTransactions.reduce((acc, curr) => acc + ((curr.delivery_fee || 0) - (curr.admin_fee || 0)), 0)
+        const codFee = filteredTransactions.reduce((acc, curr) => acc + (curr.admin_fee || 0), 0)
         return { driver: driverIncome, codFee: codFee }
     }, [filteredTransactions])
 
@@ -272,7 +272,7 @@ function DriverEarningsPage() {
                                 {filteredTransactions.map((trx, index) => (
                                     <div
                                         key={index}
-                                        onClick={() => navigate(`/driver/earnings/transaction/${trx.id}`)}
+                                        onClick={() => navigate(`/driver/earnings/transaction/${trx.fullId}`)}
                                         className="flex flex-col bg-white rounded-xl p-4 shadow-sm border border-slate-100 cursor-pointer hover:border-blue-200 transition-colors"
                                     >
                                         <div className="flex justify-between items-start mb-2">

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../services/supabaseClient'
 import { useToast } from '../../../context/ToastContext'
 import { handleError, handleSuccess } from '../../../utils/errorHandler'
-import { validateForm, hasErrors, menuItemSchema } from '../../../utils/validation'
+import { validateForm, hasErrors, menuItemSchema, formatPriceDisplay, parsePriceToNumber } from '../../../utils/validation'
 import ConfirmationModal from '../../../components/shared/ConfirmationModal'
 
 function MerchantEditMenuPage() {
@@ -70,7 +70,7 @@ function MerchantEditMenuPage() {
                 setFormData({
                     name: data.name,
                     category: data.category,
-                    price: data.price.toString(),
+                    price: formatPriceDisplay(data.price),
                     description: data.description || '',
                     isAvailable: data.is_available
                 })
@@ -98,6 +98,15 @@ function MerchantEditMenuPage() {
         }
     }
 
+    const handlePriceChange = (e) => {
+        const rawValue = e.target.value
+        const formatted = formatPriceDisplay(rawValue)
+        setFormData(prev => ({ ...prev, price: formatted }))
+        if (errors.price) {
+            setErrors(prev => ({ ...prev, price: null }))
+        }
+    }
+
     const handleToggle = () => {
         setFormData(prev => ({ ...prev, isAvailable: !prev.isAvailable }))
     }
@@ -121,6 +130,7 @@ function MerchantEditMenuPage() {
     }
 
     const handleSubmit = async () => {
+        if (isSaving) return // prevent double submit
         // Validation
         const validationErrors = validateForm(formData, menuItemSchema)
         if (hasErrors(validationErrors)) {
@@ -132,7 +142,7 @@ function MerchantEditMenuPage() {
 
         try {
             // Prepare update data
-            let finalImage = previewImage
+            let finalImage = originalImage // Use original URL, not previewImage which could be base64
 
             // If a new file is selected, upload it
             if (imageFile) {
@@ -144,11 +154,11 @@ function MerchantEditMenuPage() {
             const updates = {
                 name: formData.name,
                 category: formData.category,
-                price: parseInt(formData.price),
+                price: parsePriceToNumber(formData.price),
                 description: formData.description,
                 is_available: formData.isAvailable,
                 image_url: finalImage,
-                updated_at: new Date()
+                updated_at: new Date().toISOString()
             }
 
             const { error } = await supabase
@@ -367,10 +377,11 @@ function MerchantEditMenuPage() {
                             <input
                                 name="price"
                                 value={formData.price}
-                                onChange={handleChange}
+                                onChange={handlePriceChange}
                                 className={`w-full rounded-xl bg-white dark:bg-card-dark border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary pl-10 pr-4 py-3 text-sm text-text-main dark:text-white shadow-sm transition-all ${errors.price ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                                 placeholder="0"
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                             />
                             {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
                         </div>

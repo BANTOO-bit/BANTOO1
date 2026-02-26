@@ -53,9 +53,10 @@ export function CartProvider({ children }) {
         }
     }, [merchantInfo])
 
-    const addToCart = (item, merchant) => {
-        // No merchant restriction - allow items from multiple merchants
+    // Merchant switch dialog state
+    const [switchDialog, setSwitchDialog] = useState(null) // { item, merchant, currentMerchant, newMerchant }
 
+    const _doAddItem = (item, merchant) => {
         setCartItems(prev => {
             const existingIndex = prev.findIndex(i => i.id === item.id)
             if (existingIndex >= 0) {
@@ -66,7 +67,6 @@ export function CartProvider({ children }) {
                 }
                 return updated
             }
-            // Include merchant info with each item
             return [...prev, {
                 ...item,
                 quantity: 1,
@@ -75,8 +75,35 @@ export function CartProvider({ children }) {
                 merchantName: merchant?.name || item.merchantName
             }]
         })
+        if (merchant) setMerchantInfo(merchant)
+    }
 
+    const addToCart = (item, merchant) => {
+        // Multi-merchant guard: show dialog if switching merchants
+        const currentMerchantId = cartItems.length > 0 ? cartItems[0]?.merchantId : null
+        const newMerchantId = merchant?.id || item?.merchantId
+        if (currentMerchantId && newMerchantId && currentMerchantId !== newMerchantId) {
+            setSwitchDialog({
+                item, merchant,
+                currentMerchant: merchantInfo?.name || cartItems[0]?.merchantName || 'merchant lain',
+                newMerchant: merchant?.name || item?.merchantName || 'merchant baru'
+            })
+            return { success: false, requiresClear: true }
+        }
+        _doAddItem(item, merchant)
         return { success: true }
+    }
+
+    const confirmSwitchMerchant = () => {
+        if (switchDialog) {
+            clearCart()
+            _doAddItem(switchDialog.item, switchDialog.merchant)
+            setSwitchDialog(null)
+        }
+    }
+
+    const cancelSwitchMerchant = () => {
+        setSwitchDialog(null)
     }
 
     const removeFromCart = (itemId) => {
@@ -129,17 +156,25 @@ export function CartProvider({ children }) {
     const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 
-    // Dynamic delivery fee: use override if set, otherwise calculate from merchant distance
-    const baseDeliveryFee = cartItems.length > 0 ? 8000 : 0
-    const deliveryFee = deliveryFeeOverride !== null ? deliveryFeeOverride : baseDeliveryFee
+    // Dynamic delivery fee: use override if set, otherwise use first-tier default
+    // The actual fee comes from calculateDeliveryFee() which uses Distance Tier Model from admin panel
+    const baseDeliveryFee = cartItems.length > 0 ? 3500 : 0
+    const [deliveryFeeDetails, setDeliveryFeeDetails] = useState(null)
 
-    // Calculate delivery fee from merchant 
+    // Extract numeric fee for backward compatibility
+    const deliveryFee = deliveryFeeDetails
+        ? deliveryFeeDetails.totalFee
+        : (deliveryFeeOverride !== null ? deliveryFeeOverride : baseDeliveryFee)
+
+    // Calculate delivery fee from merchant
     const calculateDeliveryFee = useCallback(async (merchantId, userLat, userLng) => {
         if (!merchantId) return
         setDeliveryFeeLoading(true)
         try {
-            const fee = await merchantService.getDeliveryFee(merchantId, userLat, userLng)
-            setDeliveryFeeOverride(fee)
+            const feeResult = await merchantService.getDeliveryFee(merchantId, userLat, userLng)
+            // feeResult = { totalFee, adminFee, driverNet, distance, tierLabel, outOfRange }
+            setDeliveryFeeDetails(feeResult)
+            setDeliveryFeeOverride(feeResult.totalFee)
         } catch {
             // Keep current fee on error
         } finally {
@@ -148,7 +183,13 @@ export function CartProvider({ children }) {
     }, [])
 
     const setDeliveryFee = useCallback((fee) => {
-        setDeliveryFeeOverride(fee)
+        if (typeof fee === 'object' && fee.totalFee !== undefined) {
+            setDeliveryFeeDetails(fee)
+            setDeliveryFeeOverride(fee.totalFee)
+        } else {
+            setDeliveryFeeOverride(fee)
+            setDeliveryFeeDetails(null)
+        }
     }, [])
 
     const value = {
@@ -158,6 +199,7 @@ export function CartProvider({ children }) {
         cartTotal,
         cartCount,
         deliveryFee,
+        deliveryFeeDetails,
         deliveryFeeLoading,
         grandTotal: cartTotal + deliveryFee,
         addToCart,
@@ -171,11 +213,46 @@ export function CartProvider({ children }) {
         setMerchantInfo,
         setDeliveryFee,
         calculateDeliveryFee,
+        switchDialog,
+        confirmSwitchMerchant,
+        cancelSwitchMerchant,
     }
 
     return (
         <CartContext.Provider value={value}>
             {children}
+
+            {/* Merchant Switch Confirmation Dialog */}
+            {switchDialog && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-amber-600">swap_horiz</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Ganti Merchant?</h3>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+                            Keranjang Anda berisi pesanan dari <strong>{switchDialog.currentMerchant}</strong>.
+                            Ganti ke <strong>{switchDialog.newMerchant}</strong> akan menghapus keranjang saat ini.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={cancelSwitchMerchant}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={confirmSwitchMerchant}
+                                className="flex-1 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:opacity-90 transition-colors"
+                            >
+                                Ya, Ganti
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </CartContext.Provider>
     )
 }

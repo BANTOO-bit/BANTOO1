@@ -60,27 +60,31 @@ export const dashboardService = {
             today.setHours(0, 0, 0, 0)
             const todayISO = today.toISOString()
 
-            // Get driver's completed orders for today
+            // Get driver's completed orders for today (include service_fee for actual admin fee)
             const { data: orders, error: ordersError } = await supabase
                 .from('orders')
-                .select('id, delivery_fee, payment_method, status, created_at')
+                .select('id, delivery_fee, service_fee, payment_method, status, created_at')
                 .eq('driver_id', driverId)
                 .eq('status', 'completed')
                 .gte('created_at', todayISO)
 
             if (ordersError) throw ordersError
 
-            // Calculate earnings
-            const totalDeliveryFee = orders?.reduce((sum, order) => sum + (order.delivery_fee || 0), 0) || 0
+            // Calculate driver NET income (delivery_fee - service_fee)
+            const todayIncome = orders?.reduce((sum, order) => {
+                const fee = order.delivery_fee || 0
+                const adminFee = order.service_fee || 0
+                return sum + (fee - adminFee)
+            }, 0) || 0
 
-            // COD fee (assume 2% of delivery fee for COD orders)
+            // COD admin fee: actual service_fee from COD orders (this stays with driver, must be deposited)
             const codOrders = orders?.filter(o => o.payment_method === 'cod') || []
-            const codFee = codOrders.reduce((sum, order) => sum + (order.delivery_fee * 0.02), 0)
+            const codFee = codOrders.reduce((sum, order) => sum + (order.service_fee || 0), 0)
 
             const completedCount = orders?.length || 0
 
             return {
-                todayIncome: totalDeliveryFee,
+                todayIncome,
                 codFee,
                 completedOrders: completedCount
             }

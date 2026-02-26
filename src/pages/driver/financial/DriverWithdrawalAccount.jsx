@@ -1,10 +1,37 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
+import { driverService } from '../../../services/driverService'
 
 function DriverWithdrawalAccount() {
     const navigate = useNavigate()
-    const [selectedAccount, setSelectedAccount] = useState('bca')
+    const [selectedAccount, setSelectedAccount] = useState(null)
+    const [accounts, setAccounts] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        async function loadAccounts() {
+            try {
+                const data = await driverService.getBankDetails()
+                if (data && data.bank_name) {
+                    const acc = {
+                        id: 'primary',
+                        name: data.bank_name,
+                        number: data.bank_account_number || '-',
+                        holder: data.bank_account_name || '-',
+                        isPrimary: true
+                    }
+                    setAccounts([acc])
+                    setSelectedAccount('primary')
+                }
+            } catch (err) {
+                if (import.meta.env.DEV) console.error('Failed to load accounts:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadAccounts()
+    }, [])
 
     const handleSelect = (id) => {
         setSelectedAccount(id)
@@ -48,66 +75,60 @@ function DriverWithdrawalAccount() {
                             </div>
 
                             <div className="flex flex-col gap-3">
-                                {/* Account 1: BCA */}
-                                <label className={`relative flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedAccount === 'bca'
-                                        ? 'border-[#0d59f2] bg-blue-50/40'
-                                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                                    }`}>
-                                    <input
-                                        type="radio"
-                                        name="account_select"
-                                        className="peer sr-only"
-                                        checked={selectedAccount === 'bca'}
-                                        onChange={() => handleSelect('bca')}
-                                    />
-                                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#0d59f2] shrink-0 mr-4 shadow-sm ring-1 ring-slate-100">
-                                        <span className="material-symbols-outlined">account_balance</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-sm font-bold text-slate-900">Bank BCA</p>
-                                            <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Utama</span>
+                                {loading ? (
+                                    [1, 2].map(i => (
+                                        <div key={i} className="flex items-center p-4 rounded-2xl border border-slate-200 animate-pulse">
+                                            <div className="w-12 h-12 rounded-full bg-slate-200 mr-4"></div>
+                                            <div className="flex-1">
+                                                <div className="h-4 bg-slate-200 rounded w-24 mb-2"></div>
+                                                <div className="h-3 bg-slate-200 rounded w-36"></div>
+                                            </div>
                                         </div>
-                                        <p className="text-xs font-medium text-slate-500 mt-0.5">Budi Santoso • **** 0921</p>
+                                    ))
+                                ) : accounts.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center text-slate-400">
+                                        <span className="material-symbols-outlined text-[48px] mb-2 opacity-50">credit_card_off</span>
+                                        <p className="text-sm">Belum ada rekening tersimpan</p>
                                     </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all bg-white ${selectedAccount === 'bca'
-                                            ? 'border-[#0d59f2] bg-[#0d59f2]'
-                                            : 'border-slate-300'
-                                        }`}>
-                                        <span className={`material-symbols-outlined text-white text-[16px] font-bold ${selectedAccount === 'bca' ? 'opacity-100' : 'opacity-0'}`}>check</span>
-                                    </div>
-                                </label>
-
-                                {/* Account 2: DANA */}
-                                <label className={`relative flex items-center p-4 rounded-2xl border cursor-pointer transition-all ${selectedAccount === 'dana'
-                                        ? 'border-[#0d59f2] bg-blue-50/40 border-2'
-                                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                                    }`}>
-                                    <input
-                                        type="radio"
-                                        name="account_select"
-                                        className="peer sr-only"
-                                        checked={selectedAccount === 'dana'}
-                                        onChange={() => handleSelect('dana')}
-                                    />
-                                    <div className="w-12 h-12 rounded-full bg-sky-50 flex items-center justify-center text-sky-500 shrink-0 mr-4 shadow-sm ring-1 ring-slate-100">
-                                        <span className="material-symbols-outlined">account_balance_wallet</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-bold text-slate-900">Dompet DANA</p>
-                                        <p className="text-xs font-medium text-slate-500 mt-0.5">Budi Santoso • 0812 9988 7766</p>
-                                    </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all bg-white ${selectedAccount === 'dana'
-                                            ? 'border-[#0d59f2] bg-[#0d59f2]'
-                                            : 'border-slate-300'
-                                        }`}>
-                                        <span className={`material-symbols-outlined text-white text-[16px] font-bold ${selectedAccount === 'dana' ? 'opacity-100' : 'opacity-0'}`}>check</span>
-                                    </div>
-                                </label>
+                                ) : (
+                                    accounts.map(acc => (
+                                        <label key={acc.id} className={`relative flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedAccount === acc.id
+                                            ? 'border-[#0d59f2] bg-blue-50/40'
+                                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                                            }`}>
+                                            <input
+                                                type="radio"
+                                                name="account_select"
+                                                className="peer sr-only"
+                                                checked={selectedAccount === acc.id}
+                                                onChange={() => handleSelect(acc.id)}
+                                            />
+                                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#0d59f2] shrink-0 mr-4 shadow-sm ring-1 ring-slate-100">
+                                                <span className="material-symbols-outlined">account_balance</span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-bold text-slate-900">{acc.name}</p>
+                                                    {acc.isPrimary && <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Utama</span>}
+                                                </div>
+                                                <p className="text-xs font-medium text-slate-500 mt-0.5">{acc.holder} • {acc.number.slice(-4).padStart(acc.number.length, '*')}</p>
+                                            </div>
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all bg-white ${selectedAccount === acc.id
+                                                ? 'border-[#0d59f2] bg-[#0d59f2]'
+                                                : 'border-slate-300'
+                                                }`}>
+                                                <span className={`material-symbols-outlined text-white text-[16px] font-bold ${selectedAccount === acc.id ? 'opacity-100' : 'opacity-0'}`}>check</span>
+                                            </div>
+                                        </label>
+                                    ))
+                                )}
 
                                 <div className="h-px bg-slate-100 my-1"></div>
 
-                                <button className="flex items-center gap-4 p-2 rounded-xl text-left group hover:bg-slate-50 transition-colors -mx-2 px-4">
+                                <button
+                                    onClick={() => navigate('/driver/bank/add')}
+                                    className="flex items-center gap-4 p-2 rounded-xl text-left group hover:bg-slate-50 transition-colors -mx-2 px-4"
+                                >
                                     <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-[#0d59f2] group-hover:text-[#0d59f2] transition-colors bg-slate-50">
                                         <span className="material-symbols-outlined">add</span>
                                     </div>

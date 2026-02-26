@@ -62,36 +62,10 @@ function AllCategoriesPage() {
     useEffect(() => {
         async function fetchCategories() {
             try {
-                // 1. Get unique category names from DB (active categories)
-                const dbCategories = await merchantService.getCategories()
-
-                // 2. Start with standard categories (from Metadata)
-                // We want to show these even if no merchants are active yet (to match UI design)
-                const combinedCategories = [...categoryMetadata]
-
-                // 3. Add any NEW categories from DB that aren't in metadata
-                dbCategories.forEach(catName => {
-                    // Skip if DB returned a null/undefined category name somehow
-                    if (!catName) return;
-
-                    const isKnown = categoryMetadata.some(
-                        m => m.name?.toLowerCase() === catName?.toLowerCase()
-                    )
-
-                    if (!isKnown) {
-                        const safeName = String(catName);
-                        combinedCategories.push({
-                            id: safeName.toLowerCase().replace(/\s+/g, '-'),
-                            name: safeName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-                            icon: 'restaurant' // Default icon for unknown categories
-                        })
-                    }
-                })
-
-                setActiveCategories(combinedCategories)
+                // Only show predefined categories (don't merge dynamic/custom merchant categories)
+                setActiveCategories(categoryMetadata)
             } catch (error) {
                 handleError(error, toast, { context: 'Fetch kategori' })
-                // Fallback: still show standard categories even if DB fails
                 setActiveCategories(categoryMetadata)
             } finally {
                 setIsLoading(false)
@@ -131,7 +105,7 @@ function AllCategoriesPage() {
                     >
                         <span className="material-symbols-outlined">shopping_cart</span>
                         {cartItemCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                                 {cartItemCount > 99 ? '99+' : cartItemCount}
                             </span>
                         )}
@@ -179,12 +153,16 @@ function AllCategoriesPage() {
                                 <span className="material-symbols-outlined text-4xl text-gray-400">search_off</span>
                             </div>
                             <h3 className="font-bold text-text-main mb-1">Kategori tidak ditemukan</h3>
-                            <p className="text-sm text-text-secondary text-center">
-                                {activeCategories.length === 0
-                                    ? "Belum ada merchant yang aktif saat ini."
-                                    : "Coba kata kunci lain"
-                                }
+                            <p className="text-sm text-text-secondary text-center mb-4">
+                                Tidak ada kategori "{debouncedSearch}"
                             </p>
+                            <button
+                                onClick={() => navigate(`/search?q=${encodeURIComponent(debouncedSearch)}`)}
+                                className="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-md active:scale-95 transition-transform flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-lg">search</span>
+                                Cari Menu "{debouncedSearch}"
+                            </button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-4 gap-y-6 gap-x-2">

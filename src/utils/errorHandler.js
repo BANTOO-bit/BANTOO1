@@ -39,6 +39,15 @@ const ERROR_MESSAGES = {
     'Merchant closed': 'Warung sedang tutup.',
     'Out of stock': 'Stok habis.',
 
+    // COD & Wallet errors
+    'cod_limit_exceeded': 'Fee COD telah melebihi batas. Segera lakukan setoran.',
+    'deposit_rejected': 'Setoran ditolak oleh admin. Periksa bukti transfer.',
+    'driver_suspended': 'Akun Anda di-suspend karena fee COD. Setor untuk mengaktifkan kembali.',
+    'Fitur penarikan belum aktif': 'Fitur penarikan belum aktif. Hubungi admin.',
+    'Maksimum penarikan': 'Maksimum penarikan adalah Rp 10.000.000 per transaksi.',
+    'Minimal setoran': 'Minimal setoran adalah Rp 1.000.',
+    'Maksimal setoran': 'Maksimal setoran adalah Rp 10.000.000.',
+
     // Default
     'default': 'Terjadi kesalahan. Silakan coba lagi.'
 }

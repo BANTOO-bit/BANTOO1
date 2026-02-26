@@ -39,7 +39,14 @@ export default function AdminUserDetailPage() {
                 .limit(5)
 
             setRecentOrders(ordersData || [])
-            setTotalSpent(ordersData?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0)
+
+            // Calculate total spent from ALL orders, not just the last 5
+            const { data: allOrdersData } = await supabase
+                .from('orders')
+                .select('total_amount')
+                .eq('customer_id', id)
+                .in('status', ['completed', 'delivered'])
+            setTotalSpent(allOrdersData?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0)
         } catch (err) {
             console.error('Error fetching user:', err)
             setError('Gagal memuat data pengguna')

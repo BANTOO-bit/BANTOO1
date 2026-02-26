@@ -18,10 +18,19 @@ function DriverDeliveryOrder() {
     const { orderId } = useParams()
     const { user } = useAuth()
     const { activeOrder, setActiveOrder, loading } = useOrder()
-    const { orders } = useOrder()
     const toast = useToast()
     const [isConfirming, setIsConfirming] = useState(false)
     const [showIssueModal, setShowIssueModal] = useState(false)
+
+    // Wake Lock to keep screen awake
+    const { requestWakeLock } = useWakeLock({
+        onVisibilityChangeWarning: () => {
+            toast.warning('Aplikasi berjalan di latar. Mohon jaga layar tetap menyala agar GPS akurat.', {
+                duration: 6000,
+                icon: 'screen_lock_portrait'
+            });
+        }
+    });
 
     const hasArrived = activeOrder?.hasArrivedAtCustomer || false
     const handleArriveAtCustomer = () => {
@@ -43,6 +52,22 @@ function DriverDeliveryOrder() {
         }
     }, [activeOrder, loading, navigate])
 
+    useEffect(() => {
+        // Automatically request wake lock when entering delivery mode
+        requestWakeLock();
+    }, []);
+
+    // Start broadcasting GPS location for live tracking
+    useEffect(() => {
+        const currentOrderId = activeOrder?.id || activeOrder?.dbId
+        if (currentOrderId) {
+            const handle = startBroadcastingLocation(currentOrderId, user?.id)
+            return () => {
+                handle.stop()
+            }
+        }
+    }, [activeOrder?.id, activeOrder?.dbId, user?.id])
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center bg-white">
@@ -59,44 +84,19 @@ function DriverDeliveryOrder() {
     // Data Access Helpers
     const customerName = activeOrder.customer?.full_name || activeOrder.customerName || 'Pelanggan'
     const customerAddress = activeOrder.delivery_address || activeOrder.customerAddress || ''
+    const customerPhone = activeOrder.customer?.phone || activeOrder.customerPhone || null
     const merchantCoords = activeOrder.merchant?.latitude && activeOrder.merchant?.longitude
         ? [activeOrder.merchant.latitude, activeOrder.merchant.longitude]
         : (activeOrder.merchantCoords || [-7.0747, 110.8767])
 
     // Attempt to parse lat/lng from order if available directly, or fallback
-    const customerCoords = activeOrder.latitude && activeOrder.longitude
-        ? [activeOrder.latitude, activeOrder.longitude]
+    const customerCoords = activeOrder.customer_lat && activeOrder.customer_lng
+        ? [activeOrder.customer_lat, activeOrder.customer_lng]
         : (activeOrder.customerCoords || [-6.2250, 106.8500])
 
     const paymentMethod = activeOrder.payment_method || activeOrder.paymentMethod
     const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
     const isCOD = paymentMethod === 'COD' || paymentMethod === 'cod'
-
-    // Wake Lock to keep screen awake
-    const { requestWakeLock } = useWakeLock({
-        onVisibilityChangeWarning: () => {
-            toast.warning('Aplikasi berjalan di latar. Mohon jaga layar tetap menyala agar GPS akurat.', {
-                duration: 6000,
-                icon: 'screen_lock_portrait'
-            });
-        }
-    });
-
-    useEffect(() => {
-        // Automatically request wake lock when entering delivery mode
-        requestWakeLock();
-    }, []);
-
-    // Start broadcasting GPS location for live tracking
-    useEffect(() => {
-        const orderId = activeOrder.id || activeOrder.dbId
-        if (orderId) {
-            const handle = startBroadcastingLocation(orderId, user?.id)
-            return () => {
-                handle.stop()
-            }
-        }
-    }, [activeOrder, user?.id])
 
     const handleConfirmDelivery = async () => {
         try {
@@ -135,13 +135,16 @@ function DriverDeliveryOrder() {
             // Update context
             setActiveOrder({ ...activeOrder, status: 'delivered' })
 
-            // Support both id and dbId
-            const orderId = activeOrder.id
+            // Support both id and dbId — use dbId (UUID) for API calls
+            const orderId = activeOrder.dbId || activeOrder.id
 
             // Navigate based on payment method
             if (isCOD) {
-                // COD: Go to payment confirmation (cash verification) -> RPC called there
-                navigate(`/driver/order/payment/${orderId}`)
+                // COD: Update status to 'delivered' first, then go to payment confirmation
+                const { driverService } = await import('../../../services/driverService')
+                await driverService.updateOrderStatus(orderId, 'delivered', lat, lng)
+
+                navigate('/driver/order/payment')
             } else {
                 // Wallet: Update status to delivered/completed via Driver Service
                 // This marks it as paid and done
@@ -149,7 +152,7 @@ function DriverDeliveryOrder() {
                 await driverService.updateOrderStatus(orderId, 'delivered', lat, lng)
 
                 // Wallet: Skip cash verification, go directly to completion
-                navigate(`/driver/order/complete/${orderId}`)
+                navigate('/driver/order/complete')
             }
         } catch (error) {
             console.error('Error confirming delivery:', error)
@@ -230,7 +233,9 @@ function DriverDeliveryOrder() {
 
                         {/* Action Buttons */}
                         <div className="flex gap-3 w-full items-center">
-                            <button className="w-12 h-12 flex-shrink-0 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors border border-blue-100">
+                            <button
+                                onClick={() => customerPhone && window.open(`tel:${customerPhone}`, '_self')}
+                                className="w-12 h-12 flex-shrink-0 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors border border-blue-100">
                                 <span className="material-symbols-outlined">call</span>
                             </button>
                             <button

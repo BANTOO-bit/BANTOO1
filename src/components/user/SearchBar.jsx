@@ -158,8 +158,9 @@ function SearchBar() {
     }
 
     const handleViewAll = () => {
+        const query = searchQuery
         handleClear()
-        navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
+        navigate(`/search?q=${encodeURIComponent(query)}`)
     }
 
     const totalResults = menuResults.length + merchantResults.length
