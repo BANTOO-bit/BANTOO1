@@ -161,6 +161,7 @@ function DriverAccountPage() {
 
                     {/* Ganti Akun (Role Switch) */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 pt-3 pb-1">Ganti Akun</p>
                         <button
                             onClick={async () => {
                                 try {
@@ -170,7 +171,7 @@ function DriverAccountPage() {
                                     if (import.meta.env.DEV) console.error('Failed to switch role:', err)
                                 }
                             }}
-                            className="w-full flex items-center justify-between p-4 hover:bg-green-50 transition-colors group border-b border-slate-100"
+                            className={`w-full flex items-center justify-between p-4 hover:bg-green-50 transition-colors group ${user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' ? 'border-b border-slate-100' : ''}`}
                         >
                             <div className="flex items-center gap-4">
                                 <div className="size-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
