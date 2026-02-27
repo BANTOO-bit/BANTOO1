@@ -4,6 +4,7 @@ import MerchantBottomNavigation from '../../../components/merchant/MerchantBotto
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
 import merchantService from '../../../services/merchantService'
+import orderService from '../../../services/orderService'
 import { APP_VERSION_STRING } from '../../../config/appConfig'
 
 function MerchantProfilePage() {
@@ -43,6 +44,39 @@ function MerchantProfilePage() {
             navigate('/login')
         } catch (error) {
             if (import.meta.env.DEV) console.error('Logout failed:', error)
+        }
+    }
+
+    // Safety check before switching role
+    const handleSwitchRole = async (targetRole, targetPath) => {
+        try {
+            // Check for active orders — block if found
+            if (user?.merchantId) {
+                const activeOrders = await orderService.getMerchantOrders(user.merchantId, ['pending', 'accepted', 'preparing', 'ready', 'pickup'])
+                if (activeOrders && activeOrders.length > 0) {
+                    toast.error(`Anda masih punya ${activeOrders.length} pesanan aktif. Selesaikan dulu sebelum pindah role.`)
+                    return
+                }
+            }
+
+            // No issues — proceed
+            await executeSwitchRole(targetRole, targetPath)
+        } catch (err) {
+            if (import.meta.env.DEV) console.error('Error checking before switch:', err)
+            toast.error('Terjadi kesalahan. Coba lagi.')
+        }
+    }
+
+    const executeSwitchRole = async (targetRole, targetPath) => {
+        try {
+            setSwitchingRole(targetRole)
+            await switchRole(targetRole)
+            navigate(targetPath, { replace: true })
+        } catch (err) {
+            if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+            toast.error(`Gagal pindah role. Coba lagi.`)
+        } finally {
+            setSwitchingRole(null)
         }
     }
 
@@ -244,18 +278,7 @@ function MerchantProfilePage() {
                         <h3 className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-2 ml-2">Ganti Akun</h3>
                         <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-soft divide-y divide-border-light dark:divide-border-dark overflow-hidden">
                             <div
-                                onClick={switchingRole ? undefined : async () => {
-                                    try {
-                                        setSwitchingRole('customer')
-                                        await switchRole('customer')
-                                        navigate('/', { replace: true })
-                                    } catch (err) {
-                                        if (import.meta.env.DEV) console.error('Failed to switch role:', err)
-                                        toast.error('Gagal pindah ke Customer. Coba lagi.')
-                                    } finally {
-                                        setSwitchingRole(null)
-                                    }
-                                }}
+                                onClick={switchingRole ? undefined : () => handleSwitchRole('customer', '/')}
                                 className={`flex items-center justify-between p-4 cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                             >
                                 <div className="flex items-center gap-3">
@@ -273,18 +296,7 @@ function MerchantProfilePage() {
 
                             {user?.roles?.includes('driver') && user?.driverStatus === 'approved' && (
                                 <div
-                                    onClick={switchingRole ? undefined : async () => {
-                                        try {
-                                            setSwitchingRole('driver')
-                                            await switchRole('driver')
-                                            navigate('/driver/dashboard', { replace: true })
-                                        } catch (err) {
-                                            if (import.meta.env.DEV) console.error('Failed to switch role:', err)
-                                            toast.error('Gagal pindah ke Driver. Coba lagi.')
-                                        } finally {
-                                            setSwitchingRole(null)
-                                        }
-                                    }}
+                                    onClick={switchingRole ? undefined : () => handleSwitchRole('driver', '/driver/dashboard')}
                                     className={`flex items-center justify-between p-4 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                                 >
                                     <div className="flex items-center gap-3">

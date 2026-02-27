@@ -13,6 +13,7 @@ function DriverAccountPage() {
     const [stats, setStats] = useState({ rating: '-', trips: 0, joinDate: '-' })
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [switchingRole, setSwitchingRole] = useState(null)
+    const [switchConfirm, setSwitchConfirm] = useState(null) // { targetRole, targetPath }
 
     const [profile, setProfile] = useState(null)
 
@@ -44,6 +45,44 @@ function DriverAccountPage() {
             navigate('/login')
         } catch (error) {
             if (import.meta.env.DEV) console.error('Logout failed', error)
+        }
+    }
+
+    // Safety check before switching role
+    const handleSwitchRole = async (targetRole, targetPath) => {
+        try {
+            // 1. Check for active orders — block if found
+            const activeOrders = await driverService.getActiveOrders()
+            if (activeOrders.length > 0) {
+                toast.error(`Anda masih punya ${activeOrders.length} order aktif. Selesaikan dulu sebelum pindah role.`)
+                return
+            }
+
+            // 2. If driver is online, show confirmation
+            if (profile?.is_active) {
+                setSwitchConfirm({ targetRole, targetPath })
+                return
+            }
+
+            // 3. No issues — proceed directly
+            await executeSwitchRole(targetRole, targetPath)
+        } catch (err) {
+            if (import.meta.env.DEV) console.error('Error checking before switch:', err)
+            toast.error('Terjadi kesalahan. Coba lagi.')
+        }
+    }
+
+    const executeSwitchRole = async (targetRole, targetPath) => {
+        try {
+            setSwitchingRole(targetRole)
+            setSwitchConfirm(null)
+            await switchRole(targetRole)
+            navigate(targetPath, { replace: true })
+        } catch (err) {
+            if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+            toast.error(`Gagal pindah ke ${targetRole === 'customer' ? 'Customer' : 'Warung'}. Coba lagi.`)
+        } finally {
+            setSwitchingRole(null)
         }
     }
 
@@ -168,18 +207,7 @@ function DriverAccountPage() {
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 pt-3 pb-1">Ganti Akun</p>
                         <button
                             disabled={switchingRole !== null}
-                            onClick={async () => {
-                                try {
-                                    setSwitchingRole('customer')
-                                    await switchRole('customer')
-                                    navigate('/', { replace: true })
-                                } catch (err) {
-                                    if (import.meta.env.DEV) console.error('Failed to switch role:', err)
-                                    toast.error('Gagal pindah ke Customer. Coba lagi.')
-                                } finally {
-                                    setSwitchingRole(null)
-                                }
-                            }}
+                            onClick={() => handleSwitchRole('customer', '/')}
                             className={`w-full flex items-center justify-between p-4 hover:bg-green-50 transition-colors group ${user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' ? 'border-b border-slate-100' : ''} ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                         >
                             <div className="flex items-center gap-4">
@@ -198,18 +226,7 @@ function DriverAccountPage() {
                         {user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' && (
                             <button
                                 disabled={switchingRole !== null}
-                                onClick={async () => {
-                                    try {
-                                        setSwitchingRole('merchant')
-                                        await switchRole('merchant')
-                                        navigate('/merchant/dashboard', { replace: true })
-                                    } catch (err) {
-                                        if (import.meta.env.DEV) console.error('Failed to switch role:', err)
-                                        toast.error('Gagal pindah ke Warung. Coba lagi.')
-                                    } finally {
-                                        setSwitchingRole(null)
-                                    }
-                                }}
+                                onClick={() => handleSwitchRole('merchant', '/merchant/dashboard')}
                                 className={`w-full flex items-center justify-between p-4 hover:bg-orange-50 transition-colors group ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                             >
                                 <div className="flex items-center gap-4">
@@ -264,6 +281,37 @@ function DriverAccountPage() {
                                         className="flex-1 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors"
                                     >
                                         Ya, Keluar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Switch Role Confirmation Modal */}
+                {switchConfirm && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl transform transition-all scale-100">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-4">
+                                    <span className="material-symbols-outlined text-amber-500 text-[32px]">warning</span>
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-2">Anda Sedang Online</h3>
+                                <p className="text-slate-500 text-sm mb-6">
+                                    Status Anda akan menjadi <strong>Offline</strong> dan Anda tidak akan menerima orderan baru. Yakin ingin pindah?
+                                </p>
+                                <div className="flex gap-3 w-full">
+                                    <button
+                                        onClick={() => setSwitchConfirm(null)}
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={() => executeSwitchRole(switchConfirm.targetRole, switchConfirm.targetPath)}
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors"
+                                    >
+                                        Ya, Pindah
                                     </button>
                                 </div>
                             </div>
