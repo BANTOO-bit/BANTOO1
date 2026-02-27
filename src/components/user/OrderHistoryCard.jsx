@@ -62,7 +62,7 @@ function OrderHistoryCard({ order, onReorder, onViewDetail, onReview, formatDate
                 <div className="flex flex-col">
                     <span className="text-[10px] text-text-secondary dark:text-gray-400 mb-0.5">Total Harga</span>
                     <span className="font-bold text-sm text-text-main dark:text-white">
-                        Rp {order.total?.toLocaleString()}
+                        Rp {(order.totalAmount || order.total || 0)?.toLocaleString()}
                     </span>
                 </div>
                 <div className="flex gap-2">

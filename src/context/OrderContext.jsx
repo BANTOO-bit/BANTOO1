@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext'
 import orderService from '../services/orderService'
 
 const OrderContext = createContext()
+const ACTIVE_ORDER_KEY = 'bantoo_driver_active_order'
 
 /**
  * ORDER LIFECYCLE STATES:
@@ -35,9 +36,35 @@ export function OrderProvider({ children }) {
     const activeOrderRef = useRef(null)
 
     // Keep ref in sync with state for use in realtime callbacks
+    // Also persist activeOrder to localStorage for driver role (survives page refresh)
     useEffect(() => {
         activeOrderRef.current = activeOrder
-    }, [activeOrder])
+        if (activeRole === 'driver') {
+            if (activeOrder) {
+                try { sessionStorage.setItem(ACTIVE_ORDER_KEY, JSON.stringify(activeOrder)) } catch { }
+            } else {
+                sessionStorage.removeItem(ACTIVE_ORDER_KEY)
+            }
+        }
+    }, [activeOrder, activeRole])
+
+    // Restore activeOrder from sessionStorage on mount (driver only)
+    useEffect(() => {
+        if (activeRole === 'driver' && !activeOrder) {
+            try {
+                const saved = sessionStorage.getItem(ACTIVE_ORDER_KEY)
+                if (saved) {
+                    const parsed = JSON.parse(saved)
+                    // Only restore if order is in an active state
+                    if (parsed && !['completed', 'cancelled', 'timeout'].includes(parsed.status)) {
+                        setActiveOrder(parsed)
+                    } else {
+                        sessionStorage.removeItem(ACTIVE_ORDER_KEY)
+                    }
+                }
+            } catch { }
+        }
+    }, [activeRole])
 
     // ============================================
     // FETCH ORDERS
@@ -282,6 +309,7 @@ export function OrderProvider({ children }) {
 
     const clearOrder = useCallback(() => {
         setActiveOrder(null)
+        sessionStorage.removeItem(ACTIVE_ORDER_KEY)
     }, [])
 
     const clearError = useCallback(() => {

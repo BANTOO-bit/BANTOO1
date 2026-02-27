@@ -129,9 +129,9 @@ export default function UserRoutes({ logout }) {
             {/* Order Management */}
             <Route path="/orders" element={<RoleLockRedirect><OrdersPage /></RoleLockRedirect>} />
             <Route path="/order/:id" element={<RoleLockRedirect><OrderDetailPage /></RoleLockRedirect>} />
-            <Route path="/order-detail" element={<RoleLockRedirect><OrderDetailPage /></RoleLockRedirect>} />
+            <Route path="/order-detail/:orderId?" element={<RoleLockRedirect><OrderDetailPage /></RoleLockRedirect>} />
             <Route path="/tracking/:orderId?" element={<RoleLockRedirect><TrackingPage /></RoleLockRedirect>} />
-            <Route path="/review" element={<RoleLockRedirect><ReviewPage /></RoleLockRedirect>} />
+            <Route path="/review/:orderId?" element={<RoleLockRedirect><ReviewPage /></RoleLockRedirect>} />
             <Route path="/chat-driver/:orderId" element={<RoleLockRedirect><ChatDriverPage /></RoleLockRedirect>} />
 
             {/* Profile & Settings */}

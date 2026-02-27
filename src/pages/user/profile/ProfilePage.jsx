@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useCart } from '../../../context/CartContext'
+import { pushNotificationService } from '../../../services/pushNotificationService'
 import ProfileMenuItem from '../../../components/user/ProfileMenuItem'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 
@@ -52,6 +53,9 @@ function ProfilePage() {
     const { cartItems } = useCart()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+    const [notifPermission, setNotifPermission] = useState(
+        pushNotificationService.isSupported() ? pushNotificationService.getPermission() : 'denied'
+    )
 
     // Construct display data
     const userData = user ? {
@@ -230,6 +234,38 @@ function ProfilePage() {
                         Pengaturan Akun
                     </h3>
                     <div className="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        {/* Push Notification Toggle */}
+                        <button
+                            onClick={async () => {
+                                if (notifPermission === 'granted') {
+                                    // Already granted, nothing to do
+                                    return
+                                }
+                                if (notifPermission === 'denied') {
+                                    alert('Notifikasi diblokir oleh browser. Buka pengaturan browser → izinkan notifikasi untuk situs ini.')
+                                    return
+                                }
+                                // Request permission (user gesture)
+                                const token = await pushNotificationService.registerFCM(user?.id, user?.activeRole || 'customer')
+                                if (token) {
+                                    setNotifPermission('granted')
+                                } else {
+                                    setNotifPermission(pushNotificationService.getPermission())
+                                }
+                            }}
+                            className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-100 dark:border-gray-800 active:bg-gray-100"
+                        >
+                            <span className="material-symbols-outlined text-primary text-2xl">notifications</span>
+                            <span className="flex-1 text-left font-medium text-gray-900 dark:text-white">Notifikasi Push</span>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${notifPermission === 'granted'
+                                    ? 'bg-green-100 text-green-700'
+                                    : notifPermission === 'denied'
+                                        ? 'bg-red-100 text-red-600'
+                                        : 'bg-gray-100 text-gray-500'
+                                }`}>
+                                {notifPermission === 'granted' ? 'Aktif' : notifPermission === 'denied' ? 'Diblokir' : 'Nonaktif'}
+                            </span>
+                        </button>
                         <button
                             onClick={() => navigate('/address')}
                             className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-100 dark:border-gray-800 active:bg-gray-100"

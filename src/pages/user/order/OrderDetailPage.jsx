@@ -7,11 +7,14 @@ import { useNotification } from '../../../context/NotificationsContext'
 import { supabase } from '../../../services/supabaseClient'
 import orderService from '../../../services/orderService'
 import logger from '../../../utils/logger'
+import { getPaymentLabel } from '../../../utils/paymentUtils'
 import { formatOrderId, generateOrderId } from '../../../utils/orderUtils'
+import { OrderDetailSkeleton } from '../../../components/shared/Skeleton'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 
 function OrderDetailPage() {
-    const { id } = useParams()
+    const { id, orderId } = useParams()
+    const orderIdParam = id || orderId
     const navigate = useNavigate()
     const { user } = useAuth()
     const { addToCart, setMerchantInfo, clearCart } = useCart()
@@ -24,7 +27,7 @@ function OrderDetailPage() {
     // Fetch order from Supabase
     useEffect(() => {
         async function fetchOrder() {
-            if (!id) {
+            if (!orderIdParam) {
                 setIsLoading(false)
                 return
             }
@@ -34,7 +37,7 @@ function OrderDetailPage() {
                 setError(null)
 
                 // Fetch order by ID
-                const orderData = await orderService.getOrder(id)
+                const orderData = await orderService.getOrder(orderIdParam)
 
                 if (!orderData) {
                     setError('Pesanan tidak ditemukan')
@@ -44,7 +47,7 @@ function OrderDetailPage() {
 
                 // Transform data to match component format
                 const transformedOrder = {
-                    id: generateOrderId(orderData.id),
+                    id: generateOrderId(orderData.order_number ? orderData : orderData.id),
                     dbId: orderData.id,
                     merchantId: orderData.merchant_id,
                     merchantName: orderData.merchant?.name || 'Merchant',
@@ -74,7 +77,8 @@ function OrderDetailPage() {
                         processed: orderData.accepted_at ? new Date(orderData.accepted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
                         handover: orderData.picked_up_at ? new Date(orderData.picked_up_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null,
                         completed: orderData.delivered_at ? new Date(orderData.delivered_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
-                    }
+                    },
+                    cancellationReason: orderData.cancellation_reason
                 }
 
                 setOrder(transformedOrder)
@@ -87,7 +91,7 @@ function OrderDetailPage() {
         }
 
         fetchOrder()
-    }, [id])
+    }, [orderIdParam])
 
     // Realtime subscription for order status updates
     useEffect(() => {
@@ -111,15 +115,16 @@ function OrderDetailPage() {
                     'accepted': '✅ Pesanan diterima merchant',
                     'ready': '📦 Pesanan siap diambil driver',
                     'picked_up': '🚗 Pesanan sedang diantar',
-                    'delivered': '🎉 Pesanan telah sampai'
+                    'delivered': '🎉 Pesanan telah sampai',
+                    'cancelled': '❌ Pesanan telah dibatalkan'
                 }
 
                 // Show notification if status changed
                 if (payload.new.status !== payload.old.status && statusMessages[payload.new.status]) {
                     addNotification({
-                        type: 'success',
+                        type: payload.new.status === 'cancelled' ? 'error' : 'success',
                         message: statusMessages[payload.new.status],
-                        duration: 4000
+                        duration: payload.new.status === 'cancelled' ? 6000 : 4000
                     })
                 }
 
@@ -127,6 +132,7 @@ function OrderDetailPage() {
                 setOrder(prev => ({
                     ...prev,
                     status: payload.new.status,
+                    cancellationReason: payload.new.cancellation_reason || prev.cancellationReason,
                     timeline: {
                         created: prev.timeline?.created,
                         processed: payload.new.accepted_at ? new Date(payload.new.accepted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : prev.timeline?.processed,
@@ -206,12 +212,17 @@ function OrderDetailPage() {
 
     if (!order) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
-                <div className="text-center">
-                    <span className="material-symbols-outlined text-5xl text-gray-300 mb-3">receipt_long</span>
-                    <p className="text-text-secondary dark:text-gray-400">Memuat detail pesanan...</p>
-                    <button onClick={() => navigate(-1)} className="mt-4 text-primary font-bold">Kembali</button>
-                </div>
+            <div className="min-h-screen flex flex-col bg-background-light dark:bg-background-dark pb-bottom-nav">
+                <header className="sticky top-0 z-50 bg-card-light dark:bg-card-dark px-4 pt-12 pb-3 border-b border-border-color dark:border-gray-800 shadow-sm">
+                    <div className="relative flex items-center justify-center min-h-[44px]">
+                        <BackButton fallback="/orders" />
+                        <div className="flex flex-col items-center">
+                            <h1 className="text-base font-bold leading-tight">Detail Pesanan</h1>
+                        </div>
+                    </div>
+                </header>
+                <OrderDetailSkeleton />
+                <BottomNavigation activeTab="orders" />
             </div>
         )
     }
@@ -230,11 +241,11 @@ function OrderDetailPage() {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-card-light dark:bg-card-dark px-4 pt-12 pb-3 border-b border-border-color dark:border-gray-800 shadow-sm">
                 <div className="relative flex items-center justify-center min-h-[44px]">
-                    <BackButton />
+                    <BackButton fallback="/orders" />
                     <div className="flex flex-col items-center justify-center">
                         <h1 className="text-base font-bold leading-tight">Detail Pesanan</h1>
                         <span className="text-[11px] font-medium text-text-secondary dark:text-gray-400 mt-0.5">
-                            Order ID #{formatOrderId(order.id)}
+                            Order ID #{formatOrderId(order.id, order.order_number)}
                         </span>
                     </div>
                 </div>
@@ -259,7 +270,7 @@ function OrderDetailPage() {
                     </h2>
                     <p className="text-xs text-text-secondary dark:text-gray-400 mt-1 max-w-[240px] leading-relaxed">
                         {isCancelled
-                            ? (order.cancelReason || 'Pesanan dibatalkan karena merchant tidak merespon.')
+                            ? (order.cancellationReason || 'Pesanan dibatalkan.')
                             : isActive
                                 ? 'Pesananmu sedang diproses.'
                                 : 'Terima kasih! Pesananmu sudah sampai di tujuan.'
@@ -373,7 +384,7 @@ function OrderDetailPage() {
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-text-secondary dark:text-gray-400 uppercase font-semibold tracking-wide">Metode Pembayaran</span>
                                 <span className="text-xs font-bold text-text-main dark:text-white">
-                                    {typeof order.paymentMethod === 'string' ? order.paymentMethod : (order.paymentMethod?.name || 'Bantoo Pay')}
+                                    {getPaymentLabel(typeof order.paymentMethod === 'string' ? order.paymentMethod : order.paymentMethod?.name)}
                                 </span>
                             </div>
                         </div>

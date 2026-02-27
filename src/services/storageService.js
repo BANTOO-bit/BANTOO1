@@ -87,14 +87,33 @@ export const storageService = {
             )
         }
 
+        // 3.5 Auto-compress images > 500KB (skip PDFs and small images)
+        let processedFile = file
+        const isImage = ALLOWED_IMAGE_TYPES.includes(fileType)
+        if (isImage && file.size > 500 * 1024) {
+            try {
+                const compressed = await this._compressImage(file, {
+                    maxWidth: 1200,
+                    maxHeight: 1200,
+                    quality: 0.82
+                })
+                // Only use compressed version if it's actually smaller
+                if (compressed.size < file.size) {
+                    processedFile = new File([compressed], file.name, { type: 'image/jpeg' })
+                }
+            } catch {
+                // Compression failed, use original file
+            }
+        }
+
         // 4. Generate unique file path
-        const ext = this._getExtension(file.name) || 'jpg'
+        const ext = isImage && processedFile !== file ? 'jpg' : (this._getExtension(file.name) || 'jpg')
         const uniqueName = `${Date.now()}_${this._randomId()}.${ext}`
         const fullPath = `${storagePath.folder}/${ownerId}/${uniqueName}`
 
         // 5. Convert to blob to avoid ERR_UPLOAD_FILE_CHANGED in Chrome
-        const arrayBuffer = await file.arrayBuffer()
-        const blob = new Blob([arrayBuffer], { type: fileType })
+        const arrayBuffer = await processedFile.arrayBuffer()
+        const blob = new Blob([arrayBuffer], { type: processedFile.type || fileType })
 
         // 6. Upload
         const { data, error } = await supabase.storage
@@ -212,6 +231,46 @@ export const storageService = {
 
     _randomId() {
         return Math.random().toString(36).substring(2, 10)
+    },
+
+    /**
+     * Compress an image using canvas.
+     * @param {File} file - Image file
+     * @param {Object} opts - { maxWidth, maxHeight, quality }
+     * @returns {Promise<Blob>}
+     */
+    _compressImage(file, { maxWidth = 1200, maxHeight = 1200, quality = 0.82 } = {}) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const img = new Image()
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    let { width, height } = img
+
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height)
+                        width = Math.round(width * ratio)
+                        height = Math.round(height * ratio)
+                    }
+
+                    canvas.width = width
+                    canvas.height = height
+                    const ctx = canvas.getContext('2d')
+                    ctx.drawImage(img, 0, 0, width, height)
+
+                    canvas.toBlob(
+                        (blob) => blob ? resolve(blob) : reject(new Error('Compress failed')),
+                        'image/jpeg',
+                        quality
+                    )
+                }
+                img.onerror = () => reject(new Error('Failed to load image'))
+                img.src = e.target.result
+            }
+            reader.onerror = () => reject(new Error('Failed to read file'))
+            reader.readAsDataURL(file)
+        })
     }
 }
 

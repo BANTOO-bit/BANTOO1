@@ -17,6 +17,11 @@ function MerchantDashboard() {
     const { user, isShopOpen } = useAuth()
     const toast = useToast()
     const [activeTab, setActiveTab] = useState('baru') // baru, diproses, selesai
+    const [rejectModalOpen, setRejectModalOpen] = useState(false)
+    const [rejectReason, setRejectReason] = useState('')
+    const [customRejectReason, setCustomRejectReason] = useState('')
+    const [rejectOrderId, setRejectOrderId] = useState(null)
+    const [rejectLoading, setRejectLoading] = useState(false)
     const [merchantStatus, setMerchantStatus] = useState('approved')
     const [availableDriversCount, setAvailableDriversCount] = useState(0)
     const [stats, setStats] = useState({
@@ -58,7 +63,7 @@ function MerchantDashboard() {
 
                 // Transform data for OrderCard
                 const transformedOrders = ordersData.map(order => ({
-                    id: generateOrderId(order.id),
+                    id: generateOrderId(order.order_number ? order : order.id),
                     orderId: order.id, // real UUID for API calls
                     time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     payment: order.payment_method === 'cod' ? 'Tunai' : order.payment_method,
@@ -265,14 +270,11 @@ function MerchantDashboard() {
                                                     toast.error(err.message || 'Gagal menerima pesanan')
                                                 }
                                             }}
-                                            onReject={async () => {
-                                                try {
-                                                    await orderService.rejectOrder(order.orderId, 'Ditolak dari dashboard')
-                                                    toast.success('Pesanan ditolak')
-                                                    setRecentOrders(prev => prev.filter(o => o.orderId !== order.orderId))
-                                                } catch (err) {
-                                                    toast.error(err.message || 'Gagal menolak pesanan')
-                                                }
+                                            onReject={() => {
+                                                setRejectOrderId(order.orderId)
+                                                setRejectReason('')
+                                                setCustomRejectReason('')
+                                                setRejectModalOpen(true)
                                             }}
                                         />
                                     ))
@@ -322,6 +324,80 @@ function MerchantDashboard() {
                     <p className="text-[10px] text-text-secondary font-medium">Jam Operasional: Setiap Hari (08:00 - 22:00 WIB)</p>
                 </section>
             </main>
+
+            {/* Reject Order Modal */}
+            {rejectModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" role="dialog">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity" onClick={() => !rejectLoading && setRejectModalOpen(false)}></div>
+                    <div className="relative w-full max-w-sm bg-white dark:bg-card-dark rounded-[24px] p-6 shadow-2xl flex flex-col gap-6 animate-fade-in">
+                        <div className="flex flex-col gap-2 text-center">
+                            <h2 className="text-lg font-semibold text-text-main dark:text-white">Tolak Pesanan ini?</h2>
+                            <p className="text-sm text-text-secondary leading-relaxed px-2">
+                                Pilih alasan pembatalan agar kami dapat menginformasikan kepada pelanggan.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            {['Stok menu habis', 'Warung terlalu ramai', 'Toko hampir tutup', 'Alasan lainnya'].map((reason, idx) => (
+                                <label key={idx} className="group flex items-center gap-3 p-3 rounded-xl border border-border-color dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.99]">
+                                    <input
+                                        type="radio"
+                                        name="dashboard_reject_reason"
+                                        className="w-5 h-5 text-primary border-gray-300 dark:border-gray-600 focus:ring-primary focus:ring-offset-0 bg-transparent"
+                                        checked={rejectReason === reason}
+                                        onChange={() => setRejectReason(reason)}
+                                    />
+                                    <span className="text-sm font-medium text-text-main dark:text-gray-200 group-hover:text-primary dark:group-hover:text-primary-dark transition-colors">
+                                        {reason}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                        {rejectReason === 'Alasan lainnya' && (
+                            <textarea
+                                value={customRejectReason}
+                                onChange={(e) => setCustomRejectReason(e.target.value)}
+                                placeholder="Tulis alasan penolakan..."
+                                rows={3}
+                                className="w-full p-3 rounded-xl border border-border-color dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-text-main dark:text-white placeholder:text-text-secondary focus:ring-2 focus:ring-primary focus:border-transparent resize-none transition-all"
+                                autoFocus
+                            />
+                        )}
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={() => setRejectModalOpen(false)}
+                                disabled={rejectLoading}
+                                className="flex-1 py-3.5 rounded-xl border border-gray-300 dark:border-gray-600 text-text-secondary font-semibold text-sm active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+                            >
+                                Kembali
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!rejectReason || !rejectOrderId || rejectLoading) return
+                                    const finalReason = rejectReason === 'Alasan lainnya' ? (customRejectReason.trim() || 'Alasan lainnya') : rejectReason
+                                    setRejectLoading(true)
+                                    try {
+                                        await orderService.rejectOrder(rejectOrderId, finalReason)
+                                        toast.success('Pesanan berhasil ditolak')
+                                        setRecentOrders(prev => prev.filter(o => o.orderId !== rejectOrderId))
+                                        setRejectModalOpen(false)
+                                    } catch (err) {
+                                        toast.error(err.message || 'Gagal menolak pesanan')
+                                    } finally {
+                                        setRejectLoading(false)
+                                    }
+                                }}
+                                disabled={!rejectReason || rejectLoading || (rejectReason === 'Alasan lainnya' && !customRejectReason.trim())}
+                                className={`flex-1 py-3.5 rounded-xl font-bold text-sm active:scale-95 transition-all ${rejectReason && !rejectLoading
+                                    ? 'bg-primary hover:bg-primary-dark text-white'
+                                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                                    }`}
+                            >
+                                {rejectLoading ? 'Menolak...' : 'Tolak Pesanan'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <MerchantBottomNavigation activeTab="home" />
         </div>

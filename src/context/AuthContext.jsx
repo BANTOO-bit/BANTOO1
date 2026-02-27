@@ -70,9 +70,10 @@ export function AuthProvider({ children }) {
 
             // Provide fallback if user_roles fails but prevent critical errors
             if (userRoles.error) {
-                // Only warn if it's not a 404 (table missing is a known issue in some envs)
-                if (userRoles.error.code !== '404' && !userRoles.error.message?.includes('404')) {
-                    console.warn('Warning: Error fetching user roles.', userRoles.error)
+                // Only log in dev mode — this is expected if GRANT not yet applied
+                // Fallback role derivation below handles this gracefully
+                if (import.meta.env.DEV && userRoles.error.code !== '404' && !userRoles.error.message?.includes('404')) {
+                    console.debug('[AuthContext] user_roles fetch skipped:', userRoles.error.message)
                 }
             }
 
@@ -152,11 +153,16 @@ export function AuthProvider({ children }) {
 
             // #6: Auto-subscribe to push notifications on login
             if (!pushCleanupRef.current) {
-                pushNotificationService.requestPermission().then(granted => {
-                    if (granted) {
-                        pushCleanupRef.current = pushNotificationService.subscribeToNotifications(userId)
-                    }
-                })
+                // Only auto-request if permission was already granted (avoids user gesture violation)
+                const permissionStatus = pushNotificationService.getPermission()
+                if (permissionStatus === 'granted') {
+                    pushCleanupRef.current = pushNotificationService.subscribeToNotifications(userId)
+                    // Register FCM for background push notifications
+                    pushNotificationService.registerFCM(userId, activeRole)
+                } else if (permissionStatus === 'default') {
+                    // Permission not yet asked — will be requested on user gesture (e.g. profile page toggle)
+                    pushCleanupRef.current = pushNotificationService.subscribeToNotifications(userId)
+                }
             }
         } catch (err) {
             console.error('Error refreshing profile:', err)
@@ -367,6 +373,10 @@ export function AuthProvider({ children }) {
         if (pushCleanupRef.current) {
             pushCleanupRef.current()
             pushCleanupRef.current = null
+        }
+        // Remove FCM token from database
+        if (user?.id) {
+            pushNotificationService.unregisterFCM(user.id)
         }
 
         try {

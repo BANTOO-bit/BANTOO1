@@ -82,7 +82,7 @@ function OrderDetailModal({ isOpen, onClose, order }) {
                     <div className="flex items-center justify-between py-2">
                         <div>
                             <p className="text-xs text-text-secondary">No. Pesanan</p>
-                            <p className="font-bold text-sm">{formatOrderId(order.id)}</p>
+                            <p className="font-bold text-sm">{formatOrderId(order.id, order.order_number)}</p>
                         </div>
                         <div className="text-right">
                             <p className="text-xs text-text-secondary">Waktu Pesanan</p>
@@ -175,6 +175,12 @@ function OrderDetailModal({ isOpen, onClose, order }) {
                                 <span className="text-text-secondary">Ongkos Kirim</span>
                                 <span>Rp {deliveryFee?.toLocaleString()}</span>
                             </div>
+                            {serviceFee > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-text-secondary">Biaya Layanan</span>
+                                    <span>Rp {serviceFee?.toLocaleString()}</span>
+                                </div>
+                            )}
                             {order.discount > 0 && (
                                 <div className="flex justify-between text-sm text-green-600">
                                     <span>Diskon</span>
@@ -251,12 +257,14 @@ function TrackingPage() {
     }, [order?.status, order?.created_at])
 
     // Derived data
-    const merchantLocation = order?.merchant
+    const merchantLocation = order?.merchant?.latitude && order?.merchant?.longitude
         ? [order.merchant.latitude, order.merchant.longitude]
         : null
     const userLocation = order?.customer_lat && order?.customer_lng
         ? [order.customer_lat, order.customer_lng]
         : null
+    // For map: show map as long as we have at least merchant location
+    const hasMapData = merchantLocation !== null
     const currentStatusIndex = STATUS_INDEX_MAP[order?.status] ?? 0
     const currentStatus = orderStatuses[currentStatusIndex]
     const isDelivered = ['delivered', 'completed'].includes(order?.status)
@@ -362,17 +370,41 @@ function TrackingPage() {
         // Only track during active delivery statuses
         if (!['picked_up', 'delivering'].includes(order.status)) return
 
-        const subscription = subscribeToDriverLocation(order.id, (location) => {
+        let lastEtaCalc = 0 // Throttle ETA recalculation (max every 10s)
+
+        const subscription = subscribeToDriverLocation(order.id, async (location) => {
             const driverPos = [location.lat, location.lng]
             setDriverLocation(driverPos)
 
-            // Calculate ETA from driver to user
-            if (userLocation) {
-                const distance = calculateDistance(
-                    location.lat, location.lng,
-                    userLocation[0], userLocation[1]
-                )
-                setEstimatedTime(estimateDeliveryTime(distance))
+            // Recalculate ETA from driver to customer (throttled to every 10s)
+            if (userLocation && Date.now() - lastEtaCalc > 10000) {
+                lastEtaCalc = Date.now()
+
+                try {
+                    // Use OSRM road distance for accurate ETA
+                    const { getRoadDistance } = await import('../../../services/routingService')
+                    const roadDistKm = await getRoadDistance(
+                        location.lat, location.lng,
+                        userLocation[0], userLocation[1]
+                    )
+
+                    // Use GPS speed if available and moving (>2 m/s ≈ 7 km/h)
+                    if (location.speed && location.speed > 2) {
+                        const speedKmh = location.speed * 3.6 // m/s → km/h
+                        const etaMinutes = Math.max(1, Math.round((roadDistKm / speedKmh) * 60))
+                        setEstimatedTime(etaMinutes)
+                    } else {
+                        // Fallback: assume 25 km/h for city driving
+                        setEstimatedTime(Math.max(1, Math.round((roadDistKm / 25) * 60)))
+                    }
+                } catch {
+                    // OSRM failed — fallback to Haversine × 1.3 (road factor)
+                    const distance = calculateDistance(
+                        location.lat, location.lng,
+                        userLocation[0], userLocation[1]
+                    ) * 1.3
+                    setEstimatedTime(estimateDeliveryTime(distance))
+                }
             }
         })
 
@@ -386,16 +418,23 @@ function TrackingPage() {
     // ============================================
     useEffect(() => {
         if (estimatedTime !== null) return // Already set by live GPS
-        if (!merchantLocation || !userLocation) return
+
+        if (isDelivered) {
+            setEstimatedTime(0)
+            return
+        }
 
         if (['picked_up', 'delivering'].includes(order?.status)) {
-            const distance = calculateDistance(
-                merchantLocation[0], merchantLocation[1],
-                userLocation[0], userLocation[1]
-            )
-            setEstimatedTime(estimateDeliveryTime(distance))
-        } else if (isDelivered) {
-            setEstimatedTime(0)
+            if (merchantLocation && userLocation) {
+                const distance = calculateDistance(
+                    merchantLocation[0], merchantLocation[1],
+                    userLocation[0], userLocation[1]
+                )
+                setEstimatedTime(estimateDeliveryTime(distance))
+            } else {
+                // Fallback: default ETA when customer coordinates not available
+                setEstimatedTime(20)
+            }
         }
     }, [order?.status, merchantLocation, userLocation, estimatedTime, isDelivered])
 
@@ -428,7 +467,7 @@ function TrackingPage() {
             <div className="min-h-screen flex flex-col bg-background-light">
                 <header className="sticky top-0 z-50 bg-white px-4 pt-12 pb-4 border-b border-border-color shadow-sm">
                     <div className="relative flex items-center justify-center min-h-[40px]">
-                        <BackButton />
+                        <BackButton fallback="/orders" />
                         <h1 className="text-lg font-bold">Lacak Pesanan</h1>
                     </div>
                 </header>
@@ -447,7 +486,7 @@ function TrackingPage() {
             <div className="min-h-screen flex flex-col bg-background-light">
                 <header className="sticky top-0 z-50 bg-white px-4 pt-12 pb-4 border-b border-border-color shadow-sm">
                     <div className="relative flex items-center justify-center min-h-[40px]">
-                        <BackButton />
+                        <BackButton fallback="/orders" />
                         <h1 className="text-lg font-bold">Lacak Pesanan</h1>
                     </div>
                 </header>
@@ -480,7 +519,7 @@ function TrackingPage() {
             <div className="min-h-screen flex flex-col bg-background-light">
                 <header className="sticky top-0 z-50 bg-white px-4 pt-12 pb-4 border-b border-border-color shadow-sm">
                     <div className="relative flex items-center justify-center min-h-[40px]">
-                        <BackButton />
+                        <BackButton fallback="/orders" />
                         <h1 className="text-lg font-bold">Lacak Pesanan</h1>
                     </div>
                 </header>
@@ -493,7 +532,7 @@ function TrackingPage() {
                         <p className="text-text-secondary text-sm mb-2">
                             {order.cancellation_reason || 'Pesanan ini telah dibatalkan.'}
                         </p>
-                        <p className="text-xs text-text-secondary mb-6">ID: {formatOrderId(order.id)}</p>
+                        <p className="text-xs text-text-secondary mb-6">ID: {formatOrderId(order.id, order.order_number)}</p>
                         <button
                             onClick={() => navigate('/orders')}
                             className="py-2.5 px-6 bg-primary text-white font-bold rounded-xl"
@@ -511,7 +550,7 @@ function TrackingPage() {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white px-4 pt-12 pb-4 border-b border-border-color shadow-sm">
                 <div className="relative flex items-center justify-center min-h-[40px]">
-                    <BackButton confirmMessage="Sedang melacak pesanan. Yakin ingin keluar?" />
+                    <BackButton fallback="/orders" confirmMessage="Sedang melacak pesanan. Yakin ingin keluar?" />
                     <h1 className="text-lg font-bold">Lacak Pesanan</h1>
                 </div>
             </header>
@@ -590,7 +629,7 @@ function TrackingPage() {
                             </div>
                         )}
                     >
-                        {merchantLocation && userLocation ? (
+                        {hasMapData ? (
                             <Suspense fallback={
                                 <div className="h-full w-full flex items-center justify-center bg-gray-50">
                                     <div className="size-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -598,7 +637,7 @@ function TrackingPage() {
                             }>
                                 <TrackingMap
                                     merchantLocation={merchantLocation}
-                                    userLocation={userLocation}
+                                    userLocation={userLocation || merchantLocation}
                                     driverLocation={driverLocation}
                                     height="280px"
                                 />
@@ -621,7 +660,7 @@ function TrackingPage() {
                         <div>
                             <p className="text-xs text-text-secondary font-medium">Estimasi Tiba</p>
                             <p className="text-lg font-bold text-text-main flex items-center gap-1">
-                                {isDelivered ? 'Tiba!' : estimatedTime !== null ? `${estimatedTime} Menit` : 'Menghitung...'}
+                                {isDelivered ? 'Tiba!' : estimatedTime !== null ? `${estimatedTime} Menit` : '15 - 25 Menit'}
                             </p>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-bold ${isDelivered ? 'bg-green-100 text-green-600' : 'bg-primary/10 text-primary'

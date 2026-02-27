@@ -1,15 +1,152 @@
-import { supabase } from './supabaseClient'
-
 /**
  * Push Notification Service
- * Uses the Browser Notification API to show native notifications
- * when the app receives real-time updates from Supabase.
+ * Upgraded with Firebase Cloud Messaging for TRUE push notifications.
+ * Supports background notifications via service worker + foreground via FCM onMessage.
  */
+import { supabase } from './supabaseClient'
+import { messaging, VAPID_KEY, getToken, onMessage } from './firebase'
 
 const PERMISSION_GRANTED = 'granted'
 const PERMISSION_DENIED = 'denied'
+const TOKEN_STORAGE_KEY = 'bantoo_fcm_token'
 
 export const pushNotificationService = {
+
+    // ===== FCM Integration =====
+
+    /**
+     * Check if Firebase Cloud Messaging is supported.
+     */
+    isFCMSupported() {
+        return (
+            typeof window !== 'undefined' &&
+            'Notification' in window &&
+            'serviceWorker' in navigator &&
+            messaging !== null
+        )
+    },
+
+    /**
+     * Request permission and register FCM token.
+     * Called on login to ensure push notifications are set up.
+     * @param {string} userId - The current user's ID
+     * @param {string} userRole - 'customer' | 'driver' | 'merchant'
+     * @returns {Promise<string|null>} FCM token or null
+     */
+    async registerFCM(userId, userRole = 'customer') {
+        if (!this.isFCMSupported()) {
+            console.warn('[Push] FCM not supported in this browser')
+            return null
+        }
+
+        try {
+            const permission = await Notification.requestPermission()
+            if (permission !== PERMISSION_GRANTED) {
+                console.log('[Push] Permission denied by user')
+                return null
+            }
+
+            // Register service worker
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+            await navigator.serviceWorker.ready
+
+            // Get FCM token
+            const token = await getToken(messaging, {
+                vapidKey: VAPID_KEY,
+                serviceWorkerRegistration: registration
+            })
+
+            if (token) {
+                await this._saveToken(token, userId, userRole)
+                localStorage.setItem(TOKEN_STORAGE_KEY, token)
+                console.log('[Push] FCM token registered')
+                return token
+            }
+
+            return null
+        } catch (error) {
+            console.error('[Push] FCM registration error:', error)
+            return null
+        }
+    },
+
+    /**
+     * Save FCM token to Supabase fcm_tokens table.
+     */
+    async _saveToken(token, userId, userRole) {
+        try {
+            const { error } = await supabase
+                .from('fcm_tokens')
+                .upsert({
+                    user_id: userId,
+                    token: token,
+                    role: userRole,
+                    device_info: navigator.userAgent.substring(0, 200),
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id,token'
+                })
+
+            if (error) console.error('[Push] Token save error:', error)
+        } catch (err) {
+            console.error('[Push] Token save failed:', err)
+        }
+    },
+
+    /**
+     * Remove FCM token on logout.
+     */
+    async unregisterFCM(userId) {
+        const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+        if (!token || !userId) return
+
+        try {
+            await supabase
+                .from('fcm_tokens')
+                .delete()
+                .eq('user_id', userId)
+                .eq('token', token)
+
+            localStorage.removeItem(TOKEN_STORAGE_KEY)
+            console.log('[Push] FCM token removed')
+        } catch (err) {
+            console.error('[Push] Token removal error:', err)
+        }
+    },
+
+    /**
+     * Listen for foreground FCM messages.
+     * Shows in-app notification when app is in focus.
+     * @param {Function} callback - Called with { title, body, data }
+     * @returns {Function} Unsubscribe function
+     */
+    onForegroundMessage(callback) {
+        if (!messaging) return () => { }
+
+        return onMessage(messaging, (payload) => {
+            const notification = payload.notification || {}
+            const data = payload.data || {}
+
+            // Show in-app notification
+            callback({
+                title: notification.title || 'Bantoo!',
+                body: notification.body || '',
+                data
+            })
+
+            // Also show browser notification if app is not focused
+            if (document.hidden) {
+                this.show(notification.title || 'Bantoo!', {
+                    body: notification.body || '',
+                    tag: data.type || 'fcm-foreground',
+                    data
+                })
+            }
+        })
+    },
+
+    // ===== Browser Notification API (existing) =====
+
     /**
      * Check if browser supports notifications
      */
@@ -41,36 +178,13 @@ export const pushNotificationService = {
     },
 
     /**
-     * Subscribe to Web Push API via Service Worker (Future FCM/VAPID Integration)
-     * @param {string} vapidPublicKey - Server VAPID public key
-     */
-    async subscribeToPushAPI(vapidPublicKey) {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: vapidPublicKey
-            });
-            // TODO: Send subscription to backend to save it
-            console.log('Push API Subscribed:', subscription);
-            return subscription;
-        } catch (error) {
-            console.error('Failed to subscribe to Push API:', error);
-            return null;
-        }
-    },
-
-    /**
      * Show a browser notification
-     * @param {string} title - Notification title
-     * @param {Object} options - Notification options
-     * M-10.3: Includes throttle to prevent duplicate notifications
+     * Includes throttle to prevent duplicate notifications
      */
     show(title, options = {}) {
         if (Notification.permission !== 'granted') return null
 
-        // M-10.3: Throttle — prevent same notification within 3 seconds
+        // Throttle — prevent same notification within 3 seconds
         const dedupKey = `${title}:${options.body || ''}:${options.tag || ''}`
         if (this._recentNotifs?.has(dedupKey)) return null
         if (!this._recentNotifs) this._recentNotifs = new Set()
@@ -78,8 +192,8 @@ export const pushNotificationService = {
         setTimeout(() => this._recentNotifs.delete(dedupKey), 3000)
 
         const notification = new Notification(title, {
-            icon: '/bantoo-logo.png',
-            badge: '/bantoo-logo.png',
+            icon: '/favicon.svg',
+            badge: '/favicon.svg',
             tag: options.tag || 'bantoo-notification',
             renotify: true,
             ...options

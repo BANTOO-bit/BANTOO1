@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
 import { chatService } from '../../../services/chatService'
 import { supabase } from '../../../services/supabaseClient'
 
@@ -15,6 +16,7 @@ function DriverChatPage() {
     const { orderId } = useParams()
     const navigate = useNavigate()
     const { user } = useAuth()
+    const toast = useToast()
     const [messages, setMessages] = useState([])
     const [inputText, setInputText] = useState('')
     const [sending, setSending] = useState(false)
@@ -40,16 +42,16 @@ function DriverChatPage() {
                     .from('orders')
                     .select(`
                         id, status, customer_id, delivery_address,
-                        profiles:customer_id (full_name, avatar_url, phone)
+                        customer_profile:profiles!customer_id (full_name, avatar_url, phone)
                     `)
                     .eq('id', orderId)
                     .single()
 
                 if (!error && data) {
                     setCustomerInfo({
-                        name: data.profiles?.full_name || 'Customer',
-                        phone: data.profiles?.phone || '-',
-                        avatar: data.profiles?.avatar_url,
+                        name: data.customer_profile?.full_name || 'Customer',
+                        phone: data.customer_profile?.phone || '-',
+                        avatar: data.customer_profile?.avatar_url,
                         address: data.delivery_address || '-'
                     })
                 }
@@ -100,10 +102,13 @@ function DriverChatPage() {
         setInputText('')
 
         try {
+            console.log('[DriverChat] Sending message:', { orderId, text: text.substring(0, 20), role: 'driver', userId: user?.id })
             await chatService.sendMessage(orderId, text, 'driver')
+            console.log('[DriverChat] Message sent successfully')
         } catch (error) {
-            console.error('Failed to send message:', error)
-            setInputText(text)
+            console.error('[DriverChat] Failed to send message:', error)
+            toast.error(`Gagal kirim pesan: ${error.message || 'Unknown error'}`)
+            setInputText(text) // Restore on failure
         } finally {
             setSending(false)
         }

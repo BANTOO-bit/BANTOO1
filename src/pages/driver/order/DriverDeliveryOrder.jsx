@@ -7,6 +7,7 @@ import { useOrder } from '../../../context/OrderContext'
 import { useToast } from '../../../context/ToastContext'
 import { handleError } from '../../../utils/errorHandler'
 import { formatId } from '../../../utils/formatters'
+import { isCODPayment } from '../../../utils/paymentUtils'
 import orderService from '../../../services/orderService'
 import { startBroadcastingLocation, stopBroadcasting } from '../../../services/driverLocationService'
 import { useWakeLock } from '../../../hooks/useWakeLock'
@@ -96,7 +97,7 @@ function DriverDeliveryOrder() {
 
     const paymentMethod = activeOrder.payment_method || activeOrder.paymentMethod
     const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
-    const isCOD = paymentMethod === 'COD' || paymentMethod === 'cod'
+    const isCOD = isCODPayment(paymentMethod)
 
     const handleConfirmDelivery = async () => {
         try {
@@ -116,7 +117,6 @@ function DriverDeliveryOrder() {
                 lng = position.coords.longitude;
             } catch (gpsError) {
                 console.warn('Gagal mendapatkan GPS instan, mencoba fallback...', gpsError);
-                // Fallback ke tracking GPS terakhir jika ada
                 if (activeOrder.driverCoords && activeOrder.driverCoords.length === 2) {
                     lat = activeOrder.driverCoords[0];
                     lng = activeOrder.driverCoords[1];
@@ -132,26 +132,20 @@ function DriverDeliveryOrder() {
             // Stop broadcasting GPS since delivery is complete
             stopBroadcasting()
 
-            // Update context
-            setActiveOrder({ ...activeOrder, status: 'delivered' })
-
             // Support both id and dbId — use dbId (UUID) for API calls
             const orderId = activeOrder.dbId || activeOrder.id
 
-            // Navigate based on payment method
             if (isCOD) {
-                // COD: Update status to 'delivered' first, then go to payment confirmation
-                const { driverService } = await import('../../../services/driverService')
-                await driverService.updateOrderStatus(orderId, 'delivered', lat, lng)
-
+                // COD: Jangan update status dulu — biarkan payment page yang handle
+                // Simpan GPS coords di context agar payment page bisa pakai
+                setActiveOrder({ ...activeOrder, status: 'delivering', driverCoords: lat && lng ? [lat, lng] : activeOrder.driverCoords })
                 navigate('/driver/order/payment')
             } else {
                 // Wallet: Update status to delivered/completed via Driver Service
-                // This marks it as paid and done
                 const { driverService } = await import('../../../services/driverService')
                 await driverService.updateOrderStatus(orderId, 'delivered', lat, lng)
 
-                // Wallet: Skip cash verification, go directly to completion
+                setActiveOrder({ ...activeOrder, status: 'delivered' })
                 navigate('/driver/order/complete')
             }
         } catch (error) {

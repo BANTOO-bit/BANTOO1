@@ -6,7 +6,7 @@ import orderService from '../../../services/orderService'
 import MerchantBottomNavigation from '../../../components/merchant/MerchantBottomNavigation'
 import { formatOrderId } from '../../../utils/orderUtils'
 
-const APP_FEE_PERCENT = 10 // 10% platform fee
+// Platform fee is stored per-order as `service_fee` in DB (currently Rp 2.000 flat)
 
 function MerchantTodayEarningsPage() {
     const navigate = useNavigate()
@@ -65,8 +65,8 @@ function MerchantTodayEarningsPage() {
 
                 // Calculate earnings from completed orders
                 const completedOrders = todayOrders.filter(o => ['completed', 'delivered'].includes(o.status))
-                const gross = completedOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0)
-                const deduction = Math.round(gross * APP_FEE_PERCENT / 100)
+                const gross = completedOrders.reduce((sum, o) => sum + (o.subtotal || 0), 0)
+                const deduction = completedOrders.reduce((sum, o) => sum + (o.service_fee || 0), 0)
                 const net = gross - deduction
 
                 setEarnings({ gross, deduction, net })
@@ -87,7 +87,7 @@ function MerchantTodayEarningsPage() {
 
                 // Build transaction list from today's orders (most recent first)
                 const txList = todayOrders.map(order => ({
-                    id: formatOrderId(order.id),
+                    id: formatOrderId(order.id, order.order_number),
                     time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     item: order.items?.map(i => `${i.product_name}`).join(', ') || 'Pesanan',
                     amount: order.total_amount || 0,
@@ -247,7 +247,7 @@ function MerchantTodayEarningsPage() {
                             <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500">
                                 <span className="material-symbols-outlined text-[18px]">local_offer</span>
                             </div>
-                            <span className="text-xs font-medium text-text-secondary">Potongan Aplikasi ({APP_FEE_PERCENT}%)</span>
+                            <span className="text-xs font-medium text-text-secondary">Potongan Aplikasi</span>
                         </div>
                         <span className="text-sm font-bold text-red-500">
                             - Rp {earnings.deduction.toLocaleString('id-ID')}

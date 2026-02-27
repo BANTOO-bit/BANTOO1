@@ -123,15 +123,18 @@ export function AddressProvider({ children }) {
     const value = {
         addresses: addresses.map(addr => ({
             ...addr,
-            isDefault: addr.is_default, // map snake_case to camelCase for component compatibility
-            name: addr.recipient_name, // map db col to component prop
-            // Ensure other fields match component expectations if needed
+            isDefault: addr.is_default,
+            name: addr.recipient_name,
+            lat: addr.latitude,
+            lng: addr.longitude,
         })),
         isLoading,
         selectedAddress: selectedAddress ? {
             ...selectedAddress,
             isDefault: selectedAddress.is_default,
-            name: selectedAddress.recipient_name
+            name: selectedAddress.recipient_name,
+            lat: selectedAddress.latitude,
+            lng: selectedAddress.longitude
         } : null,
         selectedAddressId,
         addAddress,

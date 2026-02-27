@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import orderService from '../../../services/orderService'
 import MerchantBottomNavigation from '../../../components/merchant/MerchantBottomNavigation'
 import { formatOrderId } from '../../../utils/orderUtils'
+import { isCODPayment, getPaymentLabel } from '../../../utils/paymentUtils'
 
 function MerchantTotalOrdersPage() {
     const navigate = useNavigate()
@@ -40,11 +41,11 @@ function MerchantTotalOrdersPage() {
                     else if (['cancelled', 'rejected'].includes(order.status)) status = 'cancelled'
 
                     // Determine payment
-                    const isCash = ['cod', 'COD', 'cash', 'CASH', 'tunai', 'TUNAI'].includes(order.payment_method)
+                    const isCash = isCODPayment(order.payment_method)
 
                     return {
                         id: order.id,
-                        displayId: formatOrderId(order.id),
+                        displayId: formatOrderId(order.id, order.order_number),
                         time: `Hari ini, ${new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
                         status,
                         customerName,
@@ -52,7 +53,7 @@ function MerchantTotalOrdersPage() {
                         items: itemsSummary,
                         total: order.total_amount || 0,
                         paymentMethod: isCash ? 'cash' : 'noncash',
-                        paymentLabel: isCash ? ((order.payment_method?.toUpperCase() === 'COD') ? 'COD' : 'Tunai') : (order.payment_method === 'wallet' ? 'Saldo' : order.payment_method || 'Non-Tunai'),
+                        paymentLabel: getPaymentLabel(order.payment_method),
                         paymentIcon: isCash ? null : 'account_balance_wallet'
                     }
                 })

@@ -13,6 +13,7 @@ import OrderCardSkeleton from '../../../components/shared/OrderCardSkeleton'
 import EmptyState from '../../../components/shared/EmptyState'
 import { useToast } from '../../../context/ToastContext'
 import { handleError, handleSuccess } from '../../../utils/errorHandler'
+import { isCODPayment, getPaymentLabel } from '../../../utils/paymentUtils'
 import logger from '../../../utils/logger'
 
 function MerchantOrdersPage() {
@@ -34,6 +35,7 @@ function MerchantOrdersPage() {
     const [activeModal, setActiveModal] = useState(null) // 'accept' | 'reject' | 'handover' | 'search' | null
     const [prepTime, setPrepTime] = useState(null)
     const [rejectReason, setRejectReason] = useState('')
+    const [customRejectReason, setCustomRejectReason] = useState('')
     const [showSuccess, setShowSuccess] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [actionLoading, setActionLoading] = useState(false) // C1: Double-submit guard
@@ -66,13 +68,13 @@ function MerchantOrdersPage() {
 
             // Transform data to match component format
             const transformedOrders = data.map(order => ({
-                id: generateOrderId(order.id),
+                id: generateOrderId(order.order_number ? order : order.id),
                 dbId: order.id, // Keep database ID for updates
                 time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                 created_at: order.created_at, // Raw timestamp for timeout countdown
                 accepted_at: order.accepted_at,
                 prep_time: order.prep_time,
-                payment: (order.payment_method === 'cod' || order.payment_method === 'cash') ? 'Tunai (COD)' : order.payment_method,
+                payment: getPaymentLabel(order.payment_method),
                 status: order.status, // Pass raw status for logic, component handles display text
                 total: order.total_amount,
                 items: order.items?.map(item => ({
@@ -163,7 +165,7 @@ function MerchantOrdersPage() {
 
                     addNotification({
                         type: 'success',
-                        message: `Pesanan baru #${generateOrderId(payload.new.id)} masuk!`,
+                        message: `Pesanan baru #${generateOrderId(payload.new.order_number ? payload.new : payload.new.id)} masuk!`,
                         duration: 5000
                     })
 
@@ -208,7 +210,7 @@ function MerchantOrdersPage() {
                     // Show visual warning toast notification
                     addNotification({
                         type: 'error',
-                        message: `Pesanan #${generateOrderId(payload.new.id)} telah DIBATALKAN. Silakan cek tab Selesai.`,
+                        message: `Pesanan #${generateOrderId(payload.new.order_number ? payload.new : payload.new.id)} telah DIBATALKAN. Silakan cek tab Selesai.`,
                         duration: 8000 // Show slightly longer
                     })
                 }
@@ -252,6 +254,7 @@ function MerchantOrdersPage() {
         setSelectedOrder(order)
         setActiveModal('reject')
         setRejectReason('')
+        setCustomRejectReason('')
     }
 
     const handleHandoverClick = (order) => {
@@ -287,11 +290,12 @@ function MerchantOrdersPage() {
 
     const confirmRejectOrder = async () => {
         if (!rejectReason || actionLoading) return // C1: guard
+        const finalReason = rejectReason === 'Alasan lainnya' ? (customRejectReason.trim() || 'Alasan lainnya') : rejectReason
         setActionLoading(true)
 
         try {
             // H5: Use rejectOrder (adds "Ditolak oleh merchant:" prefix)
-            await orderService.rejectOrder(selectedOrder.dbId, rejectReason)
+            await orderService.rejectOrder(selectedOrder.dbId, finalReason)
 
             // Remove from list
             setOrders(orders.filter(o => o.id !== selectedOrder.id))
@@ -580,6 +584,16 @@ function MerchantOrdersPage() {
                                 </label>
                             ))}
                         </div>
+                        {rejectReason === 'Alasan lainnya' && (
+                            <textarea
+                                value={customRejectReason}
+                                onChange={(e) => setCustomRejectReason(e.target.value)}
+                                placeholder="Tulis alasan penolakan..."
+                                rows={3}
+                                className="w-full p-3 rounded-xl border border-border-color dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-text-main dark:text-white placeholder:text-text-secondary focus:ring-2 focus:ring-primary focus:border-transparent resize-none transition-all"
+                                autoFocus
+                            />
+                        )}
                         <div className="flex gap-3 pt-2">
                             <button
                                 onClick={closeModal}
@@ -589,7 +603,7 @@ function MerchantOrdersPage() {
                             </button>
                             <button
                                 onClick={confirmRejectOrder}
-                                disabled={!rejectReason}
+                                disabled={!rejectReason || (rejectReason === 'Alasan lainnya' && !customRejectReason.trim())}
                                 className={`flex-1 py-3.5 rounded-xl font-bold text-sm active:scale-95 transition-all ${rejectReason
                                     ? 'bg-primary hover:bg-primary-dark text-white'
                                     : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'

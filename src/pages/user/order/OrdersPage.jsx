@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { useCart } from '../../../context/CartContext'
 import { useOrder } from '../../../context/OrderContext'
 import orderService from '../../../services/orderService'
+import { reviewService } from '../../../services/reviewService'
 import merchantService from '../../../services/merchantService'
 import { formatOrderId, generateOrderId } from '../../../utils/orderUtils'
 import BottomNavigation from '../../../components/user/BottomNavigation'
@@ -15,7 +16,7 @@ import ErrorState from '../../../components/shared/ErrorState'
 import EmptyState from '../../../components/shared/EmptyState'
 import { useToast } from '../../../context/ToastContext'
 import { handleError } from '../../../utils/errorHandler'
-
+import VirtualList from '../../../components/shared/VirtualList'
 import ConfirmationModal from '../../../components/shared/ConfirmationModal'
 
 function OrdersPage() {
@@ -50,60 +51,78 @@ function OrdersPage() {
             return
         }
 
-        try {
-            // Transform and separate active and completed orders 
-            // from the real-time context
-            const transformedOrders = contextOrders.map(order => ({
-                id: generateOrderId(order.id),
-                dbId: order.id,
-                merchantName: order.merchant?.name || order.merchants?.name || 'Merchant',
-                merchantId: order.merchant_id,
-                merchantImage: order.merchant?.image_url || order.merchants?.image_url,
-                status: order.status,
-                totalAmount: order.total_amount,
-                paymentMethod: order.payment_method,
-                createdAt: order.created_at,
-                items: order.items?.map(item => ({
-                    id: item.product_id,
-                    name: item.product_name,
-                    quantity: item.quantity,
-                    price: item.price_at_time,
-                    image: item.menu_items?.image_url,
-                    notes: item.notes
-                })) || order.order_items?.map(item => ({
-                    id: item.product_id,
-                    name: item.product_name,
-                    quantity: item.quantity,
-                    price: item.price_at_time,
-                    image: item.menu_items?.image_url,
-                    notes: item.notes
-                })) || []
-            }))
+        async function processOrders() {
+            try {
+                // Transform orders from context
+                const transformedOrders = contextOrders.map(order => ({
+                    id: generateOrderId(order.order_number ? order : order.id),
+                    dbId: order.id,
+                    merchantName: order.merchant?.name || order.merchants?.name || 'Merchant',
+                    merchantId: order.merchant_id,
+                    merchantImage: order.merchant?.image_url || order.merchants?.image_url,
+                    status: order.status,
+                    driverId: order.driver_id,
+                    totalAmount: order.total_amount,
+                    paymentMethod: order.payment_method,
+                    createdAt: order.created_at,
+                    items: order.items?.map(item => ({
+                        id: item.product_id,
+                        name: item.product_name,
+                        quantity: item.quantity,
+                        price: item.price_at_time,
+                        image: item.menu_items?.image_url,
+                        notes: item.notes
+                    })) || order.order_items?.map(item => ({
+                        id: item.product_id,
+                        name: item.product_name,
+                        quantity: item.quantity,
+                        price: item.price_at_time,
+                        image: item.menu_items?.image_url,
+                        notes: item.notes
+                    })) || []
+                }))
 
-            // Separate active and completed orders
-            const active = transformedOrders.filter(o =>
-                o.status === 'pending' ||
-                o.status === 'accepted' ||
-                o.status === 'preparing' ||
-                o.status === 'ready' ||
-                o.status === 'picked_up' ||
-                o.status === 'delivering'
-            )
-            const history = transformedOrders.filter(o =>
-                o.status === 'delivered' ||
-                o.status === 'completed' ||
-                o.status === 'cancelled' ||
-                o.status === 'timeout'
-            )
+                // Separate active and completed orders
+                const active = transformedOrders.filter(o =>
+                    o.status === 'pending' ||
+                    o.status === 'accepted' ||
+                    o.status === 'preparing' ||
+                    o.status === 'ready' ||
+                    o.status === 'picked_up' ||
+                    o.status === 'delivering'
+                )
+                const history = transformedOrders.filter(o =>
+                    o.status === 'delivered' ||
+                    o.status === 'completed' ||
+                    o.status === 'cancelled' ||
+                    o.status === 'timeout'
+                )
 
-            // Update local variables
-            setActiveOrders(active)
-            setOrderHistory(history)
-        } catch (err) {
-            setError('Gagal memproses data pesanan')
-        } finally {
-            setIsLoading(false)
+                setActiveOrders(active)
+
+                // Bulk check which orders have been reviewed (single query)
+                if (history.length > 0) {
+                    try {
+                        const reviewedIds = await reviewService.getReviewedOrderIds()
+                        const historyWithReviews = history.map(order => ({
+                            ...order,
+                            hasReview: reviewedIds.includes(order.dbId)
+                        }))
+                        setOrderHistory(historyWithReviews)
+                    } catch {
+                        setOrderHistory(history)
+                    }
+                } else {
+                    setOrderHistory(history)
+                }
+            } catch (err) {
+                setError('Gagal memproses data pesanan')
+            } finally {
+                setIsLoading(false)
+            }
         }
+
+        processOrders()
     }, [contextOrders, contextLoading, user?.id])
 
     const handleTrack = (order) => {
@@ -295,17 +314,23 @@ function OrdersPage() {
                             <p className="text-sm text-text-secondary dark:text-gray-400 text-center">Pesanan yang sudah selesai akan muncul di sini</p>
                         </div>
                     ) : (
-                        orderHistory.map(order => (
-                            <OrderHistoryCard
-                                key={order.id}
-                                order={order}
-                                onReview={handleReview}
-                                onReorder={handleReorder}
-                                onViewDetail={handleViewDetail}
-                                formatDate={formatDate}
-                                getMerchantImage={getMerchantImage}
-                            />
-                        ))
+                        <VirtualList
+                            items={orderHistory}
+                            itemHeight={140}
+                            threshold={50}
+                            overscan={5}
+                            renderItem={(order) => (
+                                <OrderHistoryCard
+                                    key={order.id}
+                                    order={order}
+                                    onReview={handleReview}
+                                    onReorder={handleReorder}
+                                    onViewDetail={handleViewDetail}
+                                    formatDate={formatDate}
+                                    getMerchantImage={getMerchantImage}
+                                />
+                            )}
+                        />
                     )
                 )}
             </main>

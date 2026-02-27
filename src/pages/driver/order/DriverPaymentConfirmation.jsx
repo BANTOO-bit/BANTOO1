@@ -7,7 +7,6 @@ import { handleError } from '../../../utils/errorHandler'
 import { formatId } from '../../../utils/formatters'
 import PhotoPickerModal from '../../../components/shared/PhotoPickerModal'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
-import orderService from '../../../services/orderService'
 
 function DriverPaymentConfirmation() {
     const navigate = useNavigate()
@@ -49,13 +48,19 @@ function DriverPaymentConfirmation() {
         try {
             setIsConfirming(true)
 
-            // Confirm COD payment & Complete Order via Driver Service
-            // The RPC 'completed' status sets payment_status='paid' and delivered_at=NOW()
+            // Complete COD delivery atomically (status + payment in one transaction)
             const { driverService } = await import('../../../services/driverService')
-            await driverService.updateOrderStatus(activeOrder.dbId || activeOrder.id, 'completed')
+            const orderId = activeOrder.dbId || activeOrder.id
+
+            // Use GPS coords saved from delivery page
+            const lat = activeOrder.driverCoords?.[0] || null
+            const lng = activeOrder.driverCoords?.[1] || null
+
+            // Single atomic RPC: sets status='completed' + payment_status='paid' + timestamps
+            await driverService.completeCodDelivery(orderId, lat, lng)
 
             // Update context
-            setActiveOrder({ ...activeOrder, status: 'completed', proofPhoto: photo })
+            setActiveOrder({ ...activeOrder, status: 'completed', payment_status: 'paid', proofPhoto: photo })
 
             // Navigate to completion
             navigate('/driver/order/complete')

@@ -89,7 +89,7 @@ export default function AdminOrderDetailPage() {
     }
 
     const status = STATUS_CONFIG[order.status] || { label: order.status, color: 'gray', icon: 'help' }
-    const displayId = generateOrderId(order.id)
+    const displayId = generateOrderId(order.order_number ? order : order.id)
 
     // Timeline events
     const timeline = [

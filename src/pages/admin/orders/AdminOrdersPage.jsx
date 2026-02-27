@@ -156,7 +156,7 @@ export default function AdminOrdersPage() {
     const filteredOrders = orders.filter(order => {
         if (!searchQuery) return true
         const q = searchQuery.toLowerCase()
-        const orderId = formatOrderId(order.id) || ''
+        const orderId = formatOrderId(order.id, order.order_number) || ''
         return (
             orderId.toLowerCase().includes(q) ||
             order.merchant?.name?.toLowerCase().includes(q) ||
@@ -377,7 +377,7 @@ export default function AdminOrdersPage() {
                                     {/* ID & Time */}
                                     <div>
                                         <p className="text-sm font-bold text-[#111418] dark:text-white">
-                                            {formatOrderId(order.id)}
+                                            {formatOrderId(order.id, order.order_number)}
                                         </p>
                                         <p className="text-[10px] text-[#617589] mt-0.5">{formatTime(order.created_at)}</p>
                                     </div>

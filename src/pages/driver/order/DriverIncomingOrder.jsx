@@ -8,6 +8,7 @@ import { calculateDistance } from '../../../services/driverLocationService'
 import { generateOrderId } from '../../../utils/orderUtils'
 import { handleError } from '../../../utils/errorHandler'
 import { formatId } from '../../../utils/formatters'
+import { isCODPayment, getPaymentLabel } from '../../../utils/paymentUtils'
 
 function DriverIncomingOrder() {
     const navigate = useNavigate()
@@ -109,7 +110,7 @@ function DriverIncomingOrder() {
 
             // Set active order in context
             setActiveOrder({
-                id: generateOrderId(availableOrder.id),
+                id: generateOrderId(availableOrder.order_number ? availableOrder : availableOrder.id),
                 dbId: availableOrder.id,
                 merchantName: availableOrder.merchant?.name || 'Merchant',
                 merchantAddress: availableOrder.merchant?.address || '',
@@ -118,7 +119,7 @@ function DriverIncomingOrder() {
                 totalAmount: availableOrder.total_amount,
                 delivery_fee: availableOrder.delivery_fee || 0,
                 service_fee: availableOrder.service_fee || 0,
-                paymentMethod: availableOrder.payment_method === 'cod' ? 'COD' : availableOrder.payment_method.toUpperCase(),
+                paymentMethod: isCODPayment(availableOrder.payment_method) ? 'COD' : availableOrder.payment_method.toUpperCase(),
                 payment_method: availableOrder.payment_method, // raw value for COD checks
                 status: 'pickup', // Update to pickup immediately
                 items: availableOrder.items?.map(item => ({
@@ -277,7 +278,7 @@ function DriverIncomingOrder() {
                             <div className="inline-flex items-center gap-1.5 bg-red-600 text-white px-3 py-1 rounded-full shadow-none border border-red-600">
                                 <span className="material-symbols-outlined text-[16px]">payments</span>
                                 <span className="text-xs font-bold tracking-wide">
-                                    METODE: {availableOrder.payment_method === 'cod' ? 'TUNAI (COD)' : availableOrder.payment_method.toUpperCase()}
+                                    METODE: {getPaymentLabel(availableOrder.payment_method)}
                                 </span>
                             </div>
                             <div>
@@ -286,7 +287,7 @@ function DriverIncomingOrder() {
                                     Rp {availableOrder.total_amount?.toLocaleString('id-ID') || '0'}
                                 </p>
                             </div>
-                            {availableOrder.payment_method === 'cod' && (
+                            {isCODPayment(availableOrder.payment_method) && (
                                 <div className="bg-red-50 text-red-700 text-[10px] font-medium px-3 py-1.5 rounded-lg inline-block">
                                     ⚠️ Pastikan menagih uang tunai ke pelanggan
                                 </div>

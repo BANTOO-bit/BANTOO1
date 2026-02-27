@@ -6,7 +6,7 @@ export const driverService = {
      * @param {Object} location - { lat, lng }
      * @param {number} radius - Radius in km (default 10)
      */
-    async getAvailableOrders({ lat, lng }, radius = 10) {
+    async getAvailableOrders({ lat, lng }, radius = 50) {
         try {
             // Try RCP first (Optimized for Radius)
             const { data, error } = await supabase.rpc('get_available_orders', {
@@ -19,11 +19,14 @@ export const driverService = {
 
             if (import.meta.env.DEV) console.log('--- DB RPC get_available_orders output ---', data, error)
 
-            if (!error && data !== null) {
+            if (!error && data !== null && data.length > 0) {
                 return data.filter(o => !rejected.includes(o.id))
             }
 
-            console.warn('RPC "get_available_orders" failed or returned null, falling back to standard query:', error?.message)
+            // RPC returned empty or failed — try standard query as fallback
+            if (import.meta.env.DEV && data?.length === 0) {
+                console.log('[Driver] RPC returned empty (driver may not be approved or no orders in radius). Trying fallback query...')
+            }
 
             // Fallback: Standard Query (No Radius Filter, just status)
             // This ensures drivers see orders even if GIS functions are missing
@@ -693,7 +696,7 @@ export const driverService = {
                 .from('orders')
                 .select('id, total_amount, delivery_fee')
                 .eq('driver_id', user.id)
-                .eq('status', 'delivered')
+                .in('status', ['delivered', 'completed'])
                 .gte('delivered_at', startOfDay)
                 .lte('delivered_at', endOfDay)
 
@@ -807,6 +810,39 @@ export const driverService = {
                 timeLimitHours: 48, hoursElapsed: 0, oldestUnpaidAt: null,
                 isOverLimit: false, isOverNominal: false, isOverTimeLimit: false,
                 percentage: 0, ledger: []
+            }
+        }
+    },
+
+    /**
+     * Complete COD delivery atomically (status + payment in one transaction)
+     * Sets status='completed', payment_status='paid', delivered_at=NOW(), paid_at=NOW()
+     * @param {string} orderId
+     * @param {number} [lat] - Optional latitude
+     * @param {number} [lng] - Optional longitude
+     */
+    async completeCodDelivery(orderId, lat = null, lng = null) {
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                const { data, error } = await supabase.rpc('driver_complete_cod_delivery', {
+                    p_order_id: orderId,
+                    p_lat: lat,
+                    p_lng: lng
+                })
+
+                if (error) throw error
+                if (!data.success) throw new Error(data.message)
+
+                return data
+            } catch (error) {
+                retries--;
+                if (retries === 0) {
+                    console.error('Error completing COD delivery after retries:', error)
+                    throw error
+                }
+                console.warn(`Retry completing COD delivery (${3 - retries}/3)...`)
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
     }

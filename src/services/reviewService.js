@@ -32,16 +32,25 @@ export const reviewService = {
             comment
         }
 
-        // Add tags if the column exists in the schema
-        if (tags && tags.length > 0) {
-            reviewData.tags = tags
-        }
+        // Note: tags are shown in UI but not stored (no tags column in reviews table yet)
 
         const { data, error } = await supabase
             .from('reviews')
             .insert(reviewData)
             .select()
             .single()
+
+        // Handle duplicate review (UNIQUE constraint on order_id + customer_id)
+        if (error?.code === '23505') {
+            // Already reviewed — return existing review
+            const { data: existing } = await supabase
+                .from('reviews')
+                .select()
+                .eq('order_id', orderId)
+                .eq('customer_id', user.id)
+                .maybeSingle()
+            return existing
+        }
 
         if (error) throw error
         return data
@@ -115,9 +124,25 @@ export const reviewService = {
             .select('id')
             .eq('order_id', orderId)
             .eq('customer_id', user.id)
-            .single()
+            .maybeSingle()
 
         return !error && !!data
+    },
+
+    /**
+     * Get all reviewed order IDs for current user (bulk check)
+     */
+    async getReviewedOrderIds() {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return []
+
+        const { data, error } = await supabase
+            .from('reviews')
+            .select('order_id')
+            .eq('customer_id', user.id)
+
+        if (error) return []
+        return data?.map(r => r.order_id) || []
     },
     /**
      * Get driver's average rating and count

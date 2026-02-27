@@ -10,6 +10,7 @@ import orderService from '../../../services/orderService'
 import SlideToConfirm from '../../../components/shared/SlideToConfirm'
 import DriverIssueModal from '../../../components/driver/DriverIssueModal'
 import { formatId } from '../../../utils/formatters'
+import { isCODPayment } from '../../../utils/paymentUtils'
 
 function DriverPickupOrder() {
     const navigate = useNavigate()
@@ -79,6 +80,7 @@ function DriverPickupOrder() {
         : (activeOrder.customerCoords || [-6.2250, 106.8500])
 
     const paymentMethod = (activeOrder.payment_method || activeOrder.paymentMethod || '').toLowerCase()
+    const isCOD = isCODPayment(paymentMethod)
     const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
     const customerNote = activeOrder.notes || activeOrder.customerNote
 
@@ -170,7 +172,7 @@ function DriverPickupOrder() {
                 </div>
             </header>
 
-            <main className="flex-1 pb-bottom-nav bg-background-light px-4 pt-4 flex flex-col gap-4">
+            <main className="flex-1 pb-36 bg-background-light px-4 pt-4 flex flex-col gap-4">
                 {/* Map: Route to Merchant */}
                 <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: '200px' }}>
                     <TrackingMap
@@ -207,7 +209,7 @@ function DriverPickupOrder() {
                 </div>
 
                 {/* COD Warning (Conditional) */}
-                {paymentMethod === 'cod' && (
+                {isCOD && (
                     <div className="bg-red-50 rounded-xl p-5 border border-red-100 text-center animate-in fade-in slide-in-from-bottom-2">
                         <div className="flex items-center justify-center gap-2 text-red-600 font-bold text-sm mb-1">
                             <span className="material-symbols-outlined text-[20px]">payments</span>
@@ -219,7 +221,7 @@ function DriverPickupOrder() {
                 )}
 
                 {/* Service/Payment Info (Non-COD fallback/additional info) */}
-                {paymentMethod !== 'cod' && (
+                {!isCOD && (
                     <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex items-center gap-3">
                         <span className="material-symbols-outlined text-green-600 text-[24px]">verified</span>
                         <div>
@@ -231,13 +233,20 @@ function DriverPickupOrder() {
 
 
                 {/* Customer Note */}
-                <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-100 flex gap-3">
-                    <span className="material-symbols-outlined text-yellow-600 shrink-0 text-[24px]">sticky_note_2</span>
-                    <div>
-                        <h3 className="text-sm font-bold text-yellow-700 mb-1 sm:mb-0">CATATAN PELANGGAN</h3>
-                        <p className="text-sm text-slate-800 leading-relaxed italic">"{customerNote || '-'}"</p>
+                {customerNote && customerNote.trim() && customerNote.trim() !== '-' ? (
+                    <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-100 flex gap-3">
+                        <span className="material-symbols-outlined text-yellow-600 shrink-0 text-[24px]">sticky_note_2</span>
+                        <div>
+                            <h3 className="text-sm font-bold text-yellow-700 mb-1">CATATAN PELANGGAN</h3>
+                            <p className="text-sm text-slate-800 leading-relaxed italic">"{customerNote}"</p>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center gap-3">
+                        <span className="material-symbols-outlined text-slate-400 shrink-0 text-[24px]">speaker_notes_off</span>
+                        <p className="text-sm text-slate-400">Tidak ada catatan dari pelanggan</p>
+                    </div>
+                )}
 
                 {/* Item List */}
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
@@ -252,8 +261,8 @@ function DriverPickupOrder() {
                                     <input
                                         type="checkbox"
                                         checked={!!checkedItems[index]}
-                                        onChange={() => handleCheckItem(index)}
-                                        className="w-6 h-6 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
+                                        readOnly
+                                        className="w-6 h-6 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer pointer-events-none"
                                     />
                                 </div>
                                 <div>
@@ -271,18 +280,26 @@ function DriverPickupOrder() {
 
             <div className="fixed bottom-[72px] left-0 right-0 px-4 pb-2 z-40 bg-gradient-to-t from-background-light via-background-light to-transparent pt-4 max-w-md mx-auto">
                 {!hasArrived ? (
-                    <button
-                        onClick={handleArriveAtMerchant}
-                        className="w-full font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] bg-green-500 hover:bg-green-600 text-white"
-                    >
-                        <span className="material-symbols-outlined">location_on</span>
-                        SAYA SUDAH DI RESTO
-                    </button>
+                    <div className="flex flex-col gap-2">
+                        <button
+                            onClick={handleArriveAtMerchant}
+                            disabled={!allItemsChecked}
+                            className={`w-full font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98] ${allItemsChecked
+                                ? 'bg-green-500 hover:bg-green-600 text-white'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
+                        >
+                            <span className="material-symbols-outlined">location_on</span>
+                            SAYA SUDAH DI RESTO
+                        </button>
+                        {!allItemsChecked && (
+                            <p className="text-xs text-center text-slate-400">Checklist semua item terlebih dahulu</p>
+                        )}
+                    </div>
                 ) : (
                     <SlideToConfirm
                         onConfirm={handleConfirmPickup}
                         isConfirming={isConfirming}
-                        disabled={!allItemsChecked}
                         text="GESER JIKA SUDAH DIAMBIL"
                         processingText="MENCARI LOKASI GPS AKURAT..."
                     />

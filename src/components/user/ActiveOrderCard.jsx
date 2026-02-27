@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react'
+import { supabase } from '../../services/supabaseClient'
 import OrderStepper from './OrderStepper'
 
 /**
@@ -5,21 +7,55 @@ import OrderStepper from './OrderStepper'
  * Displays an active order with stepper, status, and actions
  */
 function ActiveOrderCard({ order, onTrack, onCancel }) {
+    const [driverInfo, setDriverInfo] = useState(null)
+
+    // Fetch real driver data when driverId is available
+    useEffect(() => {
+        async function fetchDriver() {
+            if (!order.driverId) {
+                setDriverInfo(null)
+                return
+            }
+
+            try {
+                // Get driver profile
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('full_name, avatar_url, phone')
+                    .eq('id', order.driverId)
+                    .single()
+
+                // Get driver vehicle info
+                const { data: driver } = await supabase
+                    .from('drivers')
+                    .select('vehicle_brand, vehicle_plate, vehicle_type, rating')
+                    .eq('user_id', order.driverId)
+                    .single()
+
+                if (profile) {
+                    setDriverInfo({
+                        name: profile.full_name || 'Driver',
+                        photo: profile.avatar_url,
+                        vehicle: [driver?.vehicle_brand, driver?.vehicle_type].filter(Boolean).join(' ') || 'Motor',
+                        plate: driver?.vehicle_plate || '-',
+                        rating: driver?.rating || null
+                    })
+                }
+            } catch (err) {
+                console.error('Failed to fetch driver:', err)
+            }
+        }
+
+        fetchDriver()
+    }, [order.driverId])
+
     // Map order status to stepper step
     const getStepFromStatus = (status) => {
         const statusMap = {
-            'pending': 0,
-            'confirmed': 1,
-            'accepted': 1,
-            'preparing': 1,
-            'processing': 1,
-            'ready': 1,
-            'pickup': 2,
-            'picked_up': 2,
-            'on_the_way': 2,
-            'delivering': 2,
-            'delivered': 3,
-            'completed': 3
+            'pending': 0, 'confirmed': 1, 'accepted': 1,
+            'preparing': 1, 'processing': 1, 'ready': 1,
+            'pickup': 2, 'picked_up': 2, 'on_the_way': 2, 'delivering': 2,
+            'delivered': 3, 'completed': 3
         }
         return statusMap[status] || 0
     }
@@ -27,81 +63,24 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
     // Get status message based on order status
     const getStatusInfo = (status) => {
         const statusMap = {
-            'pending': {
-                message: 'Menunggu Konfirmasi Resto',
-                showDriver: false,
-                showCancel: true
-            },
-            'confirmed': {
-                message: 'Pesanan Dikonfirmasi',
-                showDriver: false,
-                showCancel: false
-            },
-            'accepted': {
-                message: 'Pesanan Diterima Warung',
-                showDriver: false,
-                showCancel: false
-            },
-            'preparing': {
-                message: 'Makanan Sedang Disiapkan',
-                showDriver: false,
-                showCancel: false
-            },
-            'processing': {
-                message: 'Makanan Sedang Diproses',
-                showDriver: false,
-                showCancel: false
-            },
-            'ready': {
-                message: 'Pesanan Siap Diambil Driver',
-                showDriver: false,
-                showCancel: false
-            },
-            'pickup': {
-                message: 'Driver Menuju Warung',
-                showDriver: true,
-                showCancel: false
-            },
-            'picked_up': {
-                message: 'Driver Sudah Mengambil Pesanan',
-                showDriver: true,
-                showCancel: false
-            },
-            'delivering': {
-                message: 'Pesanan Sedang Diantar',
-                showDriver: true,
-                showCancel: false
-            },
-            'on_the_way': {
-                message: 'Pesanan Sedang Diantar',
-                showDriver: true,
-                showCancel: false
-            },
-            'delivered': {
-                message: 'Pesanan Telah Sampai',
-                showDriver: true,
-                showCancel: false
-            },
-            'completed': {
-                message: 'Pesanan Selesai',
-                showDriver: true,
-                showCancel: false
-            }
+            'pending': { message: 'Menunggu Konfirmasi Resto', showDriver: false, showCancel: true },
+            'confirmed': { message: 'Pesanan Dikonfirmasi', showDriver: false, showCancel: false },
+            'accepted': { message: 'Pesanan Diterima Warung', showDriver: false, showCancel: false },
+            'preparing': { message: 'Makanan Sedang Disiapkan', showDriver: false, showCancel: false },
+            'processing': { message: 'Makanan Sedang Diproses', showDriver: false, showCancel: false },
+            'ready': { message: 'Pesanan Siap Diambil Driver', showDriver: false, showCancel: false },
+            'pickup': { message: 'Driver Menuju Warung', showDriver: true, showCancel: false },
+            'picked_up': { message: 'Driver Sudah Mengambil Pesanan', showDriver: true, showCancel: false },
+            'delivering': { message: 'Pesanan Sedang Diantar', showDriver: true, showCancel: false },
+            'on_the_way': { message: 'Pesanan Sedang Diantar', showDriver: true, showCancel: false },
+            'delivered': { message: 'Pesanan Telah Sampai', showDriver: true, showCancel: false },
+            'completed': { message: 'Pesanan Selesai', showDriver: true, showCancel: false }
         }
         return statusMap[status] || statusMap['pending']
     }
 
     const currentStep = getStepFromStatus(order.status)
     const statusInfo = getStatusInfo(order.status)
-
-    // Mock driver info (in real app, this would come from order data)
-    const driverInfo = order.driverInfo || {
-        name: 'Budi Santoso',
-        vehicle: 'Honda Vario',
-        plate: 'B 1234 XYZ',
-        rating: 4.8,
-        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
-    }
 
     return (
         <div className="bg-card-light dark:bg-card-dark rounded-2xl p-4 shadow-soft border border-border-color dark:border-gray-800 relative">
@@ -126,7 +105,7 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
 
             {/* Status message box */}
             <div className="mb-4 bg-orange-50/50 dark:bg-orange-900/10 rounded-xl p-3 border border-orange-100/50 dark:border-orange-900/20">
-                {statusInfo.showDriver && order.status !== 'pending' ? (
+                {statusInfo.showDriver && driverInfo ? (
                     <>
                         <div className="flex items-center gap-2 mb-3 pb-3 border-b border-orange-200/50 dark:border-orange-800/30">
                             <span className="relative flex h-2 w-2">
@@ -139,17 +118,19 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="relative">
-                                    <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white dark:border-gray-800">
-                                        <img
-                                            alt="Driver"
-                                            className="w-full h-full object-cover"
-                                            src={driverInfo.photo}
-                                        />
+                                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 overflow-hidden border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                                        {driverInfo.photo ? (
+                                            <img alt="Driver" className="w-full h-full object-cover" src={driverInfo.photo} />
+                                        ) : (
+                                            <span className="material-symbols-outlined text-blue-500 text-xl">person</span>
+                                        )}
                                     </div>
-                                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full px-1 py-0.5 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-0.5">
-                                        <span className="material-symbols-outlined text-[8px] text-yellow-500 fill">star</span>
-                                        <span className="text-[8px] font-bold">{driverInfo.rating}</span>
-                                    </div>
+                                    {driverInfo.rating && (
+                                        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full px-1 py-0.5 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-0.5">
+                                            <span className="material-symbols-outlined text-[8px] text-yellow-500 fill">star</span>
+                                            <span className="text-[8px] font-bold">{driverInfo.rating}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[11px] font-bold">{driverInfo.name}</span>

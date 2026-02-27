@@ -19,15 +19,6 @@ class AppErrorBoundary extends React.Component {
         console.error("Application Error:", error, errorInfo)
 
         this.setState({ errorInfo })
-
-        // #8: Send to Sentry error tracking in production
-        if (window.Sentry) {
-            window.Sentry.captureException(error, {
-                extra: {
-                    componentStack: errorInfo?.componentStack
-                }
-            })
-        }
     }
 
     handleReload = () => {

@@ -208,6 +208,20 @@ function CheckoutPage() {
                     )}
                 </div>
 
+                {/* GPS Warning */}
+                {selectedAddress && !selectedAddress.lat && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+                        <span className="material-symbols-outlined text-amber-600 text-lg shrink-0 mt-0.5">warning</span>
+                        <div>
+                            <p className="text-xs font-bold text-amber-800">Lokasi GPS belum terdeteksi</p>
+                            <p className="text-[11px] text-amber-700 mt-0.5">
+                                Alamat ini belum memiliki koordinat GPS. Driver mungkin kesulitan menemukan lokasi Anda.
+                                Perbarui alamat dengan fitur "Lokasi Saya" untuk akurasi lebih baik.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Delivery Time */}
                 <div className="bg-white rounded-2xl border border-border-color p-4">
                     <div className="flex items-center gap-2 mb-3">

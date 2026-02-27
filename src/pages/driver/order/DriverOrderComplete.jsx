@@ -1,15 +1,22 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverBottomNavigation from '../../../components/driver/DriverBottomNavigation'
 import { useOrder } from '../../../context/OrderContext'
+import { isCODPayment } from '../../../utils/paymentUtils'
 
 function DriverOrderComplete() {
     const navigate = useNavigate()
     const { activeOrder, clearOrder } = useOrder()
 
-    const isCOD = activeOrder?.paymentMethod === 'COD' || activeOrder?.payment_method === 'cod'
-    const orderId = activeOrder?.id ? (activeOrder.id.includes('-') ? activeOrder.id.split('-')[2] : activeOrder.id.substring(0, 5)) : '00000'
-    const deliveryFee = activeOrder?.delivery_fee || activeOrder?.deliveryFee || 0
-    const serviceFee = activeOrder?.service_fee || activeOrder?.serviceFee || 0
+    // Snapshot the order data on mount — activeOrder may be cleared by
+    // realtime handler when status becomes 'completed', but we still
+    // need the data to display earnings summary to the driver
+    const [order] = useState(() => activeOrder)
+
+    const isCOD = isCODPayment(order?.paymentMethod || order?.payment_method)
+    const orderId = order?.id ? (order.id.includes('-') ? order.id.split('-')[2] : order.id.substring(0, 5)) : '00000'
+    const deliveryFee = order?.delivery_fee || order?.deliveryFee || 0
+    const serviceFee = order?.service_fee || order?.serviceFee || 0
     const driverEarnings = deliveryFee - serviceFee
 
     const formatCurrency = (value) => `Rp ${(value || 0).toLocaleString('id-ID')}`

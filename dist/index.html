@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#2979FF" />
   <meta name="description"
     content="BANTOO — Aplikasi pesan antar makanan terlengkap. Pesan dari warung favorit kamu, antar cepat sampai." />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icon-192.svg" />
@@ -21,34 +21,15 @@
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-  <script type="module" crossorigin src="/assets/index-DkUeFJTY.js"></script>
+  <script type="module" crossorigin src="/assets/index-C795Ff5g.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/vendor-react-C7jSX3BI.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-CCVttf8S.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-CP6qR6J_.css">
 </head>
 
 <body>
   <div id="root"></div>
 
-  <!-- #8: Sentry Error Monitoring (CDN) -->
-  <script src="https://browser.sentry-cdn.com/8.45.0/bundle.tracing.min.js" crossorigin="anonymous"></script>
-  <script>
-    // Sentry Error Monitoring — reads DSN from env var injected at build time
-    ; (function () {
-      if (!window.Sentry) return
-      // DSN is injected by Vite at build time from VITE_SENTRY_DSN env var
-      var dsn = '%VITE_SENTRY_DSN%'
-      if (!dsn || dsn === '%VITE_SENTRY_DSN%' || dsn.includes('YOUR_')) return // Skip if not configured
-      Sentry.init({
-        dsn: dsn,
-        tracesSampleRate: 0.2,
-        environment: location.hostname === 'localhost' ? 'development' : 'production',
-        beforeSend: function (event) {
-          if (location.hostname === 'localhost') return null
-          return event
-        }
-      })
-    })()
-  </script>
+
 
   <!-- #5: Service Worker Registration -->
   <script>

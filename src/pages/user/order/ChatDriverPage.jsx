@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
 import { chatService } from '../../../services/chatService'
 import { supabase } from '../../../services/supabaseClient'
 
@@ -15,6 +16,7 @@ function ChatDriverPage() {
     const { orderId } = useParams()
     const navigate = useNavigate()
     const { user } = useAuth()
+    const toast = useToast()
     const [messages, setMessages] = useState([])
     const [inputText, setInputText] = useState('')
     const [sending, setSending] = useState(false)
@@ -36,26 +38,45 @@ function ChatDriverPage() {
 
         const fetchOrderInfo = async () => {
             try {
+                // Get order + driver profile
                 const { data, error } = await supabase
                     .from('orders')
                     .select(`
                         id, status, driver_id,
-                        drivers:driver_id (
-                            vehicle_plate, vehicle_brand,
-                            profile:user_id (full_name, avatar_url, phone)
-                        )
+                        driver_profile:profiles!driver_id (full_name, avatar_url, phone)
                     `)
                     .eq('id', orderId)
                     .single()
 
-                if (!error && data?.drivers) {
-                    setDriverInfo({
-                        name: data.drivers.profile?.full_name || 'Driver',
-                        phone: data.drivers.profile?.phone || '-',
-                        avatar: data.drivers.profile?.avatar_url,
-                        vehicle: data.drivers.vehicle_brand || 'Motor',
-                        plate: data.drivers.vehicle_plate || '-'
-                    })
+                if (error) {
+                    console.error('Error fetching order:', error)
+                    return
+                }
+
+                if (data?.driver_profile) {
+                    const driverData = {
+                        name: data.driver_profile.full_name || 'Driver',
+                        phone: data.driver_profile.phone || '-',
+                        avatar: data.driver_profile.avatar_url,
+                        vehicle: 'Motor',
+                        plate: '-'
+                    }
+
+                    // Try to get vehicle info from drivers table
+                    if (data.driver_id) {
+                        const { data: driverDetail } = await supabase
+                            .from('drivers')
+                            .select('vehicle_brand, vehicle_plate, vehicle_type')
+                            .eq('user_id', data.driver_id)
+                            .single()
+
+                        if (driverDetail) {
+                            driverData.vehicle = [driverDetail.vehicle_brand, driverDetail.vehicle_type].filter(Boolean).join(' ') || 'Motor'
+                            driverData.plate = driverDetail.vehicle_plate || '-'
+                        }
+                    }
+
+                    setDriverInfo(driverData)
                 }
             } catch (err) {
                 console.error('Error fetching order info:', err)
@@ -105,10 +126,13 @@ function ChatDriverPage() {
         setInputText('')
 
         try {
+            console.log('[CustomerChat] Sending message:', { orderId, text: text.substring(0, 20), role: 'customer' })
             await chatService.sendMessage(orderId, text, 'customer')
+            console.log('[CustomerChat] Message sent successfully')
         } catch (error) {
-            console.error('Failed to send message:', error)
-            setInputText(text) // Restore on failure
+            console.error('[CustomerChat] Failed to send message:', error)
+            toast.error(`Gagal kirim pesan: ${error.message || 'Unknown error'}`)
+            setInputText(text)
         } finally {
             setSending(false)
         }
