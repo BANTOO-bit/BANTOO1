@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useCart } from '../../../context/CartContext'
+import { useToast } from '../../../context/ToastContext'
 import { pushNotificationService } from '../../../services/pushNotificationService'
+import { APP_VERSION_STRING } from '../../../config/appConfig'
 import ProfileMenuItem from '../../../components/user/ProfileMenuItem'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 
@@ -51,7 +53,9 @@ function ProfilePage() {
     const navigate = useNavigate()
     const { user, logout, switchRole } = useAuth()
     const { cartItems } = useCart()
+    const toast = useToast()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
+    const [switchingRole, setSwitchingRole] = useState(null)
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
     const [notifPermission, setNotifPermission] = useState(
         pushNotificationService.isSupported() ? pushNotificationService.getPermission() : 'denied'
@@ -176,48 +180,60 @@ function ProfilePage() {
                             {/* Merchant Entry */}
                             {user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' ? (
                                 <button
+                                    disabled={switchingRole !== null}
                                     onClick={async () => {
                                         try {
+                                            setSwitchingRole('merchant')
                                             await switchRole('merchant')
                                             navigate('/merchant/dashboard')
                                         } catch (err) {
                                             console.error('Failed to switch role:', err)
+                                            toast.error('Gagal pindah ke Warung. Coba lagi.')
+                                        } finally {
+                                            setSwitchingRole(null)
                                         }
                                     }}
-                                    className="w-full flex items-center gap-4 p-4 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors border-b border-gray-100 dark:border-gray-800 active:bg-orange-100"
+                                    className={`w-full flex items-center gap-4 p-4 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors border-b border-gray-100 dark:border-gray-800 active:bg-orange-100 ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                                 >
                                     <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
                                         <span className="material-symbols-outlined text-lg">store</span>
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <p className="font-bold text-gray-900 dark:text-white leading-tight">Masuk ke Warung</p>
+                                        <p className="font-bold text-gray-900 dark:text-white leading-tight">{switchingRole === 'merchant' ? 'Memindahkan...' : 'Masuk ke Warung'}</p>
                                         <p className="text-[10px] text-gray-500">Kelola menu dan pesanan</p>
                                     </div>
-                                    <span className="material-symbols-outlined text-gray-400">login</span>
+                                    <span className="material-symbols-outlined text-gray-400">{switchingRole === 'merchant' ? '' : 'login'}</span>
+                                    {switchingRole === 'merchant' && <span className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></span>}
                                 </button>
                             ) : null}
 
                             {/* Driver Entry */}
                             {user?.roles?.includes('driver') && user?.driverStatus === 'approved' ? (
                                 <button
+                                    disabled={switchingRole !== null}
                                     onClick={async () => {
                                         try {
+                                            setSwitchingRole('driver')
                                             await switchRole('driver')
                                             navigate('/driver/dashboard')
                                         } catch (err) {
                                             console.error('Failed to switch role:', err)
+                                            toast.error('Gagal pindah ke Driver. Coba lagi.')
+                                        } finally {
+                                            setSwitchingRole(null)
                                         }
                                     }}
-                                    className="w-full flex items-center gap-4 p-4 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors active:bg-blue-100"
+                                    className={`w-full flex items-center gap-4 p-4 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors active:bg-blue-100 ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                                 >
                                     <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
                                         <span className="material-symbols-outlined text-lg">two_wheeler</span>
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <p className="font-bold text-gray-900 dark:text-white leading-tight">Masuk ke Driver</p>
+                                        <p className="font-bold text-gray-900 dark:text-white leading-tight">{switchingRole === 'driver' ? 'Memindahkan...' : 'Masuk ke Driver'}</p>
                                         <p className="text-[10px] text-gray-500">Mulai terima orderan</p>
                                     </div>
-                                    <span className="material-symbols-outlined text-gray-400">login</span>
+                                    <span className="material-symbols-outlined text-gray-400">{switchingRole === 'driver' ? '' : 'login'}</span>
+                                    {switchingRole === 'driver' && <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></span>}
                                 </button>
                             ) : null}
                         </div>
@@ -258,10 +274,10 @@ function ProfilePage() {
                             <span className="material-symbols-outlined text-primary text-2xl">notifications</span>
                             <span className="flex-1 text-left font-medium text-gray-900 dark:text-white">Notifikasi Push</span>
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${notifPermission === 'granted'
-                                    ? 'bg-green-100 text-green-700'
-                                    : notifPermission === 'denied'
-                                        ? 'bg-red-100 text-red-600'
-                                        : 'bg-gray-100 text-gray-500'
+                                ? 'bg-green-100 text-green-700'
+                                : notifPermission === 'denied'
+                                    ? 'bg-red-100 text-red-600'
+                                    : 'bg-gray-100 text-gray-500'
                                 }`}>
                                 {notifPermission === 'granted' ? 'Aktif' : notifPermission === 'denied' ? 'Diblokir' : 'Nonaktif'}
                             </span>
@@ -336,7 +352,7 @@ function ProfilePage() {
                         <span>Keluar</span>
                     </button>
                     <p className="text-center text-[10px] text-gray-400 dark:text-gray-600 mt-6">
-                        Version 2.4.1 (Build 120)
+                        {APP_VERSION_STRING}
                     </p>
                 </div>
             </main>

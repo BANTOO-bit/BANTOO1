@@ -1,14 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
 import { useEffect, useState } from 'react'
 import driverService from '../../services/driverService'
+import { APP_VERSION_STRING } from '../../config/appConfig'
 
 function DriverAccountPage() {
     const navigate = useNavigate()
     const { user, logout, switchRole } = useAuth()
+    const toast = useToast()
     const [stats, setStats] = useState({ rating: '-', trips: 0, joinDate: '-' })
     const [showLogoutModal, setShowLogoutModal] = useState(false)
+    const [switchingRole, setSwitchingRole] = useState(null)
 
     const [profile, setProfile] = useState(null)
 
@@ -163,50 +167,62 @@ function DriverAccountPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 pt-3 pb-1">Ganti Akun</p>
                         <button
+                            disabled={switchingRole !== null}
                             onClick={async () => {
                                 try {
+                                    setSwitchingRole('customer')
                                     await switchRole('customer')
                                     navigate('/', { replace: true })
                                 } catch (err) {
                                     if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+                                    toast.error('Gagal pindah ke Customer. Coba lagi.')
+                                } finally {
+                                    setSwitchingRole(null)
                                 }
                             }}
-                            className={`w-full flex items-center justify-between p-4 hover:bg-green-50 transition-colors group ${user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' ? 'border-b border-slate-100' : ''}`}
+                            className={`w-full flex items-center justify-between p-4 hover:bg-green-50 transition-colors group ${user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' ? 'border-b border-slate-100' : ''} ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                         >
                             <div className="flex items-center gap-4">
                                 <div className="size-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
                                     <span className="material-symbols-outlined text-[20px]">person</span>
                                 </div>
                                 <div className="flex flex-col text-left">
-                                    <span className="text-base font-semibold text-slate-700 group-hover:text-green-600 transition-colors">Kembali ke Customer</span>
+                                    <span className="text-base font-semibold text-slate-700 group-hover:text-green-600 transition-colors">{switchingRole === 'customer' ? 'Memindahkan...' : 'Kembali ke Customer'}</span>
                                     <span className="text-[10px] text-slate-400">Pesan makanan sebagai pembeli</span>
                                 </div>
                             </div>
-                            <span className="material-symbols-outlined text-slate-400">login</span>
+                            <span className="material-symbols-outlined text-slate-400">{switchingRole === 'customer' ? '' : 'login'}</span>
+                            {switchingRole === 'customer' && <span className="w-5 h-5 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></span>}
                         </button>
 
                         {user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' && (
                             <button
+                                disabled={switchingRole !== null}
                                 onClick={async () => {
                                     try {
+                                        setSwitchingRole('merchant')
                                         await switchRole('merchant')
                                         navigate('/merchant/dashboard', { replace: true })
                                     } catch (err) {
                                         if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+                                        toast.error('Gagal pindah ke Warung. Coba lagi.')
+                                    } finally {
+                                        setSwitchingRole(null)
                                     }
                                 }}
-                                className="w-full flex items-center justify-between p-4 hover:bg-orange-50 transition-colors group"
+                                className={`w-full flex items-center justify-between p-4 hover:bg-orange-50 transition-colors group ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                             >
                                 <div className="flex items-center gap-4">
                                     <div className="size-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center">
                                         <span className="material-symbols-outlined text-[20px]">store</span>
                                     </div>
                                     <div className="flex flex-col text-left">
-                                        <span className="text-base font-semibold text-slate-700 group-hover:text-orange-600 transition-colors">Masuk ke Warung</span>
+                                        <span className="text-base font-semibold text-slate-700 group-hover:text-orange-600 transition-colors">{switchingRole === 'merchant' ? 'Memindahkan...' : 'Masuk ke Warung'}</span>
                                         <span className="text-[10px] text-slate-400">Kelola menu dan pesanan</span>
                                     </div>
                                 </div>
-                                <span className="material-symbols-outlined text-slate-400">login</span>
+                                <span className="material-symbols-outlined text-slate-400">{switchingRole === 'merchant' ? '' : 'login'}</span>
+                                {switchingRole === 'merchant' && <span className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></span>}
                             </button>
                         )}
                     </div>
@@ -219,7 +235,7 @@ function DriverAccountPage() {
                         Keluar
                     </button>
 
-                    <p className="text-center text-xs text-slate-400 mt-2">Versi Aplikasi 1.0.0 (Build 2024)</p>
+                    <p className="text-center text-xs text-slate-400 mt-2">{APP_VERSION_STRING}</p>
                 </main>
 
                 <DriverBottomNavigation activeTab="profile" />
