@@ -6,7 +6,7 @@ import merchantService from '../../../services/merchantService'
 
 function MerchantProfilePage() {
     const navigate = useNavigate()
-    const { user, logout, isShopOpen, toggleShopStatus } = useAuth()
+    const { user, logout, switchRole, isShopOpen, toggleShopStatus } = useAuth()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [merchantInfo, setMerchantInfo] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -232,6 +232,60 @@ function MerchantProfilePage() {
                                 </div>
                                 <span className="material-icons-round text-gray-400 text-lg">chevron_right</span>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Ganti Akun (Role Switch) */}
+                    <div>
+                        <h3 className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-2 ml-2">Ganti Akun</h3>
+                        <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-soft divide-y divide-border-light dark:divide-border-dark overflow-hidden">
+                            <div
+                                onClick={async () => {
+                                    try {
+                                        await switchRole('customer')
+                                        navigate('/', { replace: true })
+                                    } catch (err) {
+                                        if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+                                    }
+                                }}
+                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
+                                        <span className="material-icons-round text-lg">person</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-sm">Kembali ke Customer</span>
+                                        <span className="text-[10px] text-gray-400">Pesan makanan sebagai pembeli</span>
+                                    </div>
+                                </div>
+                                <span className="material-icons-round text-gray-400 text-lg">login</span>
+                            </div>
+
+                            {user?.roles?.includes('driver') && user?.driverStatus === 'approved' && (
+                                <div
+                                    onClick={async () => {
+                                        try {
+                                            await switchRole('driver')
+                                            navigate('/driver/dashboard', { replace: true })
+                                        } catch (err) {
+                                            if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+                                        }
+                                    }}
+                                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                            <span className="material-icons-round text-lg">two_wheeler</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-sm">Masuk ke Driver</span>
+                                            <span className="text-[10px] text-gray-400">Mulai terima orderan</span>
+                                        </div>
+                                    </div>
+                                    <span className="material-icons-round text-gray-400 text-lg">login</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 

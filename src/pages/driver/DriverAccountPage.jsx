@@ -6,7 +6,7 @@ import driverService from '../../services/driverService'
 
 function DriverAccountPage() {
     const navigate = useNavigate()
-    const { user, logout } = useAuth()
+    const { user, logout, switchRole } = useAuth()
     const [stats, setStats] = useState({ rating: '-', trips: 0, joinDate: '-' })
     const [showLogoutModal, setShowLogoutModal] = useState(false)
 
@@ -157,6 +157,57 @@ function DriverAccountPage() {
                             </div>
                             <span className="material-symbols-outlined text-slate-400">chevron_right</span>
                         </button>
+                    </div>
+
+                    {/* Ganti Akun (Role Switch) */}
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <button
+                            onClick={async () => {
+                                try {
+                                    await switchRole('customer')
+                                    navigate('/', { replace: true })
+                                } catch (err) {
+                                    if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+                                }
+                            }}
+                            className="w-full flex items-center justify-between p-4 hover:bg-green-50 transition-colors group border-b border-slate-100"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="size-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-[20px]">person</span>
+                                </div>
+                                <div className="flex flex-col text-left">
+                                    <span className="text-base font-semibold text-slate-700 group-hover:text-green-600 transition-colors">Kembali ke Customer</span>
+                                    <span className="text-[10px] text-slate-400">Pesan makanan sebagai pembeli</span>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-400">login</span>
+                        </button>
+
+                        {user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' && (
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await switchRole('merchant')
+                                        navigate('/merchant/dashboard', { replace: true })
+                                    } catch (err) {
+                                        if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+                                    }
+                                }}
+                                className="w-full flex items-center justify-between p-4 hover:bg-orange-50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="size-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-[20px]">store</span>
+                                    </div>
+                                    <div className="flex flex-col text-left">
+                                        <span className="text-base font-semibold text-slate-700 group-hover:text-orange-600 transition-colors">Masuk ke Warung</span>
+                                        <span className="text-[10px] text-slate-400">Kelola menu dan pesanan</span>
+                                    </div>
+                                </div>
+                                <span className="material-symbols-outlined text-slate-400">login</span>
+                            </button>
+                        )}
                     </div>
 
                     <button
