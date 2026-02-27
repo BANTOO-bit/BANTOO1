@@ -185,6 +185,21 @@ export function AuthProvider({ children }) {
             throw new Error(`User does not have role: ${newRole}`)
         }
 
+        // 🔒 Safety: Auto-offline driver when switching AWAY from driver role
+        // or when switching TO driver (always start offline)
+        if (user.activeRole === 'driver' || newRole === 'driver') {
+            try {
+                await supabase
+                    .from('drivers')
+                    .update({ is_active: false })
+                    .eq('user_id', user.id)
+                // Clear cached online state
+                sessionStorage.removeItem('driver_isOnline')
+            } catch (e) {
+                console.warn('Failed to auto-offline driver on role switch:', e)
+            }
+        }
+
         // 1. Optimistic update (Fast UX)
         localStorage.setItem('user_last_active_role', newRole)
 
@@ -286,6 +301,42 @@ export function AuthProvider({ children }) {
             supabase.removeChannel(channel)
         }
     }, [user?.id])
+
+    // 🔒 Auto-offline driver when closing/refreshing the app
+    // This prevents "ghost online" drivers who closed their browser
+    useEffect(() => {
+        if (!user?.id || user?.activeRole !== 'driver') return
+
+        const handleBeforeUnload = () => {
+            // Use fetch with keepalive for reliable delivery during page unload
+            // keepalive allows the request to outlive the page (like sendBeacon but with headers)
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+            if (supabaseUrl && supabaseKey) {
+                const url = `${supabaseUrl}/rest/v1/drivers?user_id=eq.${user.id}`
+                // Get auth token from session
+                const projectRef = supabaseUrl.match(/\/\/([^.]+)/)?.[1] || ''
+                const tokenData = sessionStorage.getItem(`sb-${projectRef}-auth-token`)
+                const accessToken = tokenData ? JSON.parse(tokenData)?.access_token : null
+
+                fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${accessToken || supabaseKey}`,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ is_active: false }),
+                    keepalive: true
+                }).catch(() => { }) // Ignore errors during unload
+            }
+            sessionStorage.removeItem('driver_isOnline')
+        }
+
+        window.addEventListener('beforeunload', handleBeforeUnload)
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+    }, [user?.id, user?.activeRole])
 
     // Fix #3: Client-side rate limiting for auth actions
     const authAttemptsRef = useRef({ count: 0, firstAttempt: null })

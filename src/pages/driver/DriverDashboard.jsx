@@ -62,11 +62,19 @@ function DriverDashboard() {
                     setDriverProfile(profile)
                     // Sync local state with DB state
                     const newStatus = profile.status === 'terminated' ? 'terminated' : (profile.status === 'suspended' || profile.status === 'rejected') ? 'suspended' : 'active'
-                    setIsOnline(profile.is_active)
+
+                    // 🔒 Safety: Always start OFFLINE when entering driver dashboard
+                    // Driver must manually toggle online to receive orders
+                    setIsOnline(false)
                     setDriverStatus(newStatus)
 
+                    // Force offline in DB if currently active
+                    if (profile.is_active) {
+                        driverService.toggleStatus(false).catch(() => { })
+                    }
+
                     // Cache the state to prevent flicker on next visit
-                    sessionStorage.setItem('driver_isOnline', profile.is_active ? 'true' : 'false')
+                    sessionStorage.setItem('driver_isOnline', 'false')
                     sessionStorage.setItem('driver_status', newStatus)
                 }
             } catch (error) {
