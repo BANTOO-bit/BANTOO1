@@ -4,9 +4,12 @@ import { useAuth } from '../../../context/AuthContext'
 import { useCart } from '../../../context/CartContext'
 import { useToast } from '../../../context/ToastContext'
 import { pushNotificationService } from '../../../services/pushNotificationService'
+import orderService from '../../../services/orderService'
+import driverService from '../../../services/driverService'
 import { APP_VERSION_STRING } from '../../../config/appConfig'
 import ProfileMenuItem from '../../../components/user/ProfileMenuItem'
 import BottomNavigation from '../../../components/user/BottomNavigation'
+import RoleSwitchOverlay from '../../../components/shared/RoleSwitchOverlay'
 
 function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
     if (!isOpen) return null
@@ -56,10 +59,30 @@ function ProfilePage() {
     const toast = useToast()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [switchingRole, setSwitchingRole] = useState(null)
+    const [merchantPendingCount, setMerchantPendingCount] = useState(0)
+    const [driverAvailableCount, setDriverAvailableCount] = useState(0)
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
     const [notifPermission, setNotifPermission] = useState(
         pushNotificationService.isSupported() ? pushNotificationService.getPermission() : 'denied'
     )
+
+    // Fetch merchant pending orders for badge
+    useEffect(() => {
+        if (user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' && user?.merchantId) {
+            orderService.getMerchantOrders(user.merchantId, ['pending'])
+                .then(orders => setMerchantPendingCount(orders?.length || 0))
+                .catch(() => { })
+        }
+    }, [user])
+
+    // Fetch driver available orders for badge
+    useEffect(() => {
+        if (user?.roles?.includes('driver') && user?.driverStatus === 'approved') {
+            driverService.getAvailableOrders({ lat: 0, lng: 0 })
+                .then(orders => setDriverAvailableCount(orders?.length || 0))
+                .catch(() => { })
+        }
+    }, [user])
 
     // Construct display data
     const userData = user ? {
@@ -202,6 +225,11 @@ function ProfilePage() {
                                         <p className="font-bold text-gray-900 dark:text-white leading-tight">{switchingRole === 'merchant' ? 'Memindahkan...' : 'Masuk ke Warung'}</p>
                                         <p className="text-[10px] text-gray-500">Kelola menu dan pesanan</p>
                                     </div>
+                                    {merchantPendingCount > 0 && !switchingRole && (
+                                        <span className="min-w-5 h-5 px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                            {merchantPendingCount}
+                                        </span>
+                                    )}
                                     <span className="material-symbols-outlined text-gray-400">{switchingRole === 'merchant' ? '' : 'login'}</span>
                                     {switchingRole === 'merchant' && <span className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></span>}
                                 </button>
@@ -232,6 +260,11 @@ function ProfilePage() {
                                         <p className="font-bold text-gray-900 dark:text-white leading-tight">{switchingRole === 'driver' ? 'Memindahkan...' : 'Masuk ke Driver'}</p>
                                         <p className="text-[10px] text-gray-500">Mulai terima orderan</p>
                                     </div>
+                                    {driverAvailableCount > 0 && !switchingRole && (
+                                        <span className="min-w-5 h-5 px-1.5 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                            {driverAvailableCount}
+                                        </span>
+                                    )}
                                     <span className="material-symbols-outlined text-gray-400">{switchingRole === 'driver' ? '' : 'login'}</span>
                                     {switchingRole === 'driver' && <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></span>}
                                 </button>
@@ -366,6 +399,9 @@ function ProfilePage() {
                 onClose={() => setShowLogoutModal(false)}
                 onConfirm={confirmLogout}
             />
+
+            {/* Role Switch Overlay */}
+            {switchingRole && <RoleSwitchOverlay targetRole={switchingRole} />}
         </div>
     )
 }

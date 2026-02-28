@@ -2,8 +2,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import DriverBottomNavigation from '../../components/driver/DriverBottomNavigation'
+import RoleSwitchOverlay from '../../components/shared/RoleSwitchOverlay'
 import { useEffect, useState } from 'react'
 import driverService from '../../services/driverService'
+import orderService from '../../services/orderService'
 import { APP_VERSION_STRING } from '../../config/appConfig'
 
 function DriverAccountPage() {
@@ -14,6 +16,7 @@ function DriverAccountPage() {
     const [showLogoutModal, setShowLogoutModal] = useState(false)
     const [switchingRole, setSwitchingRole] = useState(null)
     const [switchConfirm, setSwitchConfirm] = useState(null) // { targetRole, targetPath }
+    const [merchantPendingCount, setMerchantPendingCount] = useState(0)
 
     const [profile, setProfile] = useState(null)
 
@@ -33,6 +36,15 @@ function DriverAccountPage() {
             }
         }
         fetchData()
+    }, [user])
+
+    // Fetch merchant pending orders for badge
+    useEffect(() => {
+        if (user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' && user?.merchantId) {
+            orderService.getMerchantOrders(user.merchantId, ['pending'])
+                .then(orders => setMerchantPendingCount(orders?.length || 0))
+                .catch(() => { })
+        }
     }, [user])
 
     const handleLogoutClick = () => {
@@ -238,6 +250,11 @@ function DriverAccountPage() {
                                         <span className="text-[10px] text-slate-400">Kelola menu dan pesanan</span>
                                     </div>
                                 </div>
+                                {merchantPendingCount > 0 && !switchingRole && (
+                                    <span className="min-w-5 h-5 px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                        {merchantPendingCount}
+                                    </span>
+                                )}
                                 <span className="material-symbols-outlined text-slate-400">{switchingRole === 'merchant' ? '' : 'login'}</span>
                                 {switchingRole === 'merchant' && <span className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></span>}
                             </button>
@@ -318,6 +335,9 @@ function DriverAccountPage() {
                         </div>
                     </div>
                 )}
+
+                {/* Role Switch Overlay */}
+                {switchingRole && <RoleSwitchOverlay targetRole={switchingRole} />}
             </div>
         </div>
     )

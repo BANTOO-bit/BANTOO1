@@ -5,6 +5,8 @@ import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
 import merchantService from '../../../services/merchantService'
 import orderService from '../../../services/orderService'
+import driverService from '../../../services/driverService'
+import RoleSwitchOverlay from '../../../components/shared/RoleSwitchOverlay'
 import { APP_VERSION_STRING } from '../../../config/appConfig'
 
 function MerchantProfilePage() {
@@ -15,6 +17,7 @@ function MerchantProfilePage() {
     const [merchantInfo, setMerchantInfo] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [switchingRole, setSwitchingRole] = useState(null)
+    const [driverAvailableCount, setDriverAvailableCount] = useState(0)
 
     useEffect(() => {
         async function fetchMerchantProfile() {
@@ -33,6 +36,15 @@ function MerchantProfilePage() {
         }
         fetchMerchantProfile()
     }, [user?.merchantId])
+
+    // Fetch driver available orders for badge
+    useEffect(() => {
+        if (user?.roles?.includes('driver') && user?.driverStatus === 'approved') {
+            driverService.getAvailableOrders({ lat: 0, lng: 0 })
+                .then(orders => setDriverAvailableCount(orders?.length || 0))
+                .catch(() => { })
+        }
+    }, [user])
 
     const handleEditProfile = () => {
         navigate('/merchant/profile/edit')
@@ -308,6 +320,11 @@ function MerchantProfilePage() {
                                             <span className="text-[10px] text-gray-400">Mulai terima orderan</span>
                                         </div>
                                     </div>
+                                    {driverAvailableCount > 0 && !switchingRole && (
+                                        <span className="min-w-5 h-5 px-1.5 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                            {driverAvailableCount}
+                                        </span>
+                                    )}
                                     <span className="material-icons-round text-gray-400 text-lg">{switchingRole === 'driver' ? '' : 'login'}</span>
                                     {switchingRole === 'driver' && <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></span>}
                                 </div>
