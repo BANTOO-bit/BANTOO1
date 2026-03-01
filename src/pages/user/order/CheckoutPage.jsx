@@ -82,7 +82,7 @@ function CheckoutPage() {
         const effectiveMerchantId = merchantInfo?.id || (cartItems.length > 0 ? cartItems[0].merchantId : null)
 
         if (!effectiveMerchantId) {
-            toast.error('Informasi merchant tidak ditemukan')
+            toast.error('Informasi warung tidak ditemukan')
             return
         }
 

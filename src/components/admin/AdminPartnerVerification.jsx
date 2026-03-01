@@ -5,7 +5,7 @@ import { handleError, handleSuccess } from '../../utils/errorHandler'
 
 function AdminPartnerVerification() {
     const toast = useToast()
-    const [activeTab, setActiveTab] = useState('merchants') // 'merchants' | 'drivers'
+    const [activeTab, setActiveTab] = useState('merchants') // 'warung' | 'drivers'
     const [requests, setRequests] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)

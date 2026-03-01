@@ -43,8 +43,8 @@ function VoucherIssuesPage() {
                             <div className="flex gap-4 items-start">
                                 <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold mt-0.5">3</div>
                                 <div>
-                                    <h3 className="text-sm font-semibold text-text-main dark:text-white mb-1">Pastikan merchant/menu termasuk dalam promo</h3>
-                                    <p className="text-xs text-text-secondary dark:text-gray-400 leading-relaxed">Beberapa promo hanya berlaku untuk merchant atau kategori menu tertentu saja.</p>
+                                    <h3 className="text-sm font-semibold text-text-main dark:text-white mb-1">Pastikan warung/menu termasuk dalam promo</h3>
+                                    <p className="text-xs text-text-secondary dark:text-gray-400 leading-relaxed">Beberapa promo hanya berlaku untuk warung atau kategori menu tertentu saja.</p>
                                 </div>
                             </div>
                             <div className="flex gap-4 items-start">

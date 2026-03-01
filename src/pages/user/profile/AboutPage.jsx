@@ -32,7 +32,7 @@ function AboutPage() {
                 <div className="bg-white rounded-2xl border border-border-color p-5 mb-6">
                     <h3 className="font-bold text-text-main mb-3">Tentang Kami</h3>
                     <p className="text-sm text-text-secondary leading-relaxed">
-                        Bantoo! adalah aplikasi pesan-antar makanan lokal yang menghubungkan kamu dengan resto-resto terbaik di kecamatan.
+                        Bantoo! adalah aplikasi pesan-antar makanan lokal yang menghubungkan kamu dengan warung-warung terbaik di kecamatan.
                         Kami berkomitmen untuk mendukung UMKM kuliner lokal dan memberikan pengalaman pesan makanan yang cepat, mudah, dan terjangkau.
                     </p>
                 </div>
@@ -60,7 +60,7 @@ function AboutPage() {
                 <div className="grid grid-cols-3 gap-3 mb-6">
                     <div className="bg-orange-50 rounded-xl p-4 text-center">
                         <p className="text-2xl font-bold text-primary">50+</p>
-                        <p className="text-xs text-text-secondary mt-1">Merchant</p>
+                        <p className="text-xs text-text-secondary mt-1">Warung</p>
                     </div>
                     <div className="bg-orange-50 rounded-xl p-4 text-center">
                         <p className="text-2xl font-bold text-primary">20+</p>

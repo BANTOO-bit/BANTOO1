@@ -9,6 +9,9 @@ import LoginPage from '../pages/shared/LoginPage'
 import RegisterPage from '../pages/shared/RegisterPage'
 import OTPVerificationPage from '../pages/shared/OTPVerificationPage'
 import CreateAdminPage from '../pages/shared/CreateAdminPage'
+import ForgotPasswordHelpPage from '../pages/user/help/account/ForgotPasswordHelpPage'
+import ResetPasswordPage from '../pages/shared/ResetPasswordPage'
+import VerifyEmailInstructionPage from '../pages/shared/VerifyEmailInstructionPage'
 
 const AdminLoginPage = lazy(() => import('../pages/admin/dashboard/AdminLoginPage'))
 
@@ -17,7 +20,10 @@ export function AuthRoutes() {
         <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verify-email" element={<VerifyEmailInstructionPage />} />
             <Route path="/otp" element={<OTPVerificationPage />} />
+            <Route path="/help/account/forgot-password" element={<ForgotPasswordHelpPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/create-admin-secret" element={<CreateAdminPage />} />
             <Route path="/manage/auth" element={<Suspense fallback={<PageLoader />}><AdminLoginPage /></Suspense>} />
             <Route path="/admin/login" element={<Suspense fallback={<PageLoader />}><AdminLoginPage /></Suspense>} />

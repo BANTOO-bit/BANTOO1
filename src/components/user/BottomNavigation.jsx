@@ -33,7 +33,7 @@ function BottomNavigation({ activeTab }) {
                         className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors
                             ${effectiveActiveTab === item.id
                                 ? 'text-primary'
-                                : 'text-text-secondary dark:text-gray-400 hover:text-primary'
+                                : 'text-gray-500 hover:text-primary'
                             }`}
                     >
                         <span className={`material-symbols-outlined ${effectiveActiveTab === item.id ? 'fill' : ''}`} aria-hidden="true">{item.icon}</span>

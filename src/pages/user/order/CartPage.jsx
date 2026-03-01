@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../../context/CartContext'
 import { useAuth } from '../../../context/AuthContext'
 import BackButton from '../../../components/shared/BackButton'
+import EmptyState from '../../../components/shared/EmptyState'
 import { useAddress } from '../../../context/AddressContext'
 import MerchantShopOpenWarning from '../../../components/shared/MerchantShopOpenWarning'
 
@@ -123,20 +124,14 @@ function CartPage() {
                     </div>
                 </header>
 
-                <div className="flex-1 flex flex-col items-center justify-center px-4">
-                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                        <span className="material-symbols-outlined text-5xl text-gray-300">shopping_cart</span>
-                    </div>
-                    <h3 className="font-bold text-text-main mb-1">Keranjang Kosong</h3>
-                    <p className="text-sm text-text-secondary text-center mb-6">
-                        Yuk, mulai belanja dan tambahkan menu favoritmu!
-                    </p>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="px-6 py-3 bg-primary text-white font-bold rounded-full active:scale-95 transition-transform"
-                    >
-                        Cari Makanan
-                    </button>
+                <div className="flex-1 flex flex-col items-center justify-center">
+                    <EmptyState
+                        icon="shopping_bag"
+                        title="Keranjang Masih Kosong"
+                        message="Jangan biarkan perutmu keroncongan. Yuk, cari makanan favoritmu sekarang!"
+                        actionLabel="Mulai Cari Makanan"
+                        onAction={() => navigate('/')}
+                    />
                 </div>
             </div>
         )
@@ -191,7 +186,7 @@ function CartPage() {
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-bold text-sm text-text-main">{merchantName}</p>
+                                    <p className="font-bold text-sm text-text-main">{merchantName || 'Warung'}</p>
                                     <p className="text-[10px] text-text-secondary">
                                         {getMerchantItemCount(items)} item • Estimasi 20-30 mnt
                                     </p>

@@ -155,7 +155,11 @@ export const orderService = {
             .order('created_at', { ascending: false })
 
         if (status) {
-            query = query.eq('status', status)
+            if (Array.isArray(status)) {
+                query = query.in('status', status)
+            } else {
+                query = query.eq('status', status)
+            }
         }
 
         const { data, error } = await query

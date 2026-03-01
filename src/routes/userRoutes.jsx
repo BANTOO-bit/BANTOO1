@@ -85,7 +85,6 @@ const WarungPromoPage = lazy(() => import('../pages/user/help/promo/WarungPromoP
 const DeleteAccountPage = lazy(() => import('../pages/user/help/account/DeleteAccountPage'))
 const AccountSecurityPage = lazy(() => import('../pages/user/help/account/AccountSecurityPage'))
 const EditProfileHelpPage = lazy(() => import('../pages/user/help/account/EditProfileHelpPage'))
-const ForgotPasswordHelpPage = lazy(() => import('../pages/user/help/account/ForgotPasswordHelpPage'))
 const OtpIssuesHelpPage = lazy(() => import('../pages/user/help/account/OtpIssuesHelpPage'))
 
 // Help - Security
@@ -193,7 +192,6 @@ export default function UserRoutes({ logout }) {
             <Route path="/help/account/delete" element={<DeleteAccountPage />} />
             <Route path="/help/account/security" element={<AccountSecurityPage />} />
             <Route path="/help/account/edit-profile" element={<EditProfileHelpPage />} />
-            <Route path="/help/account/forgot-password" element={<ForgotPasswordHelpPage />} />
             <Route path="/help/account/otp-issues" element={<OtpIssuesHelpPage />} />
 
             {/* Help - Security */}

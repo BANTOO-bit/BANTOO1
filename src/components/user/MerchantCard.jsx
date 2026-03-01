@@ -13,9 +13,9 @@ function MerchantCard({ merchant, onClick, showFavoriteButton = true }) {
     return (
         <article
             onClick={() => onClick?.(merchant)}
-            className={`relative flex items-center p-3 gap-3 rounded-xl bg-card-light shadow-soft border border-border-color active:bg-gray-50 transition-colors cursor-pointer ${!merchant.is_open ? 'opacity-80' : ''}`}
+            className={`relative flex items-center p-4 gap-4 rounded-2xl bg-white shadow-sm border border-gray-100 active:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer ${!merchant.is_open ? 'opacity-80' : ''}`}
         >
-            <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+            <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                 <div
                     className="w-full h-full bg-cover bg-center"
                     style={{
@@ -24,29 +24,29 @@ function MerchantCard({ merchant, onClick, showFavoriteButton = true }) {
                     }}
                 />
             </div>
-            <div className="flex flex-col flex-1 justify-center gap-1">
+            <div className="flex flex-col flex-1 justify-center gap-1.5">
                 <div className="flex items-center gap-2">
-                    <h3 className="text-base font-semibold text-text-main">{merchant.name}</h3>
+                    <h3 className="text-base font-extrabold text-gray-900 leading-tight">{merchant.name}</h3>
                     {!merchant.is_open && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200">
                             Tutup
                         </span>
                     )}
                 </div>
-                <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined fill text-[14px] text-yellow-500">star</span>
-                    <span className="text-xs font-medium text-text-main">{merchant.rating}</span>
-                    <span className="text-xs text-text-secondary mx-1">•</span>
-                    <span className="text-xs text-text-secondary">{merchant.category?.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="material-symbols-outlined fill text-[16px] text-yellow-500">star</span>
+                    <span className="text-xs font-bold text-gray-900">{merchant.rating}</span>
+                    <span className="text-[10px] text-gray-400 mx-0.5">•</span>
+                    <span className="text-xs font-medium text-gray-500">{merchant.category?.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</span>
                 </div>
                 <div className="flex items-center gap-4 mt-1">
-                    <div className="flex items-center gap-1 text-text-secondary">
+                    <div className="flex items-center gap-1.5 text-gray-500 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
                         <span className="material-symbols-outlined text-[14px]">schedule</span>
-                        <span className="text-xs">{merchant.deliveryTime}</span>
+                        <span className="text-[11px] font-semibold">{merchant.deliveryTime}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-text-secondary">
+                    <div className="flex items-center gap-1.5 text-gray-500 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
                         <span className="material-symbols-outlined text-[14px]">local_shipping</span>
-                        <span className="text-xs">{merchant.deliveryFee}</span>
+                        <span className="text-[11px] font-semibold">{merchant.deliveryFee}</span>
                     </div>
                 </div>
             </div>

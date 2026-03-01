@@ -49,7 +49,7 @@ function OrderHistoryCard({ order, onReorder, onViewDetail, onReview, formatDate
                     )}
                 </div>
                 <div>
-                    <h3 className="font-bold text-sm truncate">{order.merchantName}</h3>
+                    <h3 className="font-bold text-sm truncate">{order.merchantName || 'Warung'}</h3>
                     <p className="text-[11px] text-text-secondary dark:text-gray-400 mt-1 font-medium leading-relaxed line-clamp-2">
                         {order.items?.slice(0, 2).map(item => `${item.quantity}x ${item.name}`).join(', ')}
                         {order.items?.length > 2 && `, +${order.items.length - 2} lainnya`}

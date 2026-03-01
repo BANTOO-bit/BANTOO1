@@ -23,7 +23,7 @@ function CancelOrderPage() {
                         <div className="space-y-5 text-sm text-text-secondary leading-relaxed">
                             <div>
                                 <p className="mb-3">
-                                    Kamu dapat membatalkan pesananmu secara langsung melalui aplikasi selama pihak restoran atau merchant <span className="font-semibold text-text-main">belum menerima atau mulai menyiapkan makanan</span>.
+                                    Kamu dapat membatalkan pesananmu secara langsung melalui aplikasi selama pihak warung atau merchant <span className="font-semibold text-text-main">belum menerima atau mulai menyiapkan makanan</span>.
                                 </p>
                                 <div className="p-3 bg-orange-50 rounded-lg border border-orange-100 flex gap-3 items-start">
                                     <span className="material-symbols-outlined text-primary text-base mt-0.5">info</span>

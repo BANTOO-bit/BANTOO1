@@ -7,7 +7,7 @@ const DriverIssueModal = ({ isOpen, onClose, onSubmit, type = 'pickup' }) => {
     if (!isOpen) return null;
 
     const reasons = type === 'pickup' ? [
-        'Restoran Tutup',
+        'Warung Tutup',
         'Item Habis',
         'Antrean Terlalu Panjang',
         'Kendala Kendaraan / Ban Bocor'

@@ -38,7 +38,9 @@ function RegisterPage() {
         onSubmit: async (formValues) => {
             try {
                 await register(formValues.name, formValues.phone, formValues.password, 'customer', formValues.email)
-                navigate('/login', { state: { phone: formValues.phone } })
+
+                // Redirect to instructions to check email instead of forcing a login
+                navigate('/verify-email', { state: { email: formValues.email } })
             } catch (err) {
                 logger.error('Registration failed', err, 'RegisterPage')
                 if (err.message && err.message.includes('already registered')) {
@@ -51,13 +53,9 @@ function RegisterPage() {
     })
 
     return (
-        <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden">
-            {/* Decorative background */}
-            <div className="absolute top-[-40px] right-[-30px] w-44 h-44 bg-primary/5 rounded-full blur-2xl"></div>
-            <div className="absolute bottom-20 left-[-40px] w-56 h-56 bg-accent/5 rounded-full blur-2xl"></div>
-
+        <div className="min-h-screen flex flex-col bg-white relative overflow-hidden">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-4 pt-12 pb-4">
+            <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md px-4 pt-12 pb-4">
                 <div className="relative flex items-center justify-center">
                     <button
                         onClick={() => navigate(-1)}
@@ -134,7 +132,7 @@ function RegisterPage() {
                                 onChange={(e) => handleChange('password', e.target.value)}
                                 onBlur={() => handleBlur('password')}
                                 placeholder="Minimal 6 karakter"
-                                className={`w-full rounded-xl border bg-white/80 backdrop-blur-sm pl-12 pr-12 py-3.5 text-base text-gray-900 placeholder:text-gray-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm
+                                className={`w-full rounded-xl border bg-white/80 backdrop-blur-sm pl-12 pr-12 py-3.5 text-base text-gray-900 placeholder:text-gray-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all
                                     ${errors.password ? 'border-red-400' : 'border-gray-200'}`}
                             />
                             <button
@@ -193,7 +191,7 @@ function RegisterPage() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25"
+                        className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-primary/10"
                     >
                         {isSubmitting ? (
                             <ButtonLoader />

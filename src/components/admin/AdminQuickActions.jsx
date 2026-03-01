@@ -83,6 +83,9 @@ export default function AdminQuickActions() {
                     <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-[#617589] dark:text-[#94a3b8] truncate">{action.label}</p>
                         <p className="text-xl font-bold text-[#111418] dark:text-white">{action.count}</p>
+                        {action.description && ( // Conditionally render description
+                            <p className="text-xs text-[#617589] dark:text-[#94a3b8] truncate">{action.description}</p>
+                        )}
                     </div>
                     {action.count > 0 && (
                         <div className={`absolute top-2.5 right-2.5 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full ${action.badgeColor} text-white text-[10px] font-bold`}>

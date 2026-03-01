@@ -27,7 +27,7 @@ function RegistrationStatusPage() {
     }
 
     const handleFixMerchantRegistration = () => {
-        navigate('/partner/merchant/step-1')
+        navigate('/partner/warung/step-1')
     }
 
     const handleRegisterDriver = () => {
@@ -35,7 +35,7 @@ function RegistrationStatusPage() {
     }
 
     const handleRegisterMerchant = () => {
-        navigate('/partner/merchant/step-1')
+        navigate('/partner/warung/step-1')
     }
 
     return (

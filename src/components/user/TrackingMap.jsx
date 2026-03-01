@@ -175,7 +175,7 @@ function TrackingMap({
 
                 {/* Markers */}
                 <Marker position={merchantLocation} icon={merchantIcon}>
-                    <Popup>Restoran</Popup>
+                    <Popup>Warung</Popup>
                 </Marker>
 
                 <Marker position={userLocation} icon={userIcon}>

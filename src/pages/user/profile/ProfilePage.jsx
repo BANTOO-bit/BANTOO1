@@ -118,6 +118,35 @@ function ProfilePage() {
         navigate('/login', { replace: true })
     }
 
+    // Safety check before switching role
+    const handleSwitchRole = async (targetRole, targetPath) => {
+        try {
+            // Check for active customer orders before leaving
+            const activeOrders = await orderService.getCustomerOrders(['pending', 'confirmed', 'preparing', 'ready', 'pickup'])
+            if (activeOrders?.length > 0) {
+                toast.error(`Anda masih punya ${activeOrders.length} pesanan aktif. Selesaikan dulu sebelum pindah role.`)
+                return
+            }
+            await executeSwitchRole(targetRole, targetPath)
+        } catch (err) {
+            if (import.meta.env.DEV) console.error('Error checking before switch:', err)
+            toast.error('Terjadi kesalahan. Coba lagi.')
+        }
+    }
+
+    const executeSwitchRole = async (targetRole, targetPath) => {
+        try {
+            setSwitchingRole(targetRole)
+            await switchRole(targetRole)
+            navigate(targetPath, { replace: true })
+        } catch (err) {
+            if (import.meta.env.DEV) console.error('Failed to switch role:', err)
+            toast.error(`Gagal pindah ke ${targetRole === 'merchant' ? 'Warung' : 'Driver'}. Coba lagi.`)
+        } finally {
+            setSwitchingRole(null)
+        }
+    }
+
 
     return (
         <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light">
@@ -204,18 +233,7 @@ function ProfilePage() {
                             {user?.roles?.includes('merchant') && user?.merchantStatus === 'approved' ? (
                                 <button
                                     disabled={switchingRole !== null}
-                                    onClick={async () => {
-                                        try {
-                                            setSwitchingRole('merchant')
-                                            await switchRole('merchant')
-                                            navigate('/merchant/dashboard')
-                                        } catch (err) {
-                                            console.error('Failed to switch role:', err)
-                                            toast.error('Gagal pindah ke Warung. Coba lagi.')
-                                        } finally {
-                                            setSwitchingRole(null)
-                                        }
-                                    }}
+                                    onClick={() => handleSwitchRole('merchant', '/merchant/dashboard')}
                                     className={`w-full flex items-center gap-4 p-4 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors border-b border-gray-100 dark:border-gray-800 active:bg-orange-100 ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                                 >
                                     <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
@@ -239,18 +257,7 @@ function ProfilePage() {
                             {user?.roles?.includes('driver') && user?.driverStatus === 'approved' ? (
                                 <button
                                     disabled={switchingRole !== null}
-                                    onClick={async () => {
-                                        try {
-                                            setSwitchingRole('driver')
-                                            await switchRole('driver')
-                                            navigate('/driver/dashboard')
-                                        } catch (err) {
-                                            console.error('Failed to switch role:', err)
-                                            toast.error('Gagal pindah ke Driver. Coba lagi.')
-                                        } finally {
-                                            setSwitchingRole(null)
-                                        }
-                                    }}
+                                    onClick={() => handleSwitchRole('driver', '/driver/dashboard')}
                                     className={`w-full flex items-center gap-4 p-4 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors active:bg-blue-100 ${switchingRole ? 'opacity-50 pointer-events-none' : ''}`}
                                 >
                                     <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">

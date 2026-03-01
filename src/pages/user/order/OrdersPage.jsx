@@ -57,7 +57,7 @@ function OrdersPage() {
                 const transformedOrders = contextOrders.map(order => ({
                     id: generateOrderId(order.order_number ? order : order.id),
                     dbId: order.id,
-                    merchantName: order.merchant?.name || order.merchants?.name || 'Merchant',
+                    merchantName: order.merchant?.name || order.merchants?.name || 'Warung',
                     merchantId: order.merchant_id,
                     merchantImage: order.merchant?.image_url || order.merchants?.image_url,
                     status: order.status,
@@ -279,18 +279,14 @@ function OrdersPage() {
                     <>
                         {/* Active Orders */}
                         {activeOrders.length === 0 ? (
-                            <div className="flex flex-col items-center py-12">
-                                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                                    <span className="material-symbols-outlined text-4xl text-gray-400">receipt_long</span>
-                                </div>
-                                <h3 className="font-bold text-text-main dark:text-white mb-1">Belum Ada Pesanan Aktif</h3>
-                                <p className="text-sm text-text-secondary dark:text-gray-400 text-center mb-4">Pesanan yang sedang diproses akan muncul di sini</p>
-                                <button
-                                    onClick={() => navigate('/')}
-                                    className="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-md active:scale-95 transition-transform"
-                                >
-                                    Pesan Sekarang
-                                </button>
+                            <div className="flex-1 flex flex-col items-center justify-center -mt-8">
+                                <EmptyState
+                                    icon="receipt_long"
+                                    title="Belum Ada Pesanan Aktif"
+                                    message="Pesanan yang sedang diproses akan muncul di sini. Yuk, mulai pesan makanan favoritmu!"
+                                    actionLabel="Pesan Sekarang"
+                                    onAction={() => navigate('/')}
+                                />
                             </div>
                         ) : (
                             activeOrders.map(order => (
@@ -306,12 +302,12 @@ function OrdersPage() {
                 ) : (
                     /* Riwayat Tab */
                     orderHistory.length === 0 ? (
-                        <div className="flex flex-col items-center py-12">
-                            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                                <span className="material-symbols-outlined text-4xl text-gray-400">history</span>
-                            </div>
-                            <h3 className="font-bold text-text-main dark:text-white mb-1">Belum Ada Riwayat</h3>
-                            <p className="text-sm text-text-secondary dark:text-gray-400 text-center">Pesanan yang sudah selesai akan muncul di sini</p>
+                        <div className="flex-1 flex flex-col items-center justify-center -mt-8">
+                            <EmptyState
+                                icon="history"
+                                title="Belum Ada Riwayat"
+                                message="Pesanan yang sudah selesai akan tersimpan di sini sebagai riwayat perjalanan kulinermu."
+                            />
                         </div>
                     ) : (
                         <VirtualList

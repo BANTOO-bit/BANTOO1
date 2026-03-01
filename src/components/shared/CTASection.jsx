@@ -70,7 +70,7 @@ function CTASection() {
         }
     }
 
-    const merchantConfig = getButtonConfig('merchant')
+    const merchantConfig = getButtonConfig('warung')
     const driverConfig = getButtonConfig('driver')
 
     // Filter out approved cards to enforcing single entry point in Profile

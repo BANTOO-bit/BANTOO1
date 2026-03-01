@@ -1,91 +1,122 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../../context/AuthContext'
+import FormField from '../../../../components/shared/FormField'
+import ButtonLoader from '../../../../components/shared/ButtonLoader'
+import logger from '../../../../utils/logger'
 
 function ForgotPasswordHelpPage() {
     const navigate = useNavigate()
+    const { resetPassword } = useAuth()
+
+    const [identifier, setIdentifier] = useState('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isSuccess, setIsSuccess] = useState(false)
+    const [error, setError] = useState('')
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        if (!identifier.trim()) {
+            setError('Nomor HP atau Email tidak boleh kosong')
+            return
+        }
+
+        setIsSubmitting(true)
+        setError('')
+
+        try {
+            await resetPassword(identifier)
+            setIsSuccess(true)
+        } catch (err) {
+            logger.error('Reset password failed', err, 'ForgotPasswordHelpPage')
+            setError(err.message || 'Gagal mengirim email pemulihan. Silakan periksa kembali data Anda.')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     return (
-        <div className="relative min-h-screen flex flex-col bg-background-light pb-6">
-            <header className="sticky top-0 z-20 bg-background-light/95 backdrop-blur-md px-4 pt-12 pb-4 flex items-center justify-between border-b border-transparent transition-colors">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="absolute left-0 w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-text-main active:scale-95 transition-transform"
-                >
-                    <span className="material-symbols-outlined text-text-main">arrow_back</span>
-                </button>
-                <h1 className="text-text-main text-lg font-bold tracking-tight absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap">Lupa Kata Sandi</h1>
-                <div className="w-10 h-10"></div>
+        <div className="min-h-screen flex flex-col bg-white relative overflow-hidden">
+            {/* Header */}
+            <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md px-4 pt-12 pb-4">
+                <div className="relative flex items-center justify-center">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="absolute left-0 w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100/80 text-gray-700 active:scale-95 transition-transform"
+                    >
+                        <span className="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <img src="/images/bantoo-logo.png" alt="Bantoo" className="h-7 object-contain" />
+                </div>
             </header>
 
-            <main className="flex flex-col gap-6 px-4 pt-4">
-                <section className="bg-white rounded-2xl p-5 md:p-6 border border-border-color shadow-soft">
-                    <div className="flex items-start gap-3 mb-4">
-                        <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                            <span className="material-symbols-outlined text-primary">lock_reset</span>
-                        </div>
-                        <div>
-                            <h2 className="text-base font-bold text-text-main">Panduan Pemulihan</h2>
-                            <p className="text-xs text-text-secondary mt-1">Langkah mudah untuk mendapatkan kembali akses akun Anda.</p>
-                        </div>
-                    </div>
-                    <div className="space-y-6 relative mt-6 pl-2">
-                        <div className="absolute left-[19px] top-2 bottom-6 w-[2px] bg-gray-100"></div>
-                        <div className="relative flex gap-4">
-                            <div className="relative z-10 flex-none w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow-sm">1</div>
-                            <div className="flex-1 pt-0.5">
-                                <h3 className="text-sm font-semibold text-text-main mb-1">Masuk ke layar login</h3>
-                                <p className="text-xs text-text-secondary leading-relaxed">Buka aplikasi Bantoo! dan pastikan Anda berada di halaman awal.</p>
-                            </div>
-                        </div>
-                        <div className="relative flex gap-4">
-                            <div className="relative z-10 flex-none w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow-sm">2</div>
-                            <div className="flex-1 pt-0.5">
-                                <h3 className="text-sm font-semibold text-text-main mb-1">Klik 'Lupa Kata Sandi?'</h3>
-                                <p className="text-xs text-text-secondary leading-relaxed">Tekan tautan kecil yang berada di bawah tombol Masuk.</p>
-                            </div>
-                        </div>
-                        <div className="relative flex gap-4">
-                            <div className="relative z-10 flex-none w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow-sm">3</div>
-                            <div className="flex-1 pt-0.5">
-                                <h3 className="text-sm font-semibold text-text-main mb-1">Masukkan email/nomor HP</h3>
-                                <p className="text-xs text-text-secondary leading-relaxed">Gunakan identitas yang terdaftar saat Anda mendaftar akun.</p>
-                            </div>
-                        </div>
-                        <div className="relative flex gap-4">
-                            <div className="relative z-10 flex-none w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow-sm">4</div>
-                            <div className="flex-1 pt-0.5">
-                                <h3 className="text-sm font-semibold text-text-main mb-1">Verifikasi OTP</h3>
-                                <p className="text-xs text-text-secondary leading-relaxed">Masukkan kode OTP yang dikirimkan melalui SMS, Email, atau WhatsApp.</p>
-                            </div>
-                        </div>
-                        <div className="relative flex gap-4">
-                            <div className="relative z-10 flex-none w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow-sm">5</div>
-                            <div className="flex-1 pt-0.5">
-                                <h3 className="text-sm font-semibold text-text-main mb-1">Buat kata sandi baru</h3>
-                                <p className="text-xs text-text-secondary leading-relaxed">Buat kata sandi baru yang aman untuk menyelesaikan proses.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-8 p-3 bg-yellow-50 rounded-xl border border-yellow-100 flex gap-3">
-                        <span className="material-symbols-outlined text-yellow-600 text-lg flex-shrink-0">warning</span>
-                        <p className="text-[11px] text-yellow-800 leading-relaxed font-medium">
-                            Jaga kerahasiaan kode OTP Anda. Pihak kami tidak pernah meminta kode OTP untuk alasan apapun.
-                        </p>
-                    </div>
-                </section>
+            {/* Content */}
+            <main className="flex-1 px-4 py-6 overflow-y-auto relative z-10">
+                <div className="mb-8">
+                    <h2 className="text-2xl font-extrabold text-text-main mb-2">Lupa Kata Sandi?</h2>
+                    <p className="text-sm text-text-secondary">
+                        Masukkan Email atau Nomor HP yang terdaftar. Kami akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.
+                    </p>
+                </div>
 
-                <section className="mt-2">
-                    <h2 className="text-base font-bold text-text-main mb-4">Butuh Bantuan Lain?</h2>
-                    <div className="flex flex-col gap-3">
-                        <button className="w-full py-3.5 px-4 rounded-2xl bg-[#25D366] text-white font-semibold text-sm shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
-                            <svg className="bi bi-whatsapp" fill="currentColor" height="20" viewBox="0 0 16 16" width="20" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"></path>
-                            </svg>
-                            <span>WhatsApp Support</span>
+                {isSuccess ? (
+                    <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center shadow-sm">
+                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="material-symbols-outlined text-3xl">mark_email_read</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Periksa Email Anda</h3>
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                            Tautan pemulihan kata sandi telah dikirimkan ke email Anda. Silakan periksa kotak masuk atau folder spam.
+                        </p>
+                        <button
+                            onClick={() => navigate('/login')}
+                            className="mt-6 w-full py-3.5 bg-green-600 text-white font-bold rounded-xl active:scale-[0.98] transition-transform"
+                        >
+                            Kembali ke Masuk
                         </button>
-                        <p className="text-center text-xs font-normal text-[#7A7A7A]">Jam Operasional: Setiap Hari (08:00 - 22:00 WIB)</p>
                     </div>
-                </section>
-                <div className="h-4"></div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <FormField
+                            label="Email atau Nomor Telepon"
+                            name="identifier"
+                            type="text"
+                            value={identifier}
+                            onChange={(val) => {
+                                setIdentifier(val)
+                                if (error) setError('')
+                            }}
+                            error={error}
+                            placeholder="Contoh: budi@email.com atau 0812345678"
+                            icon="account_circle"
+                            required
+                        />
+
+                        {error && (
+                            <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl">
+                                <p className="text-sm text-red-600 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-sm">error</span>
+                                    {error}
+                                </p>
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={isSubmitting || !identifier}
+                            className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4 shadow-sm shadow-primary/10"
+                        >
+                            {isSubmitting ? (
+                                <ButtonLoader />
+                            ) : (
+                                <>
+                                    Kirim Tautan Pemulihan
+                                    <span className="material-symbols-outlined text-[20px]">send</span>
+                                </>
+                            )}
+                        </button>
+                    </form>
+                )}
             </main>
         </div>
     )

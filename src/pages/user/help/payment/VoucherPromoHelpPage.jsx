@@ -52,7 +52,7 @@ function VoucherPromoHelpPage() {
                                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">3</span>
                             </div>
                             <div>
-                                <h3 className="text-sm font-semibold text-text-main dark:text-white mb-1">Batasan Merchant atau Kategori</h3>
+                                <h3 className="text-sm font-semibold text-text-main dark:text-white mb-1">Batasan Warung atau Kategori</h3>
                                 <p className="text-xs text-text-secondary dark:text-gray-400 leading-relaxed">
                                     Beberapa voucher bersifat spesifik dan hanya berlaku untuk merchant, toko, atau kategori layanan tertentu saja.
                                 </p>

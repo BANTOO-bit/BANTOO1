@@ -63,7 +63,7 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
     // Get status message based on order status
     const getStatusInfo = (status) => {
         const statusMap = {
-            'pending': { message: 'Menunggu Konfirmasi Resto', showDriver: false, showCancel: true },
+            'pending': { message: 'Menunggu Konfirmasi Warung', showDriver: false, showCancel: true },
             'confirmed': { message: 'Pesanan Dikonfirmasi', showDriver: false, showCancel: false },
             'accepted': { message: 'Pesanan Diterima Warung', showDriver: false, showCancel: false },
             'preparing': { message: 'Makanan Sedang Disiapkan', showDriver: false, showCancel: false },
@@ -92,7 +92,7 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
                     </span>
                 </div>
                 <div>
-                    <h3 className="font-bold text-sm truncate">{order.merchantName}</h3>
+                    <h3 className="font-bold text-sm truncate">{order.merchantName || 'Warung'}</h3>
                     <p className="text-[11px] text-text-secondary dark:text-gray-400 mt-1 font-medium leading-relaxed">
                         {order.items?.slice(0, 2).map(item => `${item.quantity}x ${item.name}`).join(', ')}
                         {order.items?.length > 2 && `, +${order.items.length - 2} lainnya`}

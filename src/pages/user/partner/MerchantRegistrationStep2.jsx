@@ -71,7 +71,7 @@ function MerchantRegistrationStep2() {
                 alert(result.error || 'Pendaftaran gagal. Silakan coba lagi.')
             }
         } catch (error) {
-            handleError(error, toast, { context: 'Pendaftaran merchant' })
+            handleError(error, toast, { context: 'Pendaftaran warung' })
         } finally {
             setIsSubmitting(false)
         }

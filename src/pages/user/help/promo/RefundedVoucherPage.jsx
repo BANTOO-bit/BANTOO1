@@ -28,7 +28,7 @@ function RefundedVoucherPage() {
                                     <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">store</span>
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-sm font-semibold text-text-main dark:text-white mb-1">Dibatalkan oleh Aplikasi / Merchant</h3>
+                                    <h3 className="text-sm font-semibold text-text-main dark:text-white mb-1">Dibatalkan oleh Aplikasi / Warung</h3>
                                     <p className="text-sm text-text-secondary dark:text-gray-400 leading-relaxed">
                                         Jika pesanan dibatalkan oleh aplikasi atau merchant karena alasan tertentu, jangan khawatir. Voucher akan kembali ke akun kamu dalam waktu <strong>15 menit</strong>.
                                     </p>

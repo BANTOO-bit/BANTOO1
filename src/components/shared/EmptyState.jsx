@@ -1,80 +1,41 @@
-/**
- * EmptyState - Reusable empty state component
- * Shows when no data is available with optional action button
- * Supports dark mode and multiple sizes
- */
-function EmptyState({
+export default function EmptyState({
     icon = 'inbox',
-    title = 'Belum ada data',
-    message = 'Data akan muncul di sini.',
+    title = 'Tidak Ada Data',
+    message = 'Data yang Anda cari tidak ditemukan atau masih kosong.',
     actionLabel = null,
     onAction = null,
-    size = 'md',
-    illustration = null,
     className = ''
 }) {
-    const sizeClasses = {
-        sm: {
-            container: 'py-8 px-4',
-            iconBg: 'w-16 h-16',
-            iconSize: 'text-3xl',
-            title: 'text-base',
-            message: 'text-xs',
-        },
-        md: {
-            container: 'py-12 px-6',
-            iconBg: 'w-20 h-20',
-            iconSize: 'text-4xl',
-            title: 'text-lg',
-            message: 'text-sm',
-        },
-        lg: {
-            container: 'py-16 px-8',
-            iconBg: 'w-24 h-24',
-            iconSize: 'text-5xl',
-            title: 'text-xl',
-            message: 'text-base',
-        },
-    }
-
-    const sizes = sizeClasses[size]
-
     return (
-        <div className={`flex flex-col items-center justify-center text-center ${sizes.container} ${className}`}>
-            {/* Illustration or Icon */}
-            {illustration ? (
-                <div className="mb-6">
-                    {illustration}
-                </div>
-            ) : (
-                <div className={`${sizes.iconBg} bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-colors`}>
-                    <span className={`material-symbols-outlined ${sizes.iconSize} text-gray-400 dark:text-gray-500`}>
+        <div className={`flex flex-col items-center justify-center p-8 text-center min-h-[300px] w-full ${className}`}>
+            {/* Illustration Circle */}
+            <div className="relative mb-6">
+                <div className="absolute inset-0 bg-primary/10 rounded-full animate-pulse blur-xl scale-125"></div>
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-50 to-primary/10 rounded-full flex items-center justify-center shadow-inner relative z-10">
+                    <span
+                        className="material-symbols-outlined text-primary drop-shadow-sm"
+                        style={{ fontSize: '48px', fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 48" }}
+                    >
                         {icon}
                     </span>
                 </div>
-            )}
+            </div>
 
-            {/* Title */}
-            <h3 className={`${sizes.title} font-semibold text-text-main dark:text-white mb-2`}>
-                {title}
-            </h3>
-
-            {/* Message */}
-            <p className={`${sizes.message} text-text-secondary dark:text-gray-400 max-w-sm mb-6 leading-relaxed`}>
+            {/* Texts */}
+            <h3 className="text-xl font-extrabold text-gray-900 mb-2">{title}</h3>
+            <p className="text-sm text-gray-500 max-w-[280px] leading-relaxed mb-6">
                 {message}
             </p>
 
-            {/* Action Button */}
+            {/* Optional Action Button */}
             {actionLabel && onAction && (
                 <button
                     onClick={onAction}
-                    className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm active:scale-95 transition-all flex items-center gap-2"
+                    className="h-12 px-6 bg-primary text-white font-bold rounded-xl active:scale-95 transition-transform flex items-center justify-center shadow-md shadow-primary/20"
                 >
                     {actionLabel}
                 </button>
             )}
         </div>
-    )
+    );
 }
-
-export default EmptyState

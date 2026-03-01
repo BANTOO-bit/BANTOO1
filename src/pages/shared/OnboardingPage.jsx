@@ -4,9 +4,9 @@ const onboardingData = [
     {
         id: 1,
         title: "Makanan Segar Diantar",
-        description: "Temukan restoran terbaik di sekitarmu dan nikmati makanan segar langsung ke depan pintu.",
+        description: "Temukan warung terbaik di sekitarmu dan nikmati makanan segar langsung ke depan pintu.",
         image: "/images/onboarding-food.jpg",
-        badge: "1000+ Restoran Partner",
+        badge: "1000+ Warung Partner",
         badgeIcon: "verified"
     },
     {
@@ -30,7 +30,7 @@ const onboardingData = [
 
 function MapIllustration() {
     return (
-        <div className="w-full aspect-[4/3] relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 border border-blue-100/50 shadow-lg">
+        <div className="w-full aspect-[4/3] relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 border border-blue-100/60">
             {/* Grid pattern */}
             <svg className="absolute inset-0 w-full h-full opacity-40" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
                 {/* Horizontal streets */}
@@ -156,7 +156,7 @@ function OnboardingPage({ onComplete }) {
                     {slide.isMapSlide ? (
                         <MapIllustration />
                     ) : (
-                        <div className="w-full aspect-[4/3] relative rounded-3xl overflow-hidden shadow-lg">
+                        <div className="w-full aspect-[4/3] relative rounded-3xl overflow-hidden border border-gray-100">
                             <img
                                 src={slide.image}
                                 alt={slide.title}

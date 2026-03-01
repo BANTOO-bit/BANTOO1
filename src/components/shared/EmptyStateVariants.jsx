@@ -72,7 +72,7 @@ export function EmptyFavorites({ onAction }) {
                 className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold active:scale-95 transition-all flex items-center gap-2"
             >
                 <span className="material-symbols-outlined text-[20px]">explore</span>
-                <span>Jelajahi Merchant</span>
+                <span>Jelajahi Warung</span>
             </button>
         </div>
     )

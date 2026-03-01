@@ -1,27 +1,16 @@
 import { supabase } from './supabaseClient'
 
-// Helper to convert phone to dummy email
-const phoneToEmail = (phone) => {
-    // Remove non-digits
-    let clean = phone.replace(/\D/g, '')
-
-    // Normalize to 08 format (Indonesian standard)
-    if (clean.startsWith('62')) {
-        clean = '0' + clean.substring(2)
-    } else if (clean.startsWith('8')) {
-        clean = '0' + clean
-    }
-
-    // If user enters 0812..., store as 0812...@bantoo.app
-    return `${clean}@bantoo.app`
-}
+// We no longer use dummy emails. All users register with real emails.
 
 export const authService = {
-    // Sign Up with Phone (Pseudo-Email)
-    async signUpWithPhone(phone, password, metadata = {}, email = null) {
-        const dummyEmail = phoneToEmail(phone)
+    // Sign Up with Email & Phone
+    async signUpWithPhone(phone, password, metadata = {}, email) {
+        if (!email) {
+            return { data: null, error: new Error('Email is required for registration') }
+        }
+
         const { data, error } = await supabase.auth.signUp({
-            email: dummyEmail,
+            email: email,
             password,
             options: {
                 data: {
@@ -34,9 +23,34 @@ export const authService = {
         return { data, error }
     },
 
-    // Sign In with Phone (Pseudo-Email) - for customer/merchant/driver
+    // Sign In with Phone
     async signInWithPhone(phone, password) {
-        const email = phoneToEmail(phone)
+        try {
+            // First lookup the user's email using their phone number from the profiles table
+            // This assumes phone numbers are unique in the profiles table
+            const { data: profile, error: lookupError } = await supabase
+                .from('profiles')
+                .select('email')
+                .eq('phone', phone)
+                .maybeSingle()
+
+            if (lookupError || !profile || !profile.email) {
+                return { data: null, error: new Error('Phone number not found or invalid credentials.') }
+            }
+
+            // Now sign in with the retrieved email
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: profile.email,
+                password,
+            })
+            return { data, error }
+        } catch (err) {
+            return { data: null, error: err }
+        }
+    },
+
+    // Sign In with Email - for admin only
+    async signInWithEmail(email, password) {
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -44,28 +58,29 @@ export const authService = {
         return { data, error }
     },
 
-    // Sign In with Email - for admin only
-    async signInWithEmail(email, password) {
-        // Admin uses real email stored as dummy phone email format
-        // Try direct email first, then try phone-to-email format
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
-
-        if (error) {
-            // If direct email fails, the admin might have registered with phone
-            // and email is stored in metadata. This fallback won't work for that case.
-            return { data: null, error }
-        }
-
-        return { data, error: null }
-    },
-
     // Sign Out
     async signOut() {
         const { error } = await supabase.auth.signOut()
         return { error }
+    },
+
+    // Lookup email by phone (helper for forgot password)
+    async getEmailByPhone(phone) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('phone', phone)
+            .maybeSingle()
+
+        return { email: data?.email, error }
+    },
+
+    // Send Password Reset Email
+    async resetPasswordForEmail(email) {
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+        })
+        return { data, error }
     },
 
     // Get Current Session

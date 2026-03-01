@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import MerchantCard from './MerchantCard'
 import { useCart } from '../../context/CartContext'
 import merchantService from '../../services/merchantService'
+import EmptyState from '../shared/EmptyState'
 
 // Menu Card for search results
 function MenuSearchCard({ menu, onMerchantClick, onClose }) {
@@ -166,19 +167,19 @@ function SearchBar() {
     const totalResults = menuResults.length + merchantResults.length
 
     return (
-        <div className="relative px-4 pb-4 pt-2 w-full z-30">
-            <div className="relative flex items-center w-full h-12 rounded-lg focus-within:ring-2 focus-within:ring-primary/50 transition-shadow bg-white shadow-soft overflow-hidden border border-border-color">
-                <div className="grid place-items-center h-full w-12 text-text-secondary">
-                    <span className="material-symbols-outlined">search</span>
+        <div className="relative px-4 pb-4 pt-3 w-full z-30">
+            <div className="relative flex items-center w-full h-14 rounded-xl focus-within:ring-2 focus-within:ring-primary/50 transition-shadow bg-white shadow-sm border border-gray-200 overflow-hidden">
+                <div className="grid place-items-center h-full w-14 text-gray-400">
+                    <span className="material-symbols-outlined text-[22px]">search</span>
                 </div>
                 <input
                     className="peer h-full w-full outline-none bg-transparent text-sm text-text-main placeholder:text-text-secondary font-normal pr-10"
                     id="search"
-                    placeholder="Cari makanan atau resto..."
+                    placeholder="Cari makanan atau warung..."
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Cari makanan atau restoran"
+                    aria-label="Cari makanan atau warung"
                 />
                 {searchQuery && (
                     <button
@@ -200,9 +201,12 @@ function SearchBar() {
                             <p className="text-xs text-text-secondary mt-2">Mencari...</p>
                         </div>
                     ) : totalResults === 0 ? (
-                        <div className="flex flex-col items-center py-8 px-4">
-                            <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">search_off</span>
-                            <p className="text-sm text-text-secondary">Tidak ditemukan hasil untuk "{searchQuery}"</p>
+                        <div className="py-2.5">
+                            <EmptyState
+                                icon="search_off"
+                                title="Tidak Ditemukan"
+                                message={`Kami tidak dapat menemukan hasil untuk "${searchQuery}". Coba kata kunci lain.`}
+                            />
                         </div>
                     ) : (
                         <div className="p-3">
@@ -231,7 +235,7 @@ function SearchBar() {
                                 <div>
                                     <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wide px-1 mb-1 flex items-center gap-1">
                                         <span className="material-symbols-outlined text-[12px]">storefront</span>
-                                        Restoran
+                                        Warung
                                     </p>
                                     <div className="space-y-2">
                                         {merchantResults.map(merchant => (

@@ -370,8 +370,11 @@ export function AuthProvider({ children }) {
         return data
     }
 
-    // Register (using Phone/Password)
-    const register = async (name, phone, password, role = 'customer', email = null) => {
+    // Register (using Email & Phone)
+    const register = async (name, phone, password, role = 'customer', email) => {
+        if (!email) {
+            throw new Error('Email dibutuhkan untuk pendaftaran')
+        }
         checkRateLimit()
         const { data, error } = await authService.signUpWithPhone(phone, password, {
             full_name: name,
@@ -387,6 +390,31 @@ export function AuthProvider({ children }) {
 
         return data
     }
+
+    // Reset Password
+    const resetPassword = async (identifier) => {
+        let emailToReset = identifier;
+
+        // Handle phone number resolution
+        if (/^[\d+]+$/.test(identifier) || identifier.startsWith('08') || identifier.startsWith('62')) {
+            const { email, error } = await authService.getEmailByPhone(identifier);
+            if (error || !email) {
+                throw new Error('Nomor HP tidak ditemukan atau belum didaftarkan dengan email.');
+            }
+            emailToReset = email;
+        }
+
+        const { data, error } = await authService.resetPasswordForEmail(emailToReset);
+        if (error) throw error;
+        return data;
+    };
+
+    // Update Password
+    const updatePassword = async (newPassword) => {
+        const { data, error } = await authService.updatePassword(newPassword);
+        if (error) throw error;
+        return data;
+    };
 
     // Logout
     const logout = async () => {
@@ -484,6 +512,8 @@ export function AuthProvider({ children }) {
         user,
         login,
         register,
+        resetPassword,
+        updatePassword,
         logout,
         loading,
         refreshProfile,

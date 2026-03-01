@@ -81,7 +81,7 @@ function ReviewPage() {
                     if (data) {
                         setOrder({
                             id: data.id,
-                            merchantName: data.merchant?.name || data.merchants?.name || 'Restoran',
+                            merchantName: data.merchant?.name || data.merchants?.name || 'Warung',
                             merchantImage: data.merchant?.image_url || data.merchants?.image_url,
                             merchantId: data.merchant_id,
                             driverName: data.driver?.full_name || null,
@@ -125,7 +125,7 @@ function ReviewPage() {
 
     const handleSubmit = async () => {
         if (merchantRating === 0) {
-            toast.warning('Mohon beri rating untuk restoran')
+            toast.warning('Mohon beri rating untuk warung')
             return
         }
         if (isSubmitting) return
@@ -234,7 +234,7 @@ function ReviewPage() {
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-sm text-text-main dark:text-white truncate">{order.merchantName || 'Restoran'}</h3>
+                            <h3 className="font-bold text-sm text-text-main dark:text-white truncate">{order.merchantName || 'Warung'}</h3>
                             <p className="text-[11px] text-text-secondary dark:text-gray-400 mt-0.5 line-clamp-1">
                                 {order.items?.length > 0
                                     ? order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')
@@ -264,7 +264,7 @@ function ReviewPage() {
                                 <span className="material-symbols-outlined text-primary text-2xl">storefront</span>
                             )}
                         </div>
-                        <h3 className="font-bold text-text-main dark:text-white mb-0.5">{order.merchantName || 'Restoran'}</h3>
+                        <h3 className="font-bold text-text-main dark:text-white mb-0.5">{order.merchantName || 'Warung'}</h3>
                         <p className="text-xs text-text-secondary dark:text-gray-400 mb-4">Bagaimana makanannya?</p>
                         <div className="flex justify-center mb-2">
                             <StarRating rating={merchantRating} setRating={setMerchantRating} />

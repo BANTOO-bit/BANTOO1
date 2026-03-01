@@ -138,7 +138,7 @@ function MerchantDetailPage() {
             setCurrentMerchant(merchant)
             setMerchantMenus(menus)
         } catch (err) {
-            setError(err.message || 'Gagal memuat data merchant')
+            setError(err.message || 'Gagal memuat data warung')
         } finally {
             setLoading(false)
         }
@@ -188,7 +188,7 @@ function MerchantDetailPage() {
         </div>
     )
 
-    if (loading) return <LoadingState message="Memuat merchant..." />
+    if (loading) return <LoadingState message="Memuat warung..." />
     if (error) return <ErrorState message="Gagal Memuat" detail={error} onRetry={fetchMerchantData} />
     if (!currentMerchant) return null
 

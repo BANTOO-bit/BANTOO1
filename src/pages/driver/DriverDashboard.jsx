@@ -184,7 +184,7 @@ function DriverDashboard() {
                     addNotification({
                         type: 'order',
                         title: 'Pesanan Baru Masuk!',
-                        message: `Jarak: ${order.distance_to_merchant?.toFixed(1) || '?'}km - ${order.merchant_name}`,
+                        message: `Jarak: ${order.distance_to_merchant?.toFixed(1) || '?'}km - Warung ${order.merchant_name}`,
                         actionLabel: 'Ambil Order',
                         actionUrl: `/driver/order/incoming/${order.id}`,
                         sticky: true

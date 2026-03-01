@@ -31,13 +31,13 @@ export function MerchantCardSkeleton() {
 
 export function MenuCardSkeleton() {
     return (
-        <div className="flex-none w-[160px] bg-card-light dark:bg-card-dark rounded-xl shadow-soft border border-border-color dark:border-gray-700 overflow-hidden">
+        <div className="flex-none w-[185px] bg-card-light dark:bg-card-dark rounded-xl shadow-soft border border-border-color dark:border-gray-700 overflow-hidden">
             <Skeleton className="h-32 w-full rounded-none" />
             <div className="p-3">
                 <Skeleton className="h-4 w-3/4 mb-2" />
                 <div className="flex justify-between items-center">
                     <Skeleton className="h-4 w-16" />
-                    <Skeleton variant="circular" className="w-7 h-7" />
+                    <Skeleton variant="circular" className="w-8 h-8" />
                 </div>
             </div>
         </div>

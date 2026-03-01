@@ -850,7 +850,7 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                         order.status === 'accepted' ? 'Sedang Disiapkan' :
                             (order.status === 'preparing' || order.status === 'processing') ? 'Sedang Dimasak' :
                                 order.status === 'ready' ? 'Menunggu Driver' :
-                                    order.status === 'pickup' ? 'Driver Menuju Resto' :
+                                    order.status === 'pickup' ? 'Driver Menuju Warung' :
                                         order.status === 'picked_up' ? 'Sedang Diantar' :
                                             order.status === 'delivering' ? 'Sedang Diantar' :
                                                 order.status === 'delivered' ? 'Terkirim' :
@@ -942,7 +942,7 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                         {order.status === 'pickup' && (
                             <div className="flex-1 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-sm flex items-center justify-center gap-2 cursor-default border border-blue-100 dark:border-blue-800/30">
                                 <span className="material-symbols-outlined text-[18px]">person_pin_circle</span>
-                                <span>Driver Menuju Resto</span>
+                                <span>Driver Menuju Warung</span>
                             </div>
                         )}
                         {['picked_up', 'delivering'].includes(order.status) && (

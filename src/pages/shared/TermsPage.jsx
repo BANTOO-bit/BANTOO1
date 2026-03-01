@@ -50,7 +50,7 @@ function TermsPage() {
                         <section>
                             <h3 className="font-bold text-text-main mb-2">4. Pembatalan Pesanan</h3>
                             <p className="text-sm text-text-secondary leading-relaxed">
-                                Pembatalan pesanan hanya dapat dilakukan sebelum restoran mengonfirmasi pesanan.
+                                Pembatalan pesanan hanya dapat dilakukan sebelum warung mengonfirmasi pesanan.
                                 Setelah dikonfirmasi, pembatalan akan dikenakan biaya sesuai kebijakan yang berlaku.
                             </p>
                         </section>

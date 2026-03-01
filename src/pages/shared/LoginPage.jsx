@@ -33,7 +33,11 @@ function LoginPage() {
                 navigate('/')
             } catch (err) {
                 logger.error('Login failed', err, 'LoginPage')
-                if (err.message && err.message.includes('Invalid')) {
+
+                // Specific Check for Email Not Confirmed
+                if (err.message && err.message.includes('Email not confirmed')) {
+                    setFormErrors({ unconfirmed: true, general: 'Email belum dikonfirmasi. Periksa kotak masuk/spam Anda.' })
+                } else if (err.message && err.message.includes('Invalid')) {
                     setFormErrors({ general: 'Nomor HP atau kata sandi salah' })
                 } else {
                     setFormErrors({ general: 'Gagal login. Silakan coba lagi.' })
@@ -43,13 +47,9 @@ function LoginPage() {
     })
 
     return (
-        <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden">
-            {/* Decorative background */}
-            <div className="absolute top-[-40px] right-[-30px] w-44 h-44 bg-primary/5 rounded-full blur-2xl"></div>
-            <div className="absolute bottom-20 left-[-40px] w-56 h-56 bg-accent/5 rounded-full blur-2xl"></div>
-
+        <div className="min-h-screen flex flex-col bg-white relative overflow-hidden">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-4 pt-12 pb-4">
+            <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md px-4 pt-12 pb-4">
                 <div className="relative flex items-center justify-center">
                     <button
                         onClick={() => navigate(-1)}
@@ -98,7 +98,7 @@ function LoginPage() {
                                 onChange={(e) => handleChange('password', e.target.value)}
                                 onBlur={() => handleBlur('password')}
                                 placeholder="Masukkan kata sandi"
-                                className={`w-full rounded-xl border bg-white/80 backdrop-blur-sm pl-12 pr-12 py-3.5 text-base text-gray-900 placeholder:text-gray-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm
+                                className={`w-full rounded-xl border bg-white/80 backdrop-blur-sm pl-12 pr-12 py-3.5 text-base text-gray-900 placeholder:text-gray-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all
                                     ${errors.password ? 'border-red-400' : 'border-gray-200'}`}
                             />
                             <button
@@ -116,9 +116,11 @@ function LoginPage() {
 
                     {/* General Error Message */}
                     {errors.general && (
-                        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl">
-                            <p className="text-sm text-red-600 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-sm">error</span>
+                        <div className={`p-3.5 border rounded-xl ${errors.unconfirmed ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
+                            <p className={`text-sm flex items-center gap-2 ${errors.unconfirmed ? 'text-yellow-800' : 'text-red-600'}`}>
+                                <span className="material-symbols-outlined text-sm">
+                                    {errors.unconfirmed ? 'mark_email_unread' : 'error'}
+                                </span>
                                 {errors.general}
                             </p>
                         </div>
@@ -135,7 +137,7 @@ function LoginPage() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-lg shadow-primary/25"
+                        className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-sm shadow-primary/10"
                     >
                         {isSubmitting ? (
                             <ButtonLoader />

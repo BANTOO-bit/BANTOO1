@@ -216,7 +216,7 @@ function DriverPickupOrder() {
                             TOTAL COD
                         </div>
                         <div className="text-3xl font-bold text-red-600 mb-1">Rp {totalAmount?.toLocaleString('id-ID')}</div>
-                        <p className="text-xs text-red-500 opacity-90">Bayar tunai ke Merchant saat ambil pesanan</p>
+                        <p className="text-xs text-red-500 opacity-90">Bayar tunai ke Warung saat ambil pesanan</p>
                     </div>
                 )}
 
@@ -226,7 +226,7 @@ function DriverPickupOrder() {
                         <span className="material-symbols-outlined text-green-600 text-[24px]">verified</span>
                         <div>
                             <h3 className="text-sm font-bold text-green-800">Pembayaran Non-Tunai</h3>
-                            <p className="text-xs text-green-700">Tidak perlu bayar ke Merchant.</p>
+                            <p className="text-xs text-green-700">Tidak perlu bayar ke Warung.</p>
                         </div>
                     </div>
                 )}
@@ -290,7 +290,7 @@ function DriverPickupOrder() {
                                 }`}
                         >
                             <span className="material-symbols-outlined">location_on</span>
-                            SAYA SUDAH DI RESTO
+                            SAYA SUDAH DI WARUNG
                         </button>
                         {!allItemsChecked && (
                             <p className="text-xs text-center text-slate-400">Checklist semua item terlebih dahulu</p>

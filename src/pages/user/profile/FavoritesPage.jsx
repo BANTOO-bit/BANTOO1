@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../../components/user/BottomNavigation'
 import MerchantCard from '../../../components/user/MerchantCard'
 import { useFavorites } from '../../../context/FavoritesContext'
+import EmptyState from '../../../components/shared/EmptyState'
 
 function FavoritesPage({ onNavigate, onMerchantClick }) {
     const navigate = useNavigate()
@@ -25,25 +26,19 @@ function FavoritesPage({ onNavigate, onMerchantClick }) {
             {/* Main Content */}
             <main className="flex-1 px-4 py-4">
                 {favorites.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16">
-                        <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-4">
-                            <span className="material-symbols-outlined text-5xl text-red-300">favorite</span>
-                        </div>
-                        <h2 className="text-lg font-bold text-text-main mb-2">Belum Ada Favorit</h2>
-                        <p className="text-sm text-text-secondary text-center max-w-xs mb-6">
-                            Simpan resto favoritmu agar lebih mudah ditemukan nanti
-                        </p>
-                        <button
-                            onClick={() => onNavigate?.('home')}
-                            className="px-6 py-3 bg-primary text-white font-bold rounded-xl shadow-md active:scale-95 transition-transform"
-                        >
-                            Jelajahi Resto
-                        </button>
+                    <div className="flex-1 flex flex-col items-center justify-center mt-8">
+                        <EmptyState
+                            icon="favorite"
+                            title="Belum Ada Favorit"
+                            message="Simpan warung favoritmu di sini agar lebih mudah memesannya kembali nanti."
+                            actionLabel="Jelajahi Warung"
+                            onAction={() => onNavigate?.('home')}
+                        />
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
                         <p className="text-sm text-text-secondary mb-2">
-                            {favorites.length} resto favorit
+                            {favorites.length} warung favorit
                         </p>
                         {favorites.map(merchant => (
                             <div key={merchant.id} className="relative">

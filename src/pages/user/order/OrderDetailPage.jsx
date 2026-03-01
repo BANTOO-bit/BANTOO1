@@ -50,7 +50,7 @@ function OrderDetailPage() {
                     id: generateOrderId(orderData.order_number ? orderData : orderData.id),
                     dbId: orderData.id,
                     merchantId: orderData.merchant_id,
-                    merchantName: orderData.merchant?.name || 'Merchant',
+                    merchantName: orderData.merchant?.name || 'Warung',
                     merchantImage: orderData.merchant?.image_url,
                     merchantAddress: orderData.merchant?.address,
                     status: orderData.status,
@@ -112,7 +112,7 @@ function OrderDetailPage() {
 
                 // Status change messages
                 const statusMessages = {
-                    'accepted': '✅ Pesanan diterima merchant',
+                    'accepted': '✅ Pesanan diterima warung',
                     'ready': '📦 Pesanan siap diambil driver',
                     'picked_up': '🚗 Pesanan sedang diantar',
                     'delivered': '🎉 Pesanan telah sampai',

@@ -17,7 +17,9 @@ function MerchantProfilePage() {
     const [merchantInfo, setMerchantInfo] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [switchingRole, setSwitchingRole] = useState(null)
+    const [switchConfirm, setSwitchConfirm] = useState(null)
     const [driverAvailableCount, setDriverAvailableCount] = useState(0)
+    const [driverProfile, setDriverProfile] = useState(null)
 
     useEffect(() => {
         async function fetchMerchantProfile() {
@@ -42,6 +44,10 @@ function MerchantProfilePage() {
         if (user?.roles?.includes('driver') && user?.driverStatus === 'approved') {
             driverService.getAvailableOrders({ lat: 0, lng: 0 })
                 .then(orders => setDriverAvailableCount(orders?.length || 0))
+                .catch(() => { })
+            // Fetch driver profile for is_active check (online status)
+            driverService.getProfile()
+                .then(profile => setDriverProfile(profile))
                 .catch(() => { })
         }
     }, [user])
@@ -71,6 +77,12 @@ function MerchantProfilePage() {
                 }
             }
 
+            // If switching to driver and driver is online, show confirmation
+            if (targetRole === 'driver' && driverProfile?.is_active) {
+                setSwitchConfirm({ targetRole, targetPath })
+                return
+            }
+
             // No issues — proceed
             await executeSwitchRole(targetRole, targetPath)
         } catch (err) {
@@ -82,6 +94,7 @@ function MerchantProfilePage() {
     const executeSwitchRole = async (targetRole, targetPath) => {
         try {
             setSwitchingRole(targetRole)
+            setSwitchConfirm(null)
             await switchRole(targetRole)
             navigate(targetPath, { replace: true })
         } catch (err) {
@@ -99,7 +112,7 @@ function MerchantProfilePage() {
     return (
         <div className="bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark transition-colors duration-200 relative min-h-screen max-w-md mx-auto overflow-hidden">
 
-            <div className={`relative z-0 h-full overflow-y-auto pb-bottom-nav ${showLogoutModal ? 'opacity-40 dark:opacity-30 filter blur-[1px] pointer-events-none' : ''}`}>
+            <div className={`relative z-0 h-full overflow-y-auto pb-bottom-nav ${showLogoutModal || switchConfirm ? 'opacity-40 dark:opacity-30 filter blur-[1px] pointer-events-none' : ''}`}>
                 <header className="pt-8 pb-4 text-center">
                     <h1 className="text-lg font-bold">Profil Warung</h1>
                 </header>
@@ -374,9 +387,43 @@ function MerchantProfilePage() {
                 </div>
             )}
 
-            <div className={`${showLogoutModal ? 'opacity-40 dark:opacity-30 filter blur-[1px]' : ''}`}>
+            <div className={`${showLogoutModal || switchConfirm ? 'opacity-40 dark:opacity-30 filter blur-[1px]' : ''}`}>
                 <MerchantBottomNavigation activeTab="profile" />
             </div>
+
+            {/* Switch Role Confirmation Modal (Driver Online) */}
+            {switchConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-card-dark rounded-2xl w-full max-w-sm p-6 shadow-2xl transform transition-all scale-100">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center mb-4">
+                                <span className="material-symbols-outlined text-amber-500 text-[32px]">warning</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-2">Driver Sedang Online</h3>
+                            <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-6">
+                                Status driver Anda akan menjadi <strong>Offline</strong> dan tidak akan menerima orderan baru. Yakin ingin pindah?
+                            </p>
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={() => setSwitchConfirm(null)}
+                                    className="flex-1 py-2.5 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={() => executeSwitchRole(switchConfirm.targetRole, switchConfirm.targetPath)}
+                                    className="flex-1 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors"
+                                >
+                                    Ya, Pindah
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Role Switch Overlay */}
+            {switchingRole && <RoleSwitchOverlay targetRole={switchingRole} />}
         </div>
     )
 }

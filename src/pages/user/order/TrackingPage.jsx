@@ -16,11 +16,11 @@ const TrackingMap = lazy(() => import('../../../components/user/TrackingMap'))
 // ORDER STATUS STEPS
 // ============================================
 const orderStatuses = [
-    { id: 'pending', label: 'Menunggu Konfirmasi', icon: 'pending', description: 'Menunggu restoran menerima pesanan' },
-    { id: 'accepted', label: 'Pesanan Diterima', icon: 'check_circle', description: 'Restoran menerima pesananmu' },
+    { id: 'pending', label: 'Menunggu Konfirmasi', icon: 'pending', description: 'Menunggu warung menerima pesanan' },
+    { id: 'accepted', label: 'Pesanan Diterima', icon: 'check_circle', description: 'Warung menerima pesananmu' },
     { id: 'preparing', label: 'Sedang Dimasak', icon: 'skillet', description: 'Pesananmu sedang dipersiapkan' },
     { id: 'ready', label: 'Siap Diambil', icon: 'takeout_dining', description: 'Menunggu driver mengambil' },
-    { id: 'picked_up', label: 'Driver Mengambil', icon: 'two_wheeler', description: 'Driver mengambil pesanan dari restoran' },
+    { id: 'picked_up', label: 'Driver Mengambil', icon: 'two_wheeler', description: 'Driver mengambil pesanan dari warung' },
     { id: 'delivering', label: 'Dalam Perjalanan', icon: 'navigation', description: 'Driver menuju lokasimu' },
     { id: 'delivered', label: 'Pesanan Tiba', icon: 'home', description: 'Selamat menikmati!' },
 ]
@@ -61,7 +61,7 @@ function OrderDetailModal({ isOpen, onClose, order }) {
         return 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop'
     }
 
-    const merchantName = order.merchant?.name || order.merchantName || 'Restoran'
+    const merchantName = order.merchant?.name || order.merchantName || 'Warung'
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end animate-fade-in">
@@ -109,7 +109,7 @@ function OrderDetailModal({ isOpen, onClose, order }) {
                             </div>
                             <div>
                                 <p className="font-bold">{merchantName}</p>
-                                <p className="text-xs text-text-secondary">Restoran</p>
+                                <p className="text-xs text-text-secondary">Warung</p>
                             </div>
                         </div>
                     </div>
@@ -510,7 +510,7 @@ function TrackingPage() {
     // ============================================
     // RENDER
     // ============================================
-    const merchantName = order.merchant?.name || order.merchantName || 'Restoran'
+    const merchantName = order.merchant?.name || order.merchantName || 'Warung'
     const hasDriver = currentStatusIndex >= 4 && driverInfo
 
     // Cancelled State
@@ -579,7 +579,7 @@ function TrackingPage() {
                                 ? `Pesananmu sedang diteruskan ke ${merchantName}. Mohon tunggu sebentar ya...`
                                 : order.status === 'ready'
                                     ? 'Pesananmu sudah siap. Sistem sedang mencarikan driver terdekat.'
-                                    : 'Restoran sedang menyiapkan hidangan lezatmu dengan sepenuh hati.'}
+                                    : 'Warung sedang menyiapkan hidangan lezatmu dengan sepenuh hati.'}
                         </p>
                     </div>
 

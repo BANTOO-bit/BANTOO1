@@ -26,7 +26,7 @@ function WelcomePage() {
 
                 {/* Illustration Card */}
                 <div className="relative w-full max-w-[280px] aspect-square mb-10">
-                    <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 border border-blue-100/50 shadow-lg overflow-hidden">
+                    <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 border border-blue-100/60 overflow-hidden">
                         {/* Delivery illustration */}
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="relative">
@@ -38,11 +38,11 @@ function WelcomePage() {
                                     </div>
                                 </div>
                                 {/* Food bag - bouncing */}
-                                <div className="absolute -top-2 -right-2 w-12 h-12 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/25 animate-bounce" style={{ animationDuration: '3s' }}>
+                                <div className="absolute -top-2 -right-2 w-12 h-12 bg-accent rounded-xl flex items-center justify-center shadow-sm animate-bounce" style={{ animationDuration: '3s' }}>
                                     <span className="material-symbols-outlined text-white text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>shopping_bag</span>
                                 </div>
                                 {/* Star */}
-                                <div className="absolute -top-1 -left-4 w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center shadow-md rotate-12">
+                                <div className="absolute -top-1 -left-4 w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center shadow-sm rotate-12">
                                     <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                                 </div>
                                 {/* Location pin */}
@@ -55,7 +55,7 @@ function WelcomePage() {
                         <div className="absolute bottom-3 left-3 right-3">
                             <div className="bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm">
                                 <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-                                <span className="text-[11px] font-semibold text-gray-600">1000+ restoran siap melayani</span>
+                                <span className="text-[11px] font-semibold text-gray-600">1000+ warung siap melayani</span>
                             </div>
                         </div>
                     </div>
@@ -65,7 +65,7 @@ function WelcomePage() {
                 <div className="text-center max-w-[300px]">
                     <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Selamat Datang!</h2>
                     <p className="text-sm text-gray-500 leading-relaxed">
-                        Nikmati kemudahan pesan makanan dari restoran favoritmu dengan pengiriman cepat dan aman.
+                        Nikmati kemudahan pesan makanan dari warung favoritmu dengan pengiriman cepat dan aman.
                     </p>
                 </div>
             </div>

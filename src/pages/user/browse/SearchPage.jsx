@@ -52,7 +52,7 @@ function SearchRecommendationCard({ menu, onClick }) {
                     <span className="material-symbols-outlined text-[14px] text-yellow-500 fill">star</span>
                     <span className="text-xs font-medium text-gray-700">{menu.rating || '4.5'}</span>
                     <span className="text-xs text-gray-400 mx-1">•</span>
-                    <span className="text-xs text-gray-500 line-clamp-1">{menu.merchantName || 'Merchant'}</span>
+                    <span className="text-xs text-gray-500 line-clamp-1">{menu.merchantName || 'Warung'}</span>
                 </div>
                 <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-1 text-gray-500">
@@ -208,7 +208,7 @@ function SearchPage() {
                     <input
                         className="peer h-full w-full outline-none bg-transparent text-sm text-text-main placeholder:text-text-secondary font-normal pr-4"
                         id="search"
-                        placeholder="Cari makanan atau resto..."
+                        placeholder="Cari makanan atau warung..."
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
