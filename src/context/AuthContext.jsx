@@ -80,11 +80,18 @@ export function AuthProvider({ children }) {
             // Extract roles array from user_roles or derive from partner tables
             let roles = userRoles.data?.map(r => r.role) || []
 
-            // If user_roles table is missing or empty, try to derive from direct tables
-            if (roles.length === 0) {
-                roles.push('customer') // Everyone is a customer
-                if (driver.data) roles.push('driver')
-                if (merchant.data) roles.push('merchant')
+            // Always ensure everyone is at least a customer
+            if (!roles.includes('customer')) {
+                roles.push('customer')
+            }
+
+            // Fallback: If for some reason the database trigger missed inserting into `user_roles`,
+            // derive the roles directly from the partner tables if their status is 'approved'.
+            if (driver.data?.status === 'approved' && !roles.includes('driver')) {
+                roles.push('driver')
+            }
+            if (merchant.data?.status === 'approved' && !roles.includes('merchant')) {
+                roles.push('merchant')
             }
 
             // OVERRIDE: Always check profiles.role for admin (admin role is authoritative from profiles table)
