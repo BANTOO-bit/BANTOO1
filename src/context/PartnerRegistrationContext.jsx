@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext'
 import { supabase } from '../services/supabaseClient'
 import { storageService, STORAGE_PATHS } from '../services/storageService'
 import logger from '../utils/logger'
+import imageCompression from 'browser-image-compression'
 
 const PartnerRegistrationContext = createContext()
 
@@ -114,14 +115,45 @@ export function PartnerRegistrationProvider({ children }) {
                 step3: { ...driverData.step3, ...(step3FormData || {}) }
             }
 
+            // Options for compressing the images
+            const compressionOptions = {
+                maxSizeMB: 1, // Max file size in MB
+                maxWidthOrHeight: 1920, // Max width/height
+                useWebWorker: true,
+            }
+
+            // Function to compress if it's a valid File object
+            const compressIfNeeded = async (file) => {
+                if (!file || !(file instanceof File)) return file;
+                try {
+                    logger.debug(`[Compression] Compressing file ${file.name} - Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                    const compressedFile = await imageCompression(file, compressionOptions);
+                    logger.debug(`[Compression] Compressed file ${file.name} - New size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+                    return compressedFile;
+                } catch (err) {
+                    console.error('[Compression] Error compressing file:', err);
+                    return file; // Fallback to original if compression fails
+                }
+            }
+
             // 1. Upload Photos via storageService
-            logger.debug('[Driver Reg] Uploading photos...')
-            const selfieUrl = await storageService.upload(finalData.step1.selfiePhoto, STORAGE_PATHS.DRIVER_SELFIE, user.id)
-            const vehiclePhotoUrl = await storageService.upload(finalData.step2.vehiclePhoto, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
-            const stnkUrl = await storageService.upload(finalData.step2.stnkPhoto, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
-            const idCardUrl = await storageService.upload(finalData.step3.idCardPhoto, STORAGE_PATHS.DRIVER_KTP, user.id)
-            const photoWithVehicleUrl = await storageService.upload(finalData.step3.photoWithVehicle, STORAGE_PATHS.DRIVER_WITH_VEHICLE, user.id)
-            logger.debug('[Driver Reg] Photos uploaded successfully')
+            logger.debug('[Driver Reg] Compressing and Uploading photos...')
+            const compressedSelfie = await compressIfNeeded(finalData.step1.selfiePhoto);
+            const selfieUrl = await storageService.upload(compressedSelfie, STORAGE_PATHS.DRIVER_SELFIE, user.id)
+
+            const compressedVehicle = await compressIfNeeded(finalData.step2.vehiclePhoto);
+            const vehiclePhotoUrl = await storageService.upload(compressedVehicle, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
+
+            const compressedStnk = await compressIfNeeded(finalData.step2.stnkPhoto);
+            const stnkUrl = await storageService.upload(compressedStnk, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
+
+            const compressedIdCard = await compressIfNeeded(finalData.step3.idCardPhoto);
+            const idCardUrl = await storageService.upload(compressedIdCard, STORAGE_PATHS.DRIVER_KTP, user.id)
+
+            const compressedPhotoWithVehicle = await compressIfNeeded(finalData.step3.photoWithVehicle);
+            const photoWithVehicleUrl = await storageService.upload(compressedPhotoWithVehicle, STORAGE_PATHS.DRIVER_WITH_VEHICLE, user.id)
+
+            logger.debug('[Driver Reg] Photos compressed and uploaded successfully')
 
             // 2. Insert Driver Record
             const { error } = await supabase.from('drivers').insert({
@@ -178,11 +210,36 @@ export function PartnerRegistrationProvider({ children }) {
                 step2: { ...merchantData.step2, ...(step2FormData || {}) }
             }
 
+            // Options for compressing the images
+            const compressionOptions = {
+                maxSizeMB: 1, // Max file size in MB
+                maxWidthOrHeight: 1920, // Max width/height
+                useWebWorker: true,
+            }
+
+            // Function to compress if it's a valid File object
+            const compressIfNeeded = async (file) => {
+                if (!file || !(file instanceof File)) return file;
+                try {
+                    logger.debug(`[Compression] Compressing file ${file.name} - Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                    const compressedFile = await imageCompression(file, compressionOptions);
+                    logger.debug(`[Compression] Compressed file ${file.name} - New size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+                    return compressedFile;
+                } catch (err) {
+                    console.error('[Compression] Error compressing file:', err);
+                    return file; // Fallback to original if compression fails
+                }
+            }
+
             // 1. Upload Photos via storageService
-            logger.debug('[Merchant Reg] Uploading photos...')
-            const idCardUrl = await storageService.upload(finalData.step2.idCardPhoto, STORAGE_PATHS.MERCHANT_KTP, user.id)
-            const shopPhotoUrl = await storageService.upload(finalData.step2.shopPhoto, STORAGE_PATHS.MERCHANT_LOGO, user.id)
-            logger.debug('[Merchant Reg] Photos uploaded:', { idCardUrl, shopPhotoUrl })
+            logger.debug('[Merchant Reg] Compressing and Uploading photos...')
+            const compressedIdCard = await compressIfNeeded(finalData.step2.idCardPhoto);
+            const idCardUrl = await storageService.upload(compressedIdCard, STORAGE_PATHS.MERCHANT_KTP, user.id)
+
+            const compressedShopPhoto = await compressIfNeeded(finalData.step2.shopPhoto);
+            const shopPhotoUrl = await storageService.upload(compressedShopPhoto, STORAGE_PATHS.MERCHANT_LOGO, user.id)
+
+            logger.debug('[Merchant Reg] Photos compressed and uploaded:', { idCardUrl, shopPhotoUrl })
 
             // 2. Insert Merchant Record 
             const insertData = {

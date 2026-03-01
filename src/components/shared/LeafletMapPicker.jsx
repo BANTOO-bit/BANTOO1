@@ -46,7 +46,8 @@ const LeafletMapPicker = ({
     initialLocation = { lat: -7.0674066, lng: 110.8715891 }, // Default Polsek Tanggungharjo
     onLocationSelect,
     triggerFlyTo, // coordinate object to fly to
-    isInteractionDisabled = false
+    isInteractionDisabled = false,
+    children // Support for passing custom Map elements (Circles, Polygons)
 }) => {
     // React 18 Validation:
     // We use a ref to track if the map has already been initialized to prevent strict mode double-mount issues
@@ -74,7 +75,7 @@ const LeafletMapPicker = ({
                     center={[initialLocation.lat, initialLocation.lng]}
                     zoom={15}
                     style={{ height: '100%', width: '100%' }}
-                    zoomControl={false}
+                    zoomControl={false} // Custom or hide default
                     dragging={!isInteractionDisabled}
                     touchZoom={!isInteractionDisabled}
                     doubleClickZoom={!isInteractionDisabled}
@@ -85,6 +86,9 @@ const LeafletMapPicker = ({
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     />
+
+                    {/* Render optional children (like Circles for geofencing) inside the map context */}
+                    {children}
 
                     <MapEvents
                         onMoveEnd={onLocationSelect}

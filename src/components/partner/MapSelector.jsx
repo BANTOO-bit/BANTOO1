@@ -1,53 +1,10 @@
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
+import { useEffect, useState, useCallback } from 'react'
+import { Circle } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import locationService from '../../services/locationService'
-
-// Fix for default marker icon in Leaflet
-import L from 'leaflet'
-
-const defaultIcon = L.icon({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-})
-
-function ClickableMap({ position, onPositionChange }) {
-    const map = useMap()
-
-    // Invalidate size when map is ready
-    useEffect(() => {
-        setTimeout(() => {
-            map.invalidateSize()
-        }, 100)
-    }, [map])
-
-    useMapEvents({
-        click(e) {
-            onPositionChange({ lat: e.latlng.lat, lng: e.latlng.lng })
-        }
-    })
-
-    return <Marker position={[position.lat, position.lng]} icon={defaultIcon} />
-}
-
-// Helper to programmatically move map
-function FlyToLocation({ coords }) {
-    const map = useMap();
-    useEffect(() => {
-        if (coords) {
-            map.flyTo([coords.lat, coords.lng], 15, {
-                animate: true,
-                duration: 1.5
-            });
-        }
-    }, [coords, map]);
-    return null;
-}
+import settingsService from '../../services/settingsService'
+import LeafletMapPicker from '../shared/LeafletMapPicker'
+import * as turf from '@turf/turf' // Use turf.js for precise geofencing calculation
 
 function MapSelector({ location, onLocationChange, onClose }) {
     const [currentPosition, setCurrentPosition] = useState(location)
@@ -57,6 +14,38 @@ function MapSelector({ location, onLocationChange, onClose }) {
     const [flyToCoords, setFlyToCoords] = useState(null)
     const [isGPSLoading, setIsGPSLoading] = useState(false)
 
+    // Geofencing constants
+    // Set the operational center to Tanggungharjo city center
+    const GEO_CENTER = { lat: -7.0922, lng: 110.6049 };
+
+    // Dynamic Radius State
+    const [geoRadiusMeters, setGeoRadiusMeters] = useState(15000); // Default 15km before load
+    const [isWithinBounds, setIsWithinBounds] = useState(true);
+
+    // Fetch Admin Settings for operational radius
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const tiersConfig = await settingsService.getDeliveryFeeTiers();
+                if (tiersConfig && tiersConfig.max_radius_km) {
+                    setGeoRadiusMeters(tiersConfig.max_radius_km * 1000); // km to meters
+                }
+            } catch (err) {
+                console.error("Failed to load map radius settings, using fallback", err)
+            }
+        }
+        fetchSettings()
+    }, [])
+
+    // Validate location on change
+    useEffect(() => {
+        const from = turf.point([currentPosition.lng, currentPosition.lat]);
+        const to = turf.point([GEO_CENTER.lng, GEO_CENTER.lat]);
+        const distance = turf.distance(from, to, { units: 'kilometers' });
+
+        setIsWithinBounds(distance <= (geoRadiusMeters / 1000));
+    }, [currentPosition, geoRadiusMeters]);
+
     // React 18 Strict Mode Safety
     const [isMounted, setIsMounted] = useState(false)
     useEffect(() => {
@@ -64,10 +53,10 @@ function MapSelector({ location, onLocationChange, onClose }) {
         return () => setIsMounted(false)
     }, [])
 
-    const handlePositionChange = (newPosition) => {
+    const handlePositionChange = useCallback((newPosition) => {
         setCurrentPosition(newPosition)
         onLocationChange(newPosition)
-    }
+    }, [onLocationChange])
 
     const handleGetLocation = async () => {
         setIsGPSLoading(true)
@@ -104,43 +93,47 @@ function MapSelector({ location, onLocationChange, onClose }) {
                 </div>
 
                 <div className="h-80 sm:h-96 bg-gray-100 dark:bg-gray-800 relative">
-                    <MapContainer
-                        key={mapKey}
-                        center={[currentPosition.lat, currentPosition.lng]}
-                        zoom={15}
-                        style={{ height: '100%', width: '100%' }}
-                        scrollWheelZoom={true}
-                        attributionControl={false}
+                    <LeafletMapPicker
+                        initialLocation={currentPosition}
+                        onLocationSelect={handlePositionChange}
+                        triggerFlyTo={flyToCoords}
                     >
-                        <TileLayer
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            attribution='&copy; OpenStreetMap'
+                        <Circle
+                            center={[GEO_CENTER.lat, GEO_CENTER.lng]}
+                            radius={geoRadiusMeters}
+                            pathOptions={{
+                                color: isWithinBounds ? '#3b82f6' : '#ef4444',
+                                fillColor: isWithinBounds ? '#3b82f6' : '#ef4444',
+                                fillOpacity: 0.1,
+                                dashArray: '5, 10'
+                            }}
                         />
-                        <ClickableMap
-                            position={currentPosition}
-                            onPositionChange={handlePositionChange}
-                        />
-                        <FlyToLocation coords={flyToCoords} />
-                    </MapContainer>
+                    </LeafletMapPicker>
 
                     {/* GPS Button Overlay - Added to original layout */}
                     <button
                         onClick={handleGetLocation}
                         disabled={isGPSLoading}
-                        className="absolute bottom-4 right-4 z-[400] size-12 bg-white rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-transform border border-slate-100 disabled:opacity-50"
+                        className="absolute top-4 right-4 z-[400] size-[2.6rem] bg-white rounded shadow-md flex items-center justify-center active:bg-gray-100 transition-colors border-2 border-slate-200 disabled:opacity-50"
                         title="Gunakan Lokasi Saat Ini"
                     >
                         {isGPSLoading ? (
-                            <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                         ) : (
                             <span
-                                className="material-symbols-outlined text-primary text-[24px]"
-                                style={{ fontVariationSettings: "'FILL' 1" }}
+                                className="material-symbols-outlined text-gray-700 hover:text-primary text-[20px]"
                             >
                                 my_location
                             </span>
                         )}
                     </button>
+
+                    {!isWithinBounds && (
+                        <div className="absolute top-4 left-[3rem] right-[4rem] z-[400] bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded shadow-md text-xs font-semibold flex items-center gap-2">
+                            <span className="material-symbols-outlined text-sm">error</span>
+                            Lokasi di luar area operasional BANTOO (Radius {geoRadiusMeters / 1000}km)
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-4 bg-white dark:bg-card-dark">
@@ -149,9 +142,13 @@ function MapSelector({ location, onLocationChange, onClose }) {
                     </p>
                     <button
                         onClick={onClose}
-                        className="w-full bg-primary hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors active:scale-[0.98]"
+                        disabled={!isWithinBounds}
+                        className={`w-full font-bold py-3 rounded-xl transition-colors active:scale-[0.98] ${isWithinBounds
+                            ? 'bg-primary hover:bg-blue-700 text-white'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
                     >
-                        Konfirmasi Lokasi
+                        {isWithinBounds ? 'Konfirmasi Lokasi' : 'Lokasi Tidak Valid'}
                     </button>
                 </div>
             </div>
