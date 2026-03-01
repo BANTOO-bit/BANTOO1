@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { authService } from '../../../services/authService'
@@ -7,12 +7,19 @@ import ButtonLoader from '../../../components/shared/ButtonLoader'
 
 export default function AdminLoginPage() {
     const navigate = useNavigate()
-    const { refreshProfile } = useAuth()
+    const { refreshProfile, isAuthenticated, user } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+
+    // Redirect to dashboard if already authenticated as admin
+    useEffect(() => {
+        if (isAuthenticated && user?.roles?.includes('admin')) {
+            navigate('/admin/dashboard', { replace: true })
+        }
+    }, [isAuthenticated, user, navigate])
 
     const handleSubmit = async (e) => {
         e.preventDefault()

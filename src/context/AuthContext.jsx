@@ -85,8 +85,11 @@ export function AuthProvider({ children }) {
                 roles.push('customer') // Everyone is a customer
                 if (driver.data) roles.push('driver')
                 if (merchant.data) roles.push('merchant')
-                // Check profiles.role for admin (admin role is stored in profiles table)
-                if (profile.data?.role === 'admin') roles.push('admin')
+            }
+
+            // OVERRIDE: Always check profiles.role for admin (admin role is authoritative from profiles table)
+            if (profile.data?.role === 'admin' && !roles.includes('admin')) {
+                roles.push('admin')
             }
 
             // Deduplicate just in case

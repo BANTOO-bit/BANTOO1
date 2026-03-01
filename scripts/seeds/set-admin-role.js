@@ -51,9 +51,17 @@ async function setAdminRole() {
 
     const userId = authData.user.id
 
+    // Gunakan upsert untuk memastikan row profile terbuat apabila belum ada di database
     const { data: updateData, error: updateError } = await supabase
         .from('profiles')
-        .update({ role: 'admin', active_role: 'admin' })
+        .upsert({
+            id: userId,
+            email: email,
+            full_name: 'Admin Project Nariswara',
+            role: 'admin',
+            active_role: 'admin',
+            updated_at: new Date().toISOString()
+        })
         .eq('id', userId)
 
     if (updateError) {

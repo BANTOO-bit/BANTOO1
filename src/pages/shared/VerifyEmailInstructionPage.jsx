@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 function VerifyEmailInstructionPage() {
     const location = useLocation()
