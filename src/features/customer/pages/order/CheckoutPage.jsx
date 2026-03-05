@@ -36,6 +36,29 @@ function CheckoutPage() {
         }
     }, [merchantInfo, cartItems, selectedAddress, calculateDeliveryFee])
 
+    // FIX-C2: Re-validate cart prices on checkout page load
+    useEffect(() => {
+        async function validatePrices() {
+            if (cartItems.length === 0) return
+            try {
+                const result = await orderService.validateCartItems(
+                    cartItems.map(item => ({
+                        productId: item.productId || item.id,
+                        quantity: item.quantity
+                    }))
+                )
+                if (result?.has_price_changes) {
+                    toast.warning('Beberapa harga menu telah berubah. Total akan dihitung ulang oleh server saat order.', {
+                        duration: 5000
+                    })
+                }
+            } catch {
+                // Validation is non-critical — server always uses DB prices
+            }
+        }
+        validatePrices()
+    }, []) // Only run on mount
+
     useEffect(() => {
         async function fetchPaymentMethods() {
             if (!user?.id) return

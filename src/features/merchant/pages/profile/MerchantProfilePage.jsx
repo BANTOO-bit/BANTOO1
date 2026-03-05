@@ -16,6 +16,7 @@ function MerchantProfilePage() {
     const { isShopOpen, toggleShopStatus } = useMerchantShop()
     const toast = useToast()
     const [showLogoutModal, setShowLogoutModal] = useState(false)
+    const [activeOrderCount, setActiveOrderCount] = useState(0)
     const [merchantInfo, setMerchantInfo] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [switchingRole, setSwitchingRole] = useState(null)
@@ -56,6 +57,19 @@ function MerchantProfilePage() {
 
     const handleEditProfile = () => {
         navigate('/merchant/profile/edit')
+    }
+
+    const handleLogoutClick = async () => {
+        // Check for active orders before showing logout modal
+        try {
+            if (user?.merchantId) {
+                const activeOrders = await orderService.getMerchantOrders(user.merchantId, ['pending', 'accepted', 'preparing', 'ready', 'pickup'])
+                setActiveOrderCount(activeOrders?.length || 0)
+            }
+        } catch {
+            setActiveOrderCount(0)
+        }
+        setShowLogoutModal(true)
     }
 
     const confirmLogout = async () => {
@@ -135,7 +149,7 @@ function MerchantProfilePage() {
                     </div>
                     <h2 className="text-xl font-bold mb-1">{merchantInfo?.name || user?.merchantName || 'Nama Warung'}</h2>
                     <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-6">
-                        {merchantInfo?.category || 'Kategori'} â€¢ {merchantInfo?.address || 'Lokasi'}
+                        {merchantInfo?.category || 'Kategori'} • {merchantInfo?.address || 'Lokasi'}
                     </p>
                     <button
                         onClick={handleEditProfile}
@@ -348,7 +362,7 @@ function MerchantProfilePage() {
                     </div>
 
                     <button
-                        onClick={() => setShowLogoutModal(true)}
+                        onClick={handleLogoutClick}
                         className="w-full py-3 bg-card-light dark:bg-card-dark text-red-600 dark:text-red-400 font-medium rounded-xl shadow-soft mb-2 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                     >
                         Keluar dari Akun
@@ -365,17 +379,20 @@ function MerchantProfilePage() {
                     <div className="bg-white dark:bg-card-dark w-full max-w-sm rounded-2xl p-6 shadow-xl transform transition-all scale-100 animate-fade-in relative">
                         <div className="text-center">
                             <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
-                                Keluar dari Akun?
+                                {activeOrderCount > 0 ? 'Ada Pesanan Aktif!' : 'Keluar dari Akun?'}
                             </h3>
                             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-6 leading-relaxed">
-                                Apakah Anda yakin ingin keluar dari Dashboard Warung?
+                                {activeOrderCount > 0
+                                    ? `Anda masih punya ${activeOrderCount} pesanan aktif. Pesanan tetap berjalan meski Anda logout.`
+                                    : 'Apakah Anda yakin ingin keluar dari Dashboard Warung?'
+                                }
                             </p>
                             <div className="flex flex-col space-y-3">
                                 <button
                                     onClick={confirmLogout}
-                                    className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors duration-200 shadow-md"
+                                    className={`w-full py-3 ${activeOrderCount > 0 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-red-600 hover:bg-red-700'} text-white font-semibold rounded-xl transition-colors duration-200 shadow-md`}
                                 >
-                                    Ya, Keluar
+                                    {activeOrderCount > 0 ? 'Tetap Keluar' : 'Ya, Keluar'}
                                 </button>
                                 <button
                                     onClick={() => setShowLogoutModal(false)}

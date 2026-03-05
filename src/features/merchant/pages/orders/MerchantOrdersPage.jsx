@@ -46,7 +46,6 @@ function MerchantOrdersPage() {
     const [error, setError] = useState(null)
 
     // Fetch orders from Supabase
-    // Fetch orders from Supabase
     const fetchOrders = useCallback(async () => {
         if (!user?.merchantId) {
             setIsLoading(false)

@@ -95,9 +95,9 @@ function DriverChatPage() {
         setInputText('')
 
         try {
-            console.log('[DriverChat] Sending message:', { orderId, text: text.substring(0, 20), role: 'driver', userId: user?.id })
+            if (import.meta.env.DEV) console.log('[DriverChat] Sending message:', { orderId, text: text.substring(0, 20), role: 'driver', userId: user?.id })
             await chatService.sendMessage(orderId, text, 'driver')
-            console.log('[DriverChat] Message sent successfully')
+            if (import.meta.env.DEV) console.log('[DriverChat] Message sent successfully')
         } catch (error) {
             console.error('[DriverChat] Failed to send message:', error)
             toast.error(`Gagal kirim pesan: ${error.message || 'Unknown error'}`)
@@ -146,6 +146,12 @@ function DriverChatPage() {
                             <p className="text-xs text-text-secondary truncate">
                                 {customerInfo?.address || 'Alamat pengiriman'}
                             </p>
+                            {customerInfo?.phone && customerInfo.phone !== '-' && (
+                                <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
+                                    <span className="material-symbols-outlined text-[12px]">phone</span>
+                                    {customerInfo.phone}
+                                </p>
+                            )}
                         </div>
                     </div>
 

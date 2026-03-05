@@ -25,7 +25,7 @@ export const playNotificationSound = () => {
         const audio = new Audio('/notification.mp3')
         audio.volume = 0.5
         audio.play().catch(e => {
-            console.log('Audio play failed (user interaction required):', e.message)
+            if (import.meta.env.DEV) console.log('Audio play failed (user interaction required):', e.message)
         })
     } catch (error) {
         console.error('Error playing notification sound:', error)
@@ -37,7 +37,7 @@ export const playNotificationSound = () => {
  */
 export const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
-        console.log('Browser does not support notifications')
+        if (import.meta.env.DEV) console.log('Browser does not support notifications')
         return false
     }
 

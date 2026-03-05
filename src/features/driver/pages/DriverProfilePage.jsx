@@ -74,13 +74,13 @@ function DriverProfilePage() {
         try {
             if (d.avatar_url && typeof d.avatar_url === 'string') return d.avatar_url
             // Handle if avatar_url is somehow an object
-            if (typeof d.avatar_url === 'object') return 'https://via.placeholder.com/150'
+            if (typeof d.avatar_url === 'object') return `https://ui-avatars.com/api/?name=${encodeURIComponent(d.full_name || 'Driver')}&background=0D8ABC&color=fff&size=150`
 
             const rawName = d.full_name
             const safeName = (rawName && typeof rawName === 'string') ? rawName : 'User'
             return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=0D8ABC&color=fff`
         } catch (e) {
-            return 'https://via.placeholder.com/150'
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(d?.full_name || 'Driver')}&background=0D8ABC&color=fff&size=150`
         }
     }
 

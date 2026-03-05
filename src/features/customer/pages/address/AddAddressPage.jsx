@@ -93,14 +93,8 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
             setIsGeocoding(true)
             const address = await locationService.reverseGeocode(lat, lng)
             if (address) {
-                // Update reference address and only autofill if form address is empty
+                // Only update reference — user must type their own address
                 setMapReferenceAddress(address)
-                setForm(prev => {
-                    if (!prev.address) {
-                        return { ...prev, address: address }
-                    }
-                    return prev
-                })
             }
         } catch (error) {
             handleError(error, toast, { context: 'Geocoding' })
@@ -361,7 +355,7 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
                                     id="address"
                                     value={form.address}
                                     onChange={(e) => handleChange('address', e.target.value)}
-                                    placeholder="Contoh: Jl. Merdeka No. 1, RT 01/RW 02"
+                                    placeholder="Contoh: Dusun Karangsari, Sughmanik, RT 01/RW 02"
                                     rows="3"
                                     className={`w-full rounded-2xl border bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm leading-relaxed
                                     ${errors.address ? 'border-red-400' : 'border-slate-200'}`}

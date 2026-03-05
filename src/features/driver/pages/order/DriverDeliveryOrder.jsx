@@ -39,6 +39,13 @@ function DriverDeliveryOrder() {
     }
 
     const handleReportIssue = async (reason) => {
+        try {
+            const dbOrderId = activeOrder.dbId || activeOrder.id
+            const { driverService } = await import('@/services/driverService')
+            await driverService.reportIssue(dbOrderId, reason, 'cancel')
+        } catch (err) {
+            console.error('Gagal melaporkan kendala:', err)
+        }
         setShowIssueModal(false)
         stopBroadcasting()
         toast.info(`Laporan kendala "${reason}" terkirim. Pesanan dibatalkan.`)
@@ -120,7 +127,7 @@ function DriverDeliveryOrder() {
                 if (activeOrder.driverCoords && activeOrder.driverCoords.length === 2) {
                     lat = activeOrder.driverCoords[0];
                     lng = activeOrder.driverCoords[1];
-                    console.log('Menggunakan fallback (lokasi terakhir):', lat, lng);
+                    if (import.meta.env.DEV) console.log('Menggunakan fallback (lokasi terakhir):', lat, lng);
                 } else {
                     toast.warning('GPS sulit dilacak. Pastikan sinyal GPS Anda kuat.', {
                         duration: 5000,
@@ -211,6 +218,12 @@ function DriverDeliveryOrder() {
                                     <span className="material-symbols-outlined text-[18px] mt-0.5 text-red-500">location_on</span>
                                     <span className="leading-snug">{customerAddress}</span>
                                 </div>
+                                {customerPhone && (
+                                    <div className="flex items-center gap-1 text-slate-600 text-sm mt-1">
+                                        <span className="material-symbols-outlined text-[16px] text-emerald-500">phone</span>
+                                        <span className="leading-snug font-medium tracking-wide">{customerPhone}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

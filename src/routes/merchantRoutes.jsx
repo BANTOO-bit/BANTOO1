@@ -37,6 +37,9 @@ const MerchantSalesReportPage = lazy(() => import('@/features/merchant/pages/fin
 // Reviews
 const MerchantReviewsPage = lazy(() => import('@/features/merchant/pages/reviews/MerchantReviewsPage'))
 
+// Help (reuse customer help center)
+const HelpCenterPage = lazy(() => import('@/features/customer/pages/help/HelpCenterPage'))
+
 
 // ============================================
 // MERCHANT ROUTES EXPORT
@@ -64,6 +67,7 @@ export default function MerchantRoutes() {
             <Route path="/merchant/balance/add-bank" element={<ProtectedRoute allowedRoles={['merchant']}><MerchantAddBankAccountPage /></ProtectedRoute>} />
             <Route path="/merchant/balance/edit-bank" element={<ProtectedRoute allowedRoles={['merchant']}><MerchantEditBankAccountPage /></ProtectedRoute>} />
             <Route path="/merchant/reviews" element={<ProtectedRoute allowedRoles={['merchant']}><MerchantReviewsPage /></ProtectedRoute>} />
+            <Route path="/merchant/help" element={<ProtectedRoute allowedRoles={['merchant']}><HelpCenterPage /></ProtectedRoute>} />
         </>
     )
 }

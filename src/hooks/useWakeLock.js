@@ -19,12 +19,12 @@ export function useWakeLock({ onVisibilityChangeWarning }) {
         try {
             wakeLockRef.current = await navigator.wakeLock.request('screen');
             setIsLocked(true);
-            
+
             wakeLockRef.current.addEventListener('release', () => {
                 setIsLocked(false);
-                console.log('Screen Wake Lock was released');
+                if (import.meta.env.DEV) console.log('Screen Wake Lock was released');
             });
-            console.log('Screen Wake Lock is active');
+            if (import.meta.env.DEV) console.log('Screen Wake Lock is active');
         } catch (err) {
             console.error(`${err.name}, ${err.message}`);
         }

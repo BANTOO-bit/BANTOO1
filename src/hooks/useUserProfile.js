@@ -33,15 +33,21 @@ export function useUserProfile(user, onLogout) {
             }
 
             // Extract and derive roles
+            const isAdmin = profile.data?.role === 'admin';
             let roles = userRoles.data?.map(r => r.role) || [];
-            if (!roles.includes('customer')) roles.push('customer');
-            if (driver.data?.status === 'approved' && !roles.includes('driver')) roles.push('driver');
-            if (merchant.data?.status === 'approved' && !roles.includes('merchant')) roles.push('merchant');
-            if (profile.data?.role === 'admin' && !roles.includes('admin')) roles.push('admin');
-            roles = [...new Set(roles)];
 
-            // Determine active role (DB > localStorage > fallback)
-            let determinedRole = profile.data?.active_role;
+            if (isAdmin) {
+                // Admin is standalone — no customer/merchant/driver roles
+                roles = ['admin'];
+            } else {
+                if (!roles.includes('customer')) roles.push('customer');
+                if (driver.data?.status === 'approved' && !roles.includes('driver')) roles.push('driver');
+                if (merchant.data?.status === 'approved' && !roles.includes('merchant')) roles.push('merchant');
+                roles = [...new Set(roles)];
+            }
+
+            // Determine active role (admin is always locked to 'admin')
+            let determinedRole = isAdmin ? 'admin' : profile.data?.active_role;
             const savedRole = localStorage.getItem('user_last_active_role');
             if (determinedRole && !roles.includes(determinedRole)) determinedRole = null;
             if (!determinedRole && savedRole && roles.includes(savedRole)) determinedRole = savedRole;

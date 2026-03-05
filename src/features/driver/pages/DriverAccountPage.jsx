@@ -47,12 +47,25 @@ function DriverAccountPage() {
         }
     }, [user])
 
-    const handleLogoutClick = () => {
+    const [activeOrderCount, setActiveOrderCount] = useState(0)
+
+    const handleLogoutClick = async () => {
+        // FIX-U2: Check for active orders before showing logout modal
+        try {
+            const activeOrders = await driverService.getActiveOrders()
+            setActiveOrderCount(activeOrders?.length || 0)
+        } catch {
+            setActiveOrderCount(0)
+        }
         setShowLogoutModal(true)
     }
 
     const confirmLogout = async () => {
         try {
+            // If driver is online, set offline first
+            if (profile?.is_active) {
+                try { await driverService.toggleStatus(false) } catch { /* ignore */ }
+            }
             await logout()
             navigate('/login')
         } catch (error) {
@@ -279,12 +292,19 @@ function DriverAccountPage() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                         <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl transform transition-all scale-100">
                             <div className="flex flex-col items-center text-center">
-                                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
-                                    <span className="material-symbols-outlined text-red-500 text-[32px]">logout</span>
+                                <div className={`w-16 h-16 ${activeOrderCount > 0 ? 'bg-amber-50' : 'bg-red-50'} rounded-full flex items-center justify-center mb-4`}>
+                                    <span className={`material-symbols-outlined ${activeOrderCount > 0 ? 'text-amber-500' : 'text-red-500'} text-[32px]`}>
+                                        {activeOrderCount > 0 ? 'warning' : 'logout'}
+                                    </span>
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">Konfirmasi Keluar</h3>
+                                <h3 className="text-lg font-bold text-slate-900 mb-2">
+                                    {activeOrderCount > 0 ? 'Ada Order Aktif!' : 'Konfirmasi Keluar'}
+                                </h3>
                                 <p className="text-slate-500 text-sm mb-6">
-                                    Apakah Anda yakin ingin keluar dari akun Anda? Anda harus login kembali untuk menerima order.
+                                    {activeOrderCount > 0
+                                        ? `Anda masih punya ${activeOrderCount} order aktif. Order yang belum selesai akan dialihkan ke driver lain.`
+                                        : 'Apakah Anda yakin ingin keluar dari akun Anda? Anda harus login kembali untuk menerima order.'
+                                    }
                                 </p>
                                 <div className="flex gap-3 w-full">
                                     <button
@@ -295,9 +315,9 @@ function DriverAccountPage() {
                                     </button>
                                     <button
                                         onClick={confirmLogout}
-                                        className="flex-1 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors"
+                                        className={`flex-1 py-2.5 rounded-xl font-bold text-white ${activeOrderCount > 0 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-red-600 hover:bg-red-700'} transition-colors`}
                                     >
-                                        Ya, Keluar
+                                        {activeOrderCount > 0 ? 'Tetap Keluar' : 'Ya, Keluar'}
                                     </button>
                                 </div>
                             </div>

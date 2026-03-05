@@ -17,7 +17,7 @@ export const paymentService = {
         // In reality, this would call your backend endpoint, which calls Midtrans API,
         // gets a Snap Token, and returns it to the client.
 
-        console.log(`[MOCK] Creating transaction for Order:${orderId}, Amount:${amount}, Method:${method}`)
+        if (import.meta.env.DEV) console.log(`[MOCK] Creating transaction for Order:${orderId}, Amount:${amount}, Method:${method}`)
 
         // Wait 1.5 seconds to simulate network latency
         await new Promise(resolve => setTimeout(resolve, 1500))
@@ -34,7 +34,7 @@ export const paymentService = {
      * Marks the order as paid in the database.
      */
     async simulateWebhookUpdate(orderId) {
-        console.log(`[MOCK] Webhook received: Order ${orderId} is paid.`)
+        if (import.meta.env.DEV) console.log(`[MOCK] Webhook received: Order ${orderId} is paid.`)
 
         // Wait 2 seconds to simulate processing
         await new Promise(resolve => setTimeout(resolve, 2000))

@@ -139,7 +139,7 @@ function MerchantReviewsPage() {
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-3">
                                         <img
-                                            src={review.customer?.avatar_url || 'https://via.placeholder.com/150'}
+                                            src={review.customer?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.customer?.full_name || 'U')}&background=0D8ABC&color=fff&size=150`}
                                             alt={review.customer?.full_name || 'Customer'}
                                             className="w-10 h-10 rounded-full object-cover bg-gray-200"
                                         />

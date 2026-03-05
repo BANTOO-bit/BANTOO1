@@ -25,7 +25,7 @@ export const driverService = {
 
             // RPC returned empty or failed — try standard query as fallback
             if (import.meta.env.DEV && data?.length === 0) {
-                console.log('[Driver] RPC returned empty (driver may not be approved or no orders in radius). Trying fallback query...')
+                if (import.meta.env.DEV) console.log('[Driver] RPC returned empty (driver may not be approved or no orders in radius). Trying fallback query...')
             }
 
             // Fallback: Standard Query (No Radius Filter, just status)
@@ -941,6 +941,25 @@ export const driverService = {
             .eq('id', orderId)
             .single()
         if (error) throw error
+        return data
+    },
+
+    /**
+     * Report an issue with an active order (FIX-D2)
+     * Calls driver_report_issue RPC to properly cancel/unassign order in DB.
+     * @param {string} orderId - Order UUID
+     * @param {string} reason - Issue reason text
+     * @param {'cancel'|'unassign'} action - 'cancel' to cancel order, 'unassign' to release it for another driver
+     * @returns {Promise<Object>}
+     */
+    async reportIssue(orderId, reason, action = 'cancel') {
+        const { data, error } = await supabase.rpc('driver_report_issue', {
+            p_order_id: orderId,
+            p_reason: reason,
+            p_action: action
+        })
+        if (error) throw error
+        if (data && !data.success) throw new Error(data.message)
         return data
     }
 }

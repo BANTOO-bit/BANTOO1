@@ -124,7 +124,7 @@ function DriverReviewsPage() {
                                         <div className="flex items-center gap-2">
                                             <div
                                                 className="size-8 rounded-full bg-slate-200 bg-cover bg-center"
-                                                style={{ backgroundImage: `url("${review.customer?.avatar_url || 'https://via.placeholder.com/150'}")` }}
+                                                style={{ backgroundImage: `url("${review.customer?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.customer?.full_name || 'U')}&background=0D8ABC&color=fff&size=150`}")` }}
                                             />
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-slate-900">

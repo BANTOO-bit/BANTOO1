@@ -11,25 +11,30 @@ import ProfileMenuItem from '@/features/customer/components/ProfileMenuItem'
 import BottomNavigation from '@/features/customer/components/BottomNavigation'
 import RoleSwitchOverlay from '@/features/shared/components/RoleSwitchOverlay'
 
-function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
+function LogoutConfirmModal({ isOpen, onClose, onConfirm, activeOrderCount = 0 }) {
     if (!isOpen) return null
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/60 backdrop-blur-[2px]">
             <div className="w-full max-w-[320px] bg-white rounded-2xl shadow-2xl p-5 flex flex-col items-center text-center animate-scale-in">
                 {/* Icon */}
-                <div className="mb-5 h-14 w-14 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-red-500 text-[32px]">logout</span>
+                <div className={`mb-5 h-14 w-14 rounded-full ${activeOrderCount > 0 ? 'bg-amber-50' : 'bg-red-50'} flex items-center justify-center shrink-0`}>
+                    <span className={`material-symbols-outlined ${activeOrderCount > 0 ? 'text-amber-500' : 'text-red-500'} text-[32px]`}>
+                        {activeOrderCount > 0 ? 'warning' : 'logout'}
+                    </span>
                 </div>
 
                 {/* Title */}
                 <h2 className="text-[18px] font-semibold text-slate-900 mb-2 leading-tight">
-                    Keluar dari Akun?
+                    {activeOrderCount > 0 ? 'Ada Pesanan Aktif!' : 'Keluar dari Akun?'}
                 </h2>
 
                 {/* Body Text */}
                 <p className="text-[14px] text-slate-500 font-normal leading-relaxed mb-8 max-w-[260px]">
-                    Anda perlu masuk kembali untuk menggunakan aplikasi
+                    {activeOrderCount > 0
+                        ? `Anda masih memiliki ${activeOrderCount} pesanan yang sedang diproses. Pesanan akan tetap berjalan meski Anda logout.`
+                        : 'Anda perlu masuk kembali untuk menggunakan aplikasi'
+                    }
                 </p>
 
                 {/* Action Buttons */}
@@ -42,9 +47,9 @@ function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="flex-1 h-[44px] flex items-center justify-center rounded-lg bg-red-500 text-white text-[14px] font-semibold active:shadow-none active:translate-y-[1px] transition-all hover:bg-red-600"
+                        className={`flex-1 h-[44px] flex items-center justify-center rounded-lg ${activeOrderCount > 0 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-red-500 hover:bg-red-600'} text-white text-[14px] font-semibold active:shadow-none active:translate-y-[1px] transition-all`}
                     >
-                        Keluar
+                        {activeOrderCount > 0 ? 'Tetap Keluar' : 'Keluar'}
                     </button>
                 </div>
             </div>
@@ -108,7 +113,16 @@ function ProfilePage() {
         navigate('/profile/edit')
     }
 
-    const handleLogout = () => {
+    const [activeOrderCount, setActiveOrderCount] = useState(0)
+
+    const handleLogout = async () => {
+        // FIX-U2: Check for active orders before showing logout modal
+        try {
+            const activeOrders = await orderService.getCustomerOrders(['pending', 'accepted', 'preparing', 'ready', 'pickup', 'picked_up', 'delivering'])
+            setActiveOrderCount(activeOrders?.length || 0)
+        } catch {
+            setActiveOrderCount(0)
+        }
         setShowLogoutModal(true)
     }
 
@@ -405,6 +419,7 @@ function ProfilePage() {
                 isOpen={showLogoutModal}
                 onClose={() => setShowLogoutModal(false)}
                 onConfirm={confirmLogout}
+                activeOrderCount={activeOrderCount}
             />
 
             {/* Role Switch Overlay */}

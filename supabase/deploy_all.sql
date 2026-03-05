@@ -636,7 +636,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 5.3 Create Order (with Wallet Payment Support)
+-- 5.3 Create Order (with Wallet Payment Support + Audit Fixes)
 CREATE OR REPLACE FUNCTION create_order(
     p_merchant_id UUID,
     p_items JSONB,
@@ -664,32 +664,76 @@ DECLARE
     v_customer_id UUID;
     v_wallet_id UUID;
     v_balance INTEGER;
+    v_item_available BOOLEAN;
+    v_item_stock INTEGER;
+    v_distance DOUBLE PRECISION;
+    v_max_distance DOUBLE PRECISION := 15.0;
 BEGIN
     v_customer_id := auth.uid();
-    
-    -- 1. Calculate Delivery Fee
+
+    -- FIX-C3: Block self-ordering
+    IF EXISTS (SELECT 1 FROM merchants WHERE id = p_merchant_id AND owner_id = v_customer_id) THEN
+        RAISE EXCEPTION 'Anda tidak bisa memesan ke warung sendiri';
+    END IF;
+
+    -- 1. Calculate Delivery Fee (server-side)
     v_delivery_fee := calculate_delivery_fee(p_merchant_id, p_customer_lat, p_customer_lng);
-    
-    -- 2. Calculate Subtotal & Validate Items
+
+    -- FIX-C4: Validate max distance (15km)
+    IF p_customer_lat IS NOT NULL AND p_customer_lng IS NOT NULL THEN
+        SELECT (6371 * acos(
+            cos(radians(p_customer_lat)) * cos(radians(m.latitude)) * cos(radians(m.longitude) - radians(p_customer_lng)) +
+            sin(radians(p_customer_lat)) * sin(radians(m.latitude))
+        )) INTO v_distance
+        FROM merchants m WHERE m.id = p_merchant_id;
+
+        IF v_distance IS NOT NULL AND v_distance > v_max_distance THEN
+            RAISE EXCEPTION 'Jarak terlalu jauh (%.1f km). Maks % km.', v_distance, v_max_distance;
+        END IF;
+    END IF;
+
+    -- 2. Calculate Subtotal & Validate Items + Stock (FIX-M1)
     FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
     LOOP
-        SELECT price, name INTO v_price, v_product_name
-        FROM menu_items WHERE id = (v_item->>'menu_item_id')::UUID;
-        
+        SELECT price, name, is_available, stock
+        INTO v_price, v_product_name, v_item_available, v_item_stock
+        FROM menu_items
+        WHERE id = (v_item->>'menu_item_id')::UUID
+        FOR UPDATE;
+
         IF v_price IS NULL THEN
-            RAISE EXCEPTION 'Item not found';
+            RAISE EXCEPTION 'Item tidak ditemukan';
         END IF;
-        
+
+        IF v_item_available IS NOT NULL AND v_item_available = FALSE THEN
+            RAISE EXCEPTION 'Item "%" sedang tidak tersedia', v_product_name;
+        END IF;
+
+        IF v_item_stock IS NOT NULL AND v_item_stock < (v_item->>'quantity')::INTEGER THEN
+            RAISE EXCEPTION 'Stok "%" tidak cukup (sisa: %)', v_product_name, v_item_stock;
+        END IF;
+
         v_subtotal := v_subtotal + (v_price * (v_item->>'quantity')::INTEGER);
     END LOOP;
-    
-    -- 3. Validate Promo
+
+    -- 3. Validate Promo + Per-User Check (FIX-E1)
     IF p_promo_code IS NOT NULL THEN
         SELECT id, value, type, max_discount INTO v_promo_id, v_discount, v_product_name, v_price
         FROM promos 
         WHERE code = p_promo_code AND is_active = TRUE AND (valid_until IS NULL OR valid_until > NOW());
         
         IF v_promo_id IS NOT NULL THEN
+            IF EXISTS (SELECT 1 FROM promo_usage WHERE promo_id = v_promo_id AND user_id = v_customer_id) THEN
+                RAISE EXCEPTION 'Promo "%" sudah pernah Anda gunakan', p_promo_code;
+            END IF;
+
+            IF EXISTS (
+                SELECT 1 FROM promos
+                WHERE id = v_promo_id AND usage_limit IS NOT NULL AND used_count >= usage_limit
+            ) THEN
+                RAISE EXCEPTION 'Kuota promo "%" sudah habis', p_promo_code;
+            END IF;
+
             IF v_product_name = 'percentage' THEN
                  v_discount := (v_subtotal * v_discount) / 100;
                  IF v_price IS NOT NULL AND v_discount > v_price THEN
@@ -744,7 +788,7 @@ BEGIN
         VALUES (v_wallet_id, 'payment', v_total, 'Pembayaran Pesanan #' || substring(v_order_id::text, 1, 8), v_order_id, 'completed');
     END IF;
     
-    -- 7. Insert Order Items
+    -- 7. Insert Order Items + Decrement Stock (FIX-M1)
     FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
     LOOP
         SELECT price, name INTO v_price, v_product_name
@@ -759,11 +803,30 @@ BEGIN
             v_price,
             v_item->>'notes'
         );
+
+        UPDATE menu_items
+        SET stock = stock - (v_item->>'quantity')::INTEGER,
+            is_available = CASE
+                WHEN stock - (v_item->>'quantity')::INTEGER <= 0 THEN FALSE
+                ELSE is_available
+            END,
+            updated_at = NOW()
+        WHERE id = (v_item->>'menu_item_id')::UUID
+        AND stock IS NOT NULL;
     END LOOP;
+
+    -- 8. Record Promo Usage (FIX-E1)
+    IF v_promo_id IS NOT NULL THEN
+        INSERT INTO promo_usage (promo_id, user_id, order_id)
+        VALUES (v_promo_id, v_customer_id, v_order_id)
+        ON CONFLICT (promo_id, user_id) DO NOTHING;
+
+        UPDATE promos SET used_count = used_count + 1 WHERE id = v_promo_id;
+    END IF;
     
     RETURN (SELECT row_to_json(orders) FROM orders WHERE id = v_order_id);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 5.4 Admin Dashboard Stats
 CREATE OR REPLACE FUNCTION get_admin_dashboard_stats()
@@ -1435,7 +1498,7 @@ BEGIN
     ORDER BY (6371 * acos(cos(radians(v_merchant.latitude)) * cos(radians(d.latitude)) * cos(radians(d.longitude) - radians(v_merchant.longitude)) + sin(radians(v_merchant.latitude)) * sin(radians(d.latitude)))) ASC
     LIMIT 1;
     IF NOT FOUND THEN RETURN json_build_object('success', false, 'reason', 'No available drivers'); END IF;
-    UPDATE orders SET driver_id = v_driver.user_id, status = 'pickup', picked_up_at = NOW() WHERE id = p_order_id AND driver_id IS NULL AND status = 'ready';
+    UPDATE orders SET driver_id = v_driver.user_id, status = 'pickup', updated_at = NOW() WHERE id = p_order_id AND driver_id IS NULL AND status = 'ready';
     IF NOT FOUND THEN RETURN json_build_object('success', false, 'reason', 'Already assigned'); END IF;
     INSERT INTO notifications (user_id, title, message, type) VALUES (v_driver.user_id, 'Pesanan Baru Ditugaskan', 'Pickup di ' || v_merchant.name, 'order');
     RETURN json_build_object('success', true, 'driver_id', v_driver.user_id);
@@ -1458,7 +1521,7 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'Pesanan tidak ditemukan'; END IF;
     IF v_order.driver_id IS NOT NULL THEN RAISE EXCEPTION 'Sudah diambil driver lain'; END IF;
     IF v_order.status != 'ready' THEN RAISE EXCEPTION 'Pesanan tidak tersedia'; END IF;
-    UPDATE orders SET driver_id = v_driver_id, status = 'pickup', picked_up_at = NOW() WHERE id = p_order_id;
+    UPDATE orders SET driver_id = v_driver_id, status = 'pickup', updated_at = NOW() WHERE id = p_order_id;
     INSERT INTO notifications (user_id, title, message, type) VALUES (v_order.customer_id, 'Driver Ditugaskan', 'Driver menuju warung', 'order');
     RETURN json_build_object('success', true, 'order_id', p_order_id, 'active_orders', v_active + 1, 'max_orders', v_max);
 END;

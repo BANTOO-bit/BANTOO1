@@ -234,6 +234,16 @@ export const authService = {
      * @returns {Promise<void>}
      */
     async updateActiveRole(userId, role) {
+        // Prevent admin from switching to non-admin roles
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle()
+        if (profile?.role === 'admin' && role !== 'admin') {
+            throw new Error('Admin role is locked. Cannot switch to non-admin role.')
+        }
+
         const { error } = await supabase
             .from('profiles')
             .update({ active_role: role })

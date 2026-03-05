@@ -104,9 +104,9 @@ function ChatDriverPage() {
         setInputText('')
 
         try {
-            console.log('[CustomerChat] Sending message:', { orderId, text: text.substring(0, 20), role: 'customer' })
+            if (import.meta.env.DEV) console.log('[CustomerChat] Sending message:', { orderId, text: text.substring(0, 20), role: 'customer' })
             await chatService.sendMessage(orderId, text, 'customer')
-            console.log('[CustomerChat] Message sent successfully')
+            if (import.meta.env.DEV) console.log('[CustomerChat] Message sent successfully')
         } catch (error) {
             console.error('[CustomerChat] Failed to send message:', error)
             toast.error(`Gagal kirim pesan: ${error.message || 'Unknown error'}`)

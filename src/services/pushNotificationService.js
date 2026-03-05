@@ -42,7 +42,7 @@ export const pushNotificationService = {
         try {
             const permission = await Notification.requestPermission()
             if (permission !== PERMISSION_GRANTED) {
-                console.log('[Push] Permission denied by user')
+                if (import.meta.env.DEV) console.log('[Push] Permission denied by user')
                 return null
             }
 
@@ -59,7 +59,7 @@ export const pushNotificationService = {
             if (token) {
                 await this._saveToken(token, userId, userRole)
                 localStorage.setItem(TOKEN_STORAGE_KEY, token)
-                console.log('[Push] FCM token registered')
+                if (import.meta.env.DEV) console.log('[Push] FCM token registered')
                 return token
             }
 
@@ -108,7 +108,7 @@ export const pushNotificationService = {
                 .eq('token', token)
 
             localStorage.removeItem(TOKEN_STORAGE_KEY)
-            console.log('[Push] FCM token removed')
+            if (import.meta.env.DEV) console.log('[Push] FCM token removed')
         } catch (err) {
             console.error('[Push] Token removal error:', err)
         }

@@ -55,11 +55,16 @@ function DriverPickupOrder() {
     }
 
     const handleReportIssue = async (reason) => {
-        // Here you would call backend to report issue / cancel order
-        // e.g., await driverService.reportOrderIssue(activeOrder.id, reason)
+        try {
+            const dbOrderId = activeOrder.dbId || activeOrder.id
+            const { driverService } = await import('@/services/driverService')
+            await driverService.reportIssue(dbOrderId, reason, 'cancel')
+        } catch (err) {
+            console.error('Gagal melaporkan kendala:', err)
+            // Still proceed with local cleanup even if backend fails
+        }
         setShowIssueModal(false)
         toast.info(`Laporan kendala "${reason}" terkirim. Pesanan dibatalkan.`)
-        // Simulating immediate removal from active orders
         setActiveOrder(null)
         navigate('/driver/dashboard')
     }
@@ -111,12 +116,15 @@ function DriverPickupOrder() {
                 if (activeOrder.driverCoords && activeOrder.driverCoords.length === 2) {
                     lat = activeOrder.driverCoords[0];
                     lng = activeOrder.driverCoords[1];
-                    console.log('Menggunakan fallback (lokasi terakhir):', lat, lng);
+                    if (import.meta.env.DEV) console.log('Menggunakan fallback (lokasi terakhir):', lat, lng);
                 } else {
-                    toast.warning('GPS sulit dilacak. Pastikan sinyal GPS Anda kuat.', {
+                    // FIX-G1: GPS wajib — block action jika GPS null
+                    toast.error('Tidak dapat mendeteksi lokasi GPS. Pastikan GPS aktif dan coba lagi.', {
                         duration: 5000,
                         icon: 'gps_off'
                     });
+                    setIsConfirming(false);
+                    return;
                 }
             }
 
