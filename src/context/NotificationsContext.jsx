@@ -39,6 +39,46 @@ export function NotificationsProvider({ children }) {
     const unsubscribeRef = useRef(null)
     const pushUnsubscribeRef = useRef(null)
 
+    // ===== Toast Notifications State (must be declared before useEffect that uses addToast) =====
+    const [toasts, setToasts] = useState([])
+
+    const playNotificationSound = () => {
+        // In a real app, this would play an audio file
+        // const audio = new Audio('/sounds/notification.mp3')
+        // audio.play().catch(() => { /* Silent fail */ })
+    }
+
+    const removeToast = useCallback((id) => {
+        setToasts(prev => prev.filter(n => n.id !== id))
+    }, [])
+
+    const addToast = useCallback((notification) => {
+        const id = Date.now().toString()
+        const newToast = {
+            id,
+            duration: 5000,
+            ...notification,
+            isRead: false,
+            timestamp: new Date()
+        }
+
+        setToasts(prev => [newToast, ...prev])
+        playNotificationSound()
+
+        // Auto remove toast after duration (if not sticky)
+        if (!newToast.sticky) {
+            setTimeout(() => {
+                removeToast(id)
+            }, newToast.duration)
+        }
+
+        return id
+    }, [removeToast])
+
+    const clearAllToasts = useCallback(() => {
+        setToasts([])
+    }, [])
+
     // Request browser notification permission on mount
     useEffect(() => {
         if (user?.id) {
@@ -101,12 +141,23 @@ export function NotificationsProvider({ children }) {
         // Subscribe to browser push notifications as backup
         pushUnsubscribeRef.current = pushNotificationService.subscribeToNotifications(user.id)
 
+        // ▶ FCM Foreground: Show toast when FCM message arrives while app is active
+        const unsubForeground = pushNotificationService.onForegroundMessage(({ title, body, data }) => {
+            addToast({
+                title: title || 'Bantoo!',
+                message: body || '',
+                type: data?.type || 'info',
+                duration: 6000
+            })
+        })
+
         return () => {
             cancelled = true
             if (unsubscribeRef.current) unsubscribeRef.current()
             if (pushUnsubscribeRef.current) pushUnsubscribeRef.current()
+            if (typeof unsubForeground === 'function') unsubForeground()
         }
-    }, [user?.id])
+    }, [user?.id, addToast])
 
     // Filter notifications based on active role
     const notifications = allNotifications.filter(n => {
@@ -169,46 +220,6 @@ export function NotificationsProvider({ children }) {
     }
 
     const unreadCount = notifications.filter(n => !n.read).length
-
-    // ===== Toast Notifications State =====
-    const [toasts, setToasts] = useState([])
-
-    const playNotificationSound = () => {
-        // In a real app, this would play an audio file
-        // const audio = new Audio('/sounds/notification.mp3')
-        // audio.play().catch(() => { /* Silent fail */ })
-    }
-
-    const addToast = useCallback((notification) => {
-        const id = Date.now().toString()
-        const newToast = {
-            id,
-            duration: 5000,
-            ...notification,
-            isRead: false,
-            timestamp: new Date()
-        }
-
-        setToasts(prev => [newToast, ...prev])
-        playNotificationSound()
-
-        // Auto remove toast after duration (if not sticky)
-        if (!newToast.sticky) {
-            setTimeout(() => {
-                removeToast(id)
-            }, newToast.duration)
-        }
-
-        return id
-    }, [])
-
-    const removeToast = useCallback((id) => {
-        setToasts(prev => prev.filter(n => n.id !== id))
-    }, [])
-
-    const clearAllToasts = useCallback(() => {
-        setToasts([])
-    }, [])
 
     // ===== Combined Value =====
     const value = {

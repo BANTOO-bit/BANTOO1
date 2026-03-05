@@ -1,41 +1,41 @@
 import { lazy } from 'react'
 import { Route } from 'react-router-dom'
-import ProtectedRoute from '../components/shared/ProtectedRoute'
+import ProtectedRoute from '@/features/shared/components/ProtectedRoute'
 
 // ============================================
 // LAZY LOADED MERCHANT PAGES
 // ============================================
 
 // Dashboard
-const MerchantDashboard = lazy(() => import('../pages/merchant/dashboard/MerchantDashboard'))
+const MerchantDashboard = lazy(() => import('@/features/merchant/pages/dashboard/MerchantDashboard'))
 
 // Menu Management
-const MerchantMenuPage = lazy(() => import('../pages/merchant/menu/MerchantMenuPage'))
-const MerchantAddMenuPage = lazy(() => import('../pages/merchant/menu/MerchantAddMenuPage'))
-const MerchantEditMenuPage = lazy(() => import('../pages/merchant/menu/MerchantEditMenuPage'))
-const MerchantCategoriesPage = lazy(() => import('../pages/merchant/menu/MerchantCategoriesPage'))
+const MerchantMenuPage = lazy(() => import('@/features/merchant/pages/menu/MerchantMenuPage'))
+const MerchantAddMenuPage = lazy(() => import('@/features/merchant/pages/menu/MerchantAddMenuPage'))
+const MerchantEditMenuPage = lazy(() => import('@/features/merchant/pages/menu/MerchantEditMenuPage'))
+const MerchantCategoriesPage = lazy(() => import('@/features/merchant/pages/menu/MerchantCategoriesPage'))
 
 // Orders
-const MerchantOrdersPage = lazy(() => import('../pages/merchant/orders/MerchantOrdersPage'))
-const MerchantOrderHistoryPage = lazy(() => import('../pages/merchant/orders/MerchantOrderHistoryPage'))
-const MerchantTotalOrdersPage = lazy(() => import('../pages/merchant/orders/MerchantTotalOrdersPage'))
+const MerchantOrdersPage = lazy(() => import('@/features/merchant/pages/orders/MerchantOrdersPage'))
+const MerchantOrderHistoryPage = lazy(() => import('@/features/merchant/pages/orders/MerchantOrderHistoryPage'))
+const MerchantTotalOrdersPage = lazy(() => import('@/features/merchant/pages/orders/MerchantTotalOrdersPage'))
 
 // Profile
-const MerchantProfilePage = lazy(() => import('../pages/merchant/profile/MerchantProfilePage'))
-const MerchantEditProfilePage = lazy(() => import('../pages/merchant/profile/MerchantEditProfilePage'))
-const MerchantAccountInfoPage = lazy(() => import('../pages/merchant/profile/MerchantAccountInfoPage'))
-const MerchantChangePasswordPage = lazy(() => import('../pages/merchant/profile/MerchantChangePasswordPage'))
-const MerchantOperatingHoursPage = lazy(() => import('../pages/merchant/profile/MerchantOperatingHoursPage'))
+const MerchantProfilePage = lazy(() => import('@/features/merchant/pages/profile/MerchantProfilePage'))
+const MerchantEditProfilePage = lazy(() => import('@/features/merchant/pages/profile/MerchantEditProfilePage'))
+const MerchantAccountInfoPage = lazy(() => import('@/features/merchant/pages/profile/MerchantAccountInfoPage'))
+const MerchantChangePasswordPage = lazy(() => import('@/features/merchant/pages/profile/MerchantChangePasswordPage'))
+const MerchantOperatingHoursPage = lazy(() => import('@/features/merchant/pages/profile/MerchantOperatingHoursPage'))
 
 // Financial
-const MerchantBalancePage = lazy(() => import('../pages/merchant/financial/MerchantBalancePage'))
-const MerchantAddBankAccountPage = lazy(() => import('../pages/merchant/financial/MerchantAddBankAccountPage'))
-const MerchantEditBankAccountPage = lazy(() => import('../pages/merchant/financial/MerchantEditBankAccountPage'))
-const MerchantTodayEarningsPage = lazy(() => import('../pages/merchant/financial/MerchantTodayEarningsPage'))
-const MerchantSalesReportPage = lazy(() => import('../pages/merchant/financial/MerchantSalesReportPage'))
+const MerchantBalancePage = lazy(() => import('@/features/merchant/pages/financial/MerchantBalancePage'))
+const MerchantAddBankAccountPage = lazy(() => import('@/features/merchant/pages/financial/MerchantAddBankAccountPage'))
+const MerchantEditBankAccountPage = lazy(() => import('@/features/merchant/pages/financial/MerchantEditBankAccountPage'))
+const MerchantTodayEarningsPage = lazy(() => import('@/features/merchant/pages/financial/MerchantTodayEarningsPage'))
+const MerchantSalesReportPage = lazy(() => import('@/features/merchant/pages/financial/MerchantSalesReportPage'))
 
 // Reviews
-const MerchantReviewsPage = lazy(() => import('../pages/merchant/reviews/MerchantReviewsPage'))
+const MerchantReviewsPage = lazy(() => import('@/features/merchant/pages/reviews/MerchantReviewsPage'))
 
 
 // ============================================

@@ -352,47 +352,51 @@ export const driverService = {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return null
 
-            // First try to get from drivers table
-            const { data, error } = await supabase
+            // Get driver record
+            const { data: driverData, error: driverError } = await supabase
                 .from('drivers')
-                .select(`
-                    *,
-                    profile:user_id (full_name, avatar_url, phone, email)
-                `)
+                .select('*')
                 .eq('user_id', user.id)
-                .single()
+                .maybeSingle()
 
-            if (error || !data) {
-                // Fallback: If not in drivers table yet, get basic profile
-                const { data: basicProfile } = await supabase
-                    .from('profiles')
-                    .select('full_name, avatar_url, phone, email')
-                    .eq('id', user.id)
-                    .single()
+            // Get profile separately (avoid RLS join issues)
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url, phone, email')
+                .eq('id', user.id)
+                .maybeSingle()
 
-                if (basicProfile) {
-                    return {
-                        id: 'guest-driver',
-                        user_id: user.id,
-                        status: 'pending',
-                        is_active: false,
-                        full_name: basicProfile.full_name, // Map for easier access
-                        avatar_url: basicProfile.avatar_url,
-                        profile: basicProfile
-                    }
+            if (driverError) {
+                console.warn('[driverService.getProfile] drivers query error:', driverError.message)
+            }
+
+            if (driverData) {
+                // Driver record found — merge with profile
+                return {
+                    ...driverData,
+                    full_name: profileData?.full_name,
+                    avatar_url: profileData?.avatar_url,
+                    email: profileData?.email,
+                    phone: profileData?.phone,
+                    address: driverData.address,
+                    profile: profileData
                 }
-                return null
             }
 
-            // Flatten handy properties
-            return {
-                ...data,
-                full_name: data.profile?.full_name,
-                avatar_url: data.profile?.avatar_url,
-                email: data.profile?.email,
-                phone: data.profile?.phone,
-                address: data.address // Now available in drivers table
+            // No driver record — return basic profile as guest driver
+            if (profileData) {
+                return {
+                    id: 'guest-driver',
+                    user_id: user.id,
+                    status: 'pending',
+                    is_active: false,
+                    full_name: profileData.full_name,
+                    avatar_url: profileData.avatar_url,
+                    profile: profileData
+                }
             }
+
+            return null
         } catch (error) {
             console.error('Error fetching driver profile:', error)
             return null
@@ -845,6 +849,99 @@ export const driverService = {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
+    },
+
+    // ============================================================
+    // DRIVER PAGE-SPECIFIC FUNCTIONS
+    // ============================================================
+
+    /**
+     * Get driver orders by date range (for Earnings page)
+     */
+    async getDriverOrdersByDateRange(userId, startDate, endDate) {
+        // Get driver record
+        const { data: driver } = await supabase
+            .from('drivers')
+            .select('id')
+            .eq('user_id', userId)
+            .single()
+
+        if (!driver) return []
+
+        const start = new Date(startDate)
+        start.setHours(0, 0, 0, 0)
+        const end = new Date(endDate || startDate)
+        end.setHours(23, 59, 59, 999)
+
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select('id, total_amount, delivery_fee, service_fee, payment_method, status, created_at')
+            .eq('driver_id', userId)
+            .in('status', ['delivered', 'completed'])
+            .gte('created_at', start.toISOString())
+            .lte('created_at', end.toISOString())
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return orders || []
+    },
+
+    /**
+     * Get notification detail by ID
+     */
+    async getNotificationDetail(notificationId) {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('id', notificationId)
+            .single()
+        if (error) throw error
+        return data
+    },
+
+    /**
+     * Mark notification as read
+     */
+    async markNotificationRead(notificationId) {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', notificationId)
+        if (error) throw error
+    },
+
+    /**
+     * Get order customer info for chat page
+     */
+    async getOrderCustomerInfo(orderId) {
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                id, status, customer_id, delivery_address,
+                customer_profile:profiles!customer_id (full_name, avatar_url, phone)
+            `)
+            .eq('id', orderId)
+            .single()
+        if (error) throw error
+        return data
+    },
+
+    /**
+     * Get transaction detail for driver earnings detail page
+     */
+    async getTransactionDetail(orderId) {
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                id, created_at, status, payment_method, payment_status,
+                total_amount, delivery_fee, service_fee, delivered_at,
+                merchant:merchants(name, address),
+                customer:profiles!orders_customer_id_fkey(full_name, address)
+            `)
+            .eq('id', orderId)
+            .single()
+        if (error) throw error
+        return data
     }
 }
 

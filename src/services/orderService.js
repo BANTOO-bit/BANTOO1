@@ -1,4 +1,16 @@
 import { supabase } from './supabaseClient'
+import {
+    ORDER_STATUS,
+    CANCELLABLE_ORDER_STATUSES,
+    REJECTABLE_ORDER_STATUSES,
+    TIMEOUTS,
+} from '../config/constants'
+
+/**
+ * @typedef {import('../types').ServiceResponse} ServiceResponse
+ * @typedef {import('../types').Order} Order
+ * @typedef {import('../types').OrderItem} OrderItem
+ */
 
 /**
  * Order Service - Handle order creation and management
@@ -12,7 +24,7 @@ export const orderService = {
     /**
      * Check if merchant is currently open (operating hours + manual toggle)
      * @param {string} merchantId
-     * @returns {Object} { is_open: boolean, reason: string|null }
+     * @returns {Promise<{is_open: boolean, reason: string|null}>}
      */
     async checkMerchantOpen(merchantId) {
         const { data, error } = await supabase.rpc('check_merchant_open', {
@@ -35,6 +47,19 @@ export const orderService = {
      * Create a new order via server-side RPC
      * Prices are calculated from the database, NOT from frontend values.
      * @param {Object} orderData - Order details
+     * @param {string} orderData.merchantId
+     * @param {Array<{productId: string, quantity: number, notes?: string}>} orderData.items
+     * @param {string} [orderData.deliveryAddress]
+     * @param {string} [orderData.deliveryDetail]
+     * @param {string} [orderData.customerName]
+     * @param {string} [orderData.customerPhone]
+     * @param {number} [orderData.customerLat]
+     * @param {number} [orderData.customerLng]
+     * @param {string} [orderData.paymentMethod='cod']
+     * @param {string|null} [orderData.promoCode=null]
+     * @param {string|null} [orderData.notes=null]
+     * @param {number|null} [orderData.deliveryFee=null]
+     * @returns {Promise<Order>}
      */
     async createOrder(orderData) {
         const { data: { user } } = await supabase.auth.getUser()
@@ -74,6 +99,11 @@ export const orderService = {
 
         try {
             // Server-side price calculation via RPC
+            // NOTE: Item prices are fetched from DB inside the RPC — safe.
+            // SECURITY: p_delivery_fee is sent as a "hint" from client-side calculation.
+            // The RPC should re-validate using calculate_delivery_fee_server()
+            // (see validate_delivery_fee.sql) with ±20% tolerance to prevent tampering.
+            // If client fee < 80% of server-calculated fee → RPC rejects the order.
             const { data: rpcResult, error: rpcError } = await supabase.rpc('create_order', {
                 p_merchant_id: merchantId,
                 p_items: orderItems,
@@ -109,8 +139,8 @@ export const orderService = {
     /**
      * C4: Validate cart items exist and are available before checkout.
      * Calls server-side RPC to check against actual DB state.
-     * @param {Array} items - Array of { productId, name } from cart
-     * @returns {Object} { valid: boolean, unavailable_items: Array }
+     * @param {Array<{productId?: string, id?: string, name?: string}>} items - Array of items from cart
+     * @returns {Promise<{valid: boolean, unavailable_items: Array<any>}>}
      */
     async validateCartItems(items) {
         const rpcItems = items.map(item => ({
@@ -139,6 +169,8 @@ export const orderService = {
 
     /**
      * Get orders for current user (as customer)
+     * @param {string|null} [status=null]
+     * @returns {Promise<ServiceResponse<Order[]>>}
      */
     async getCustomerOrders(status = null) {
         const { data: { user } } = await supabase.auth.getUser()
@@ -169,6 +201,9 @@ export const orderService = {
 
     /**
      * Get orders for merchant
+     * @param {string} merchantId 
+     * @param {string|Array<string>|null} [status=null] 
+     * @returns {Promise<Order[]>}
      */
     async getMerchantOrders(merchantId, status = null) {
         let query = supabase
@@ -197,6 +232,12 @@ export const orderService = {
 
     /**
      * Get merchant order history with date filtering
+     * @param {string} merchantId 
+     * @param {Object} [options={}] 
+     * @param {Date} [options.startDate] 
+     * @param {Date} [options.endDate] 
+     * @param {string} [options.search=''] 
+     * @returns {Promise<Order[]>}
      */
     async getMerchantOrderHistory(merchantId, { startDate, endDate, search = '' } = {}) {
         let query = supabase
@@ -234,6 +275,7 @@ export const orderService = {
 
     /**
      * Get available orders for driver
+     * @returns {Promise<Order[]>}
      */
     async getAvailableOrders() {
         const { data, error } = await supabase
@@ -253,6 +295,8 @@ export const orderService = {
 
     /**
      * Get driver's assigned orders
+     * @param {string|null} [status=null] 
+     * @returns {Promise<Order[]>}
      */
     async getDriverOrders(status = null) {
         const { data: { user } } = await supabase.auth.getUser()
@@ -280,6 +324,8 @@ export const orderService = {
 
     /**
      * Get single order by ID
+     * @param {string} orderId 
+     * @returns {Promise<Order|null>}
      */
     async getOrder(orderId) {
         const { data, error } = await supabase
@@ -301,6 +347,10 @@ export const orderService = {
     /**
      * Update order status via server-side RPC (timestamps computed server-side).
      * C5: No fallback — RPC must be deployed.
+     * @param {string} orderId 
+     * @param {import('../types').OrderStatus} status 
+     * @param {Object} [additionalData={}] 
+     * @returns {Promise<Order>}
      */
     async updateStatus(orderId, status, additionalData = {}) {
         const { data: { user } } = await supabase.auth.getUser()
@@ -330,6 +380,8 @@ export const orderService = {
     /**
      * Accept order (for driver) — uses RPC for atomic acceptance.
      * C5: No fallback — RPC must be deployed.
+     * @param {string} orderId 
+     * @returns {Promise<ServiceResponse<any>>}
      */
     async acceptOrder(orderId) {
         const { data: { user } } = await supabase.auth.getUser()
@@ -351,6 +403,9 @@ export const orderService = {
     /**
      * Cancel order — validates status before cancelling
      * Only allows cancel when status is 'pending' or 'accepted'
+     * @param {string} orderId 
+     * @param {string} reason 
+     * @returns {Promise<Order>}
      */
     async cancelOrder(orderId, reason) {
         // Validate: can only cancel in early stages
@@ -362,17 +417,20 @@ export const orderService = {
 
         if (fetchError || !order) throw new Error('Pesanan tidak ditemukan')
 
-        const cancellableStatuses = ['pending', 'accepted', 'preparing']
-        if (!cancellableStatuses.includes(order.status)) {
+        if (!CANCELLABLE_ORDER_STATUSES.includes(order.status)) {
             throw new Error(`Pesanan tidak bisa dibatalkan karena sudah berstatus "${order.status}"`)
         }
 
-        return this.updateStatus(orderId, 'cancelled', { cancellation_reason: reason })
+        return this.updateStatus(orderId, ORDER_STATUS.CANCELLED, { cancellation_reason: reason })
     },
 
     /**
      * Confirm payment received (for COD orders)
      * Uses server-side RPC for atomic verification and server-side timestamp.
+     * @param {string} orderId 
+     * @param {number} amount 
+     * @param {import('../types').PaymentMethod} [paymentMethod='cod'] 
+     * @returns {Promise<ServiceResponse<any>>}
      */
     async confirmPayment(orderId, amount, paymentMethod = 'cod') {
         const { data: { user } } = await supabase.auth.getUser()
@@ -396,6 +454,8 @@ export const orderService = {
     /**
      * Get order with full location data for tracking.
      * Includes merchant lat/lng, customer lat/lng, and driver profile.
+     * @param {string} orderId 
+     * @returns {Promise<Order|null>}
      */
     async getOrderWithLocations(orderId) {
         const { data, error } = await supabase
@@ -419,6 +479,9 @@ export const orderService = {
 
     /**
      * Validate promo code
+     * @param {string} code 
+     * @param {number} orderTotal 
+     * @returns {Promise<(import('../types').Promo & {discount: number}) | null>}
      */
     async validatePromo(code, orderTotal) {
         const { data: promo, error } = await supabase
@@ -454,6 +517,7 @@ export const orderService = {
      * Reject order (merchant-specific cancel with metadata)
      * @param {string} orderId
      * @param {string} reason - Rejection reason
+     * @returns {Promise<Order>}
      */
     async rejectOrder(orderId, reason) {
         // Validate: can only reject in early stages
@@ -465,12 +529,11 @@ export const orderService = {
 
         if (fetchError || !order) throw new Error('Pesanan tidak ditemukan')
 
-        const rejectableStatuses = ['pending', 'accepted', 'preparing']
-        if (!rejectableStatuses.includes(order.status)) {
+        if (!REJECTABLE_ORDER_STATUSES.includes(order.status)) {
             throw new Error(`Pesanan tidak bisa ditolak karena sudah berstatus "${order.status}"`)
         }
 
-        return this.updateStatus(orderId, 'cancelled', {
+        return this.updateStatus(orderId, ORDER_STATUS.CANCELLED, {
             cancellation_reason: `Ditolak oleh merchant: ${reason}`
         })
     },
@@ -479,6 +542,7 @@ export const orderService = {
      * Check and auto-cancel expired pending orders
      * Calls backend RPC if available, falls back to client-side check
      * @param {number} timeoutMinutes - Minutes before auto-cancel (default 15)
+     * @returns {Promise<{success: boolean, cancelled_count: number}>}
      */
     async checkAndCancelExpiredOrders(timeoutMinutes = 15) {
         try {
@@ -528,11 +592,12 @@ export const orderService = {
     },
 
     /** Order timeout in minutes */
-    ORDER_TIMEOUT_MINUTES: 15,
+    ORDER_TIMEOUT_MINUTES: TIMEOUTS.ORDER_TIMEOUT_MINUTES,
 
     /**
      * H-6.2: Reassign stale driver orders (driver inactive too long)
      * @param {number} timeoutMinutes - Minutes before order is considered stale
+     * @returns {Promise<{success: boolean, reassigned_count: number}>}
      */
     async reassignStaleDriverOrders(timeoutMinutes = 30) {
         try {
@@ -577,7 +642,7 @@ export const orderService = {
     },
 
     /** Driver order timeout (stale check) in minutes */
-    DRIVER_TIMEOUT_MINUTES: 30,
+    DRIVER_TIMEOUT_MINUTES: TIMEOUTS.DRIVER_STALE_MINUTES,
 
     /**
      * M-5.2: Send merchant heartbeat (keeps last_active_at fresh)
@@ -591,6 +656,108 @@ export const orderService = {
         } catch (e) {
             console.warn('Merchant heartbeat failed:', e.message)
         }
+    },
+
+    // ============================================================
+    // CUSTOMER PAGE-SPECIFIC FUNCTIONS
+    // ============================================================
+
+    /**
+     * Get order with driver info for customer chat page
+     * Returns order + driver profile + vehicle details
+     */
+    async getOrderDriverInfo(orderId) {
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                id, status, driver_id,
+                driver_profile:profiles!driver_id (full_name, avatar_url, phone)
+            `)
+            .eq('id', orderId)
+            .single()
+
+        if (error) throw error
+
+        // If driver assigned, get vehicle details
+        if (data?.driver_id) {
+            const { data: driverDetail } = await supabase
+                .from('drivers')
+                .select('vehicle_brand, vehicle_plate, vehicle_type')
+                .eq('user_id', data.driver_id)
+                .single()
+
+            data.driver_detail = driverDetail
+        }
+
+        return data
+    },
+
+    /**
+     * Get driver info by userId (for ActiveOrderCard)
+     */
+    async getDriverInfoById(driverId) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url, phone')
+            .eq('id', driverId)
+            .single()
+
+        const { data: driver } = await supabase
+            .from('drivers')
+            .select('vehicle_brand, vehicle_plate, vehicle_type, rating')
+            .eq('user_id', driverId)
+            .single()
+
+        if (!profile) return null
+
+        return {
+            name: profile.full_name || 'Driver',
+            photo: profile.avatar_url,
+            vehicle: [driver?.vehicle_brand, driver?.vehicle_type].filter(Boolean).join(' ') || 'Motor',
+            plate: driver?.vehicle_plate || '-',
+            rating: driver?.rating || null
+        }
+    },
+
+    /**
+     * Subscribe to realtime order changes
+     */
+    subscribeToOrders(channelName, filter, callback) {
+        const channel = supabase
+            .channel(channelName)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'orders',
+                filter
+            }, callback)
+            .subscribe()
+
+        return channel
+    },
+
+    /**
+     * Subscribe to available orders (for drivers)
+     */
+    subscribeToAvailableOrders(channelName, callback) {
+        const channel = supabase
+            .channel(channelName)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'orders',
+                filter: 'status=eq.ready'
+            }, callback)
+            .subscribe()
+
+        return channel
+    },
+
+    /**
+     * Remove a realtime channel
+     */
+    removeChannel(channel) {
+        supabase.removeChannel(channel)
     }
 }
 

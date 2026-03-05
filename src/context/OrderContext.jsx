@@ -1,29 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '../services/supabaseClient'
 import { useAuth } from './AuthContext'
 import orderService from '../services/orderService'
+import {
+    ROLES,
+    ORDER_STATUS,
+    ALL_ORDER_STATUSES as ORDER_STATUSES,
+    TERMINAL_ORDER_STATUSES,
+    isTerminalStatus,
+} from '../config/constants'
 
 const OrderContext = createContext()
 const ACTIVE_ORDER_KEY = 'bantoo_driver_active_order'
-
-/**
- * ORDER LIFECYCLE STATES:
- * pending      → Customer placed order, waiting for merchant
- * accepted     → Merchant accepted, preparing food
- * preparing    → Food is being prepared
- * ready        → Food ready for pickup by driver
- * picked_up    → Driver picked up the food
- * delivering   → Driver en route to customer
- * delivered    → Order arrived at customer
- * completed    → Order confirmed complete
- * cancelled    → Order cancelled
- * timeout      → Order timed out (no response)
- */
-const ORDER_STATUSES = [
-    'pending', 'accepted', 'preparing', 'ready',
-    'picked_up', 'delivering', 'delivered', 'completed',
-    'cancelled', 'timeout'
-]
 
 export function OrderProvider({ children }) {
     const { user } = useAuth()
@@ -56,7 +43,7 @@ export function OrderProvider({ children }) {
                 if (saved) {
                     const parsed = JSON.parse(saved)
                     // Only restore if order is in an active state
-                    if (parsed && !['completed', 'cancelled', 'timeout'].includes(parsed.status)) {
+                    if (parsed && !isTerminalStatus(parsed.status)) {
                         setActiveOrder(parsed)
                     } else {
                         sessionStorage.removeItem(ACTIVE_ORDER_KEY)
@@ -88,7 +75,7 @@ export function OrderProvider({ children }) {
 
             // Set active order (first non-completed/cancelled order)
             const active = (data || []).find(o =>
-                !['completed', 'cancelled', 'timeout'].includes(o.status)
+                !isTerminalStatus(o.status)
             )
             if (active) setActiveOrder(active)
         } catch (err) {
@@ -145,7 +132,7 @@ export function OrderProvider({ children }) {
             }
 
             // Clear active order if completed/cancelled
-            if (['completed', 'cancelled', 'timeout'].includes(newStatus)) {
+            if (isTerminalStatus(newStatus)) {
                 if (activeOrder?.id === orderId) {
                     setActiveOrder(null)
                 }
@@ -164,7 +151,7 @@ export function OrderProvider({ children }) {
 
     const acceptOrder = useCallback(async (orderId) => {
         try {
-            const newStatus = activeRole === 'merchant' ? 'accepted' : 'picked_up'
+            const newStatus = activeRole === ROLES.MERCHANT ? ORDER_STATUS.ACCEPTED : ORDER_STATUS.PICKED_UP
             return await updateOrderStatus(orderId, newStatus)
         } catch (err) {
             throw err
@@ -179,7 +166,7 @@ export function OrderProvider({ children }) {
         try {
             await orderService.cancelOrder(orderId, reason)
             setOrders(prev => prev.map(o =>
-                o.id === orderId ? { ...o, status: 'cancelled', cancel_reason: reason } : o
+                o.id === orderId ? { ...o, status: ORDER_STATUS.CANCELLED, cancel_reason: reason } : o
             ))
             if (activeOrder?.id === orderId) {
                 setActiveOrder(null)
@@ -212,7 +199,7 @@ export function OrderProvider({ children }) {
 
         // Clean up previous subscription
         if (subscriptionRef.current) {
-            supabase.removeChannel(subscriptionRef.current)
+            orderService.removeChannel(subscriptionRef.current)
         }
 
         // Build filter based on role
@@ -227,79 +214,54 @@ export function OrderProvider({ children }) {
 
         const channelName = `orders-${activeRole}-${user.id}`
 
-        const channel = supabase
-            .channel(channelName)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'orders',
-                    filter: filter
-                },
-                (payload) => {
-                    const { eventType, new: newRecord, old: oldRecord } = payload
+        const channel = orderService.subscribeToOrders(channelName, filter, (payload) => {
+            const { eventType, new: newRecord, old: oldRecord } = payload
 
-                    if (eventType === 'INSERT') {
-                        // New order came in
-                        setOrders(prev => [newRecord, ...prev])
-                        if (!['completed', 'cancelled', 'timeout'].includes(newRecord.status)) {
-                            setActiveOrder(newRecord)
-                        }
-                    } else if (eventType === 'UPDATE') {
-                        // Order status changed
-                        setOrders(prev => prev.map(o =>
-                            o.id === newRecord.id ? newRecord : o
-                        ))
-                        if (activeOrderRef.current?.id === newRecord.id) {
-                            if (['completed', 'cancelled', 'timeout'].includes(newRecord.status)) {
-                                setActiveOrder(null)
-                            } else {
-                                setActiveOrder(newRecord)
-                            }
-                        }
-                    } else if (eventType === 'DELETE') {
-                        setOrders(prev => prev.filter(o => o.id !== oldRecord.id))
-                        if (activeOrder?.id === oldRecord.id) {
-                            setActiveOrder(null)
-                        }
+            if (eventType === 'INSERT') {
+                setOrders(prev => [newRecord, ...prev])
+                if (!isTerminalStatus(newRecord.status)) {
+                    setActiveOrder(newRecord)
+                }
+            } else if (eventType === 'UPDATE') {
+                setOrders(prev => prev.map(o =>
+                    o.id === newRecord.id ? newRecord : o
+                ))
+                if (activeOrderRef.current?.id === newRecord.id) {
+                    if (isTerminalStatus(newRecord.status)) {
+                        setActiveOrder(null)
+                    } else {
+                        setActiveOrder(newRecord)
                     }
                 }
-            )
-            .subscribe()
+            } else if (eventType === 'DELETE') {
+                setOrders(prev => prev.filter(o => o.id !== oldRecord.id))
+                if (activeOrder?.id === oldRecord.id) {
+                    setActiveOrder(null)
+                }
+            }
+        })
 
         subscriptionRef.current = channel
 
         // Also subscribe to available orders for drivers
         if (activeRole === 'driver') {
-            const availableChannel = supabase
-                .channel(`available-orders-${user.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'orders',
-                        filter: 'status=eq.ready'
-                    },
-                    (payload) => {
-                        // Notify driver of new available order
-                        // This will be picked up by the DriverDashboard component
-                        window.dispatchEvent(new CustomEvent('new-order-available', {
-                            detail: payload.new
-                        }))
-                    }
-                )
-                .subscribe()
+            const availableChannel = orderService.subscribeToAvailableOrders(
+                `available-orders-${user.id}`,
+                (payload) => {
+                    window.dispatchEvent(new CustomEvent('new-order-available', {
+                        detail: payload.new
+                    }))
+                }
+            )
 
             return () => {
-                supabase.removeChannel(channel)
-                supabase.removeChannel(availableChannel)
+                orderService.removeChannel(channel)
+                orderService.removeChannel(availableChannel)
             }
         }
 
         return () => {
-            supabase.removeChannel(channel)
+            orderService.removeChannel(channel)
         }
     }, [user, activeRole])
 
@@ -326,13 +288,13 @@ export function OrderProvider({ children }) {
 
     const getActiveOrders = useCallback(() => {
         return orders.filter(o =>
-            !['completed', 'cancelled', 'timeout'].includes(o.status)
+            !isTerminalStatus(o.status)
         )
     }, [orders])
 
     const getCompletedOrders = useCallback(() => {
         return orders.filter(o =>
-            ['completed', 'cancelled', 'timeout'].includes(o.status)
+            isTerminalStatus(o.status)
         )
     }, [orders])
 

@@ -6,7 +6,8 @@ test.describe('Authentication Flow', () => {
 
         // Check page structure
         await expect(page).toHaveTitle(/Bantoo/i)
-        await expect(page.locator('input[type="tel"], input[name="phone"], input[placeholder*="phone" i], input[placeholder*="telepon" i]').first()).toBeVisible()
+        // Login now uses email, not phone
+        await expect(page.locator('input[type="email"], input[placeholder*="Email" i]').first()).toBeVisible()
         await expect(page.locator('input[type="password"]').first()).toBeVisible()
     })
 
@@ -26,7 +27,7 @@ test.describe('Authentication Flow', () => {
     test('should have register link', async ({ page }) => {
         await page.goto('/login')
 
-        // Check for register link
+        // Check for register link (can be 'Daftar' or 'Register')
         const registerLink = page.locator('a:has-text("Daftar"), a:has-text("Register"), a[href*="register"]').first()
         await expect(registerLink).toBeVisible()
     })

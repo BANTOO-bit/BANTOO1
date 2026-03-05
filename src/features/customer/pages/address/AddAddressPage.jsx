@@ -1,0 +1,487 @@
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAddress } from '@/context/AddressContext'
+import { useAuth } from '@/context/AuthContext'
+import GPSLoadingOverlay from '@/features/shared/components/GPSLoadingOverlay'
+import LocationFoundModal from '@/features/shared/components/LocationFoundModal'
+import LocationFailedModal from '@/features/shared/components/LocationFailedModal'
+import LeafletMapPicker from '@/features/shared/components/LeafletMapPicker'
+import locationService from '@/services/locationService'
+import settingsService from '@/services/settingsService'
+import { useToast } from '@/context/ToastContext'
+import { handleError } from '@/utils/errorHandler'
+import * as turf from '@turf/turf'
+import { validateForm, hasErrors, required, minLength, indonesianPhone } from '@/utils/validation'
+
+const addressLabels = [
+    { id: 'Rumah', icon: 'home' },
+    { id: 'Kantor', icon: 'work' },
+    { id: 'Lainnya', icon: null },
+]
+
+function AddAddressPage({ editAddress = null, onAddressAdded }) {
+    const navigate = useNavigate()
+    const { addAddress, updateAddress } = useAddress()
+    const { user } = useAuth()
+    const isEditing = !!editAddress
+    const toast = useToast()
+
+    const [step, setStep] = useState(1) // 1 = Map Selection, 2 = Form Detail
+
+    const [form, setForm] = useState({
+        label: editAddress?.label || 'Rumah',
+        address: editAddress?.address || '',
+        name: editAddress?.name || '',
+        phone: editAddress?.phone || '',
+        detail: editAddress?.detail || '',
+        isDefault: editAddress?.isDefault || false
+    })
+
+    const [errors, setErrors] = useState({})
+
+    // Map States
+    const [mapCenter, setMapCenter] = useState({ lat: -7.0674066, lng: 110.8715891 }) // Default: Polsek Tanggungharjo
+    const [flyToCoords, setFlyToCoords] = useState(null)
+    const [isMapMoving, setIsMapMoving] = useState(false)
+    const [isGeocoding, setIsGeocoding] = useState(false)
+    const [mapReferenceAddress, setMapReferenceAddress] = useState('')
+
+    // GPS States
+    const [isGPSLoading, setIsGPSLoading] = useState(false)
+    const [showLocationFound, setShowLocationFound] = useState(false)
+    const [showLocationFailed, setShowLocationFailed] = useState(false)
+
+    // Geofencing States
+    const GEO_CENTER = { lat: -7.0922, lng: 110.6049 };
+    const [geoRadiusMeters, setGeoRadiusMeters] = useState(15000);
+    const [isWithinBounds, setIsWithinBounds] = useState(true);
+
+    // Fetch operational radius from settings
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const tiersConfig = await settingsService.getDeliveryFeeTiers();
+                if (tiersConfig && tiersConfig.max_radius_km) {
+                    setGeoRadiusMeters(tiersConfig.max_radius_km * 1000);
+                }
+            } catch (err) {
+                console.error("Failed to load operational radius", err)
+            }
+        }
+        fetchSettings()
+    }, [])
+
+    // Validate if the selected address is within the operational range
+    useEffect(() => {
+        const from = turf.point([mapCenter.lng, mapCenter.lat]);
+        const to = turf.point([GEO_CENTER.lng, GEO_CENTER.lat]);
+        const distance = turf.distance(from, to, { units: 'kilometers' });
+
+        setIsWithinBounds(distance <= (geoRadiusMeters / 1000));
+    }, [mapCenter, geoRadiusMeters]);
+
+    // Debounce geocoding to avoid too many requests while dragging
+    useEffect(() => {
+        if (!isMapMoving && mapCenter) {
+            // Fetch address when map stops moving
+            fetchAddressFromCoords(mapCenter.lat, mapCenter.lng)
+        }
+    }, [mapCenter, isMapMoving])
+
+    const fetchAddressFromCoords = async (lat, lng) => {
+        try {
+            setIsGeocoding(true)
+            const address = await locationService.reverseGeocode(lat, lng)
+            if (address) {
+                // Update reference address and only autofill if form address is empty
+                setMapReferenceAddress(address)
+                setForm(prev => {
+                    if (!prev.address) {
+                        return { ...prev, address: address }
+                    }
+                    return prev
+                })
+            }
+        } catch (error) {
+            handleError(error, toast, { context: 'Geocoding' })
+        } finally {
+            setIsGeocoding(false)
+        }
+    }
+
+    const handleChange = (field, value) => {
+        setForm(prev => ({ ...prev, [field]: value }))
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: '' }))
+        }
+    }
+
+    const addressFormSchema = {
+        address: [required('Alamat lengkap wajib diisi'), minLength(10, 'Alamat minimal 10 karakter')],
+        name: [required('Nama penerima wajib diisi'), minLength(3, 'Nama minimal 3 karakter')],
+        phone: [required('Nomor telepon wajib diisi'), indonesianPhone()],
+    }
+
+    const validate = () => {
+        const newErrors = validateForm(form, addressFormSchema)
+        setErrors(newErrors)
+        return !hasErrors(newErrors)
+    }
+
+    const handleNextStep = () => {
+        if (!isWithinBounds) return;
+
+        // Auto-fill form from Auth Context if this is a new address and fields are empty
+        setForm(prev => ({
+            ...prev,
+            name: prev.name || user?.fullName || '',
+            phone: prev.phone || user?.phone || '',
+            // Address is already auto-filled by the reverse geocoding effect
+        }))
+
+        setStep(2);
+    }
+
+    const handleBack = () => {
+        if (step === 2) {
+            setStep(1)
+        } else {
+            navigate(-1)
+        }
+    }
+
+    const handleSave = async () => {
+        if (!validate()) {
+            toast.error('Mohon lengkapi Form dengan benar')
+            return
+        }
+
+        const addressData = {
+            ...form,
+            area: 'Kecamatan Bantoo', // Could be derived from geocoding too
+            latitude: mapCenter.lat,
+            longitude: mapCenter.lng
+        }
+
+        try {
+            if (isEditing) {
+                await updateAddress(editAddress.id, addressData)
+                navigate(-1)
+            } else {
+                await addAddress(addressData)
+                if (onAddressAdded) {
+                    onAddressAdded()
+                } else {
+                    navigate(-1)
+                }
+            }
+        } catch (error) {
+            handleError(error, toast, { context: 'Simpan alamat' })
+        }
+    }
+
+    const handleGetLocation = async () => {
+        setIsGPSLoading(true)
+        try {
+            const coords = await locationService.getCurrentPosition()
+
+            // Fly map to user location
+            setFlyToCoords(coords)
+
+            // Update center state (will trigger reverse geocode via effect)
+            setMapCenter(coords)
+
+            setShowLocationFound(true)
+            setTimeout(() => setShowLocationFound(false), 2000) // Auto hide success modal
+        } catch (error) {
+            handleError(error, toast, { context: 'GPS' })
+            setShowLocationFailed(true)
+        } finally {
+            setIsGPSLoading(false)
+        }
+    }
+
+    const handleRetryGPS = () => {
+        setShowLocationFailed(false)
+        handleGetLocation()
+    }
+
+    const handleManualSelect = () => {
+        setShowLocationFailed(false)
+    }
+
+    // Callback from Map Component when drag ends
+    const handleMapMoveEnd = useCallback((newCenter) => {
+        setMapCenter(newCenter) // This triggers the useEffect to fetch address
+        setIsMapMoving(false)
+    }, [])
+
+    const handleMapMoveStart = useCallback(() => {
+        setIsMapMoving(true)
+    }, [])
+
+    return (
+        <div className="relative flex h-[100dvh] min-h-screen w-full flex-col overflow-hidden max-w-md mx-auto bg-background-light shadow-2xl">
+            {/* Header */}
+            <header className="z-20 flex items-center justify-between bg-background-light/95 backdrop-blur-sm p-4 sticky top-0 border-b border-black/5 shrink-0">
+                <button
+                    onClick={handleBack}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full active:bg-black/5 transition-colors"
+                >
+                    <span className="material-symbols-outlined text-primary text-[28px]">chevron_left</span>
+                </button>
+                <h1 className="text-lg font-bold leading-tight tracking-tight text-slate-900">
+                    {step === 1 ? 'Pilih Lokasi Alamat' : (isEditing ? 'Edit Detail Alamat' : 'Detail Alamat Baru')}
+                </h1>
+                <div className="size-10"></div>
+            </header>
+
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col overflow-y-auto pb-bottom-nav scroll-smooth">
+                {/* --- STEP 1: Fullscreen Map Selection --- */}
+                <div className={`relative w-full flex flex-col ${step === 1 ? 'flex-1 min-h-[50vh] h-full' : 'h-[120px] shrink-0 opacity-70 pointer-events-none'} bg-slate-200 transition-all duration-300`}>
+
+                    <LeafletMapPicker
+                        initialLocation={mapCenter}
+                        onLocationSelect={handleMapMoveEnd}
+                        // onMoveStart={handleMapMoveStart} // Not exposed in component yet but good for future
+                        triggerFlyTo={flyToCoords}
+                    />
+
+                    {/* Geocoding Loading Indicator */}
+                    {isGeocoding && (
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[500] bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-xs font-medium text-primary">Mencari alamat...</span>
+                        </div>
+                    )}
+
+                    {/* GPS Loading Overlay */}
+                    {isGPSLoading && (
+                        <div className="absolute inset-0 bg-white/40 flex flex-col items-center justify-center z-[1000]">
+                            <div className="p-6 bg-white rounded-2xl shadow-lg flex flex-col items-center gap-4">
+                                <div className="relative size-12">
+                                    <span className="material-symbols-outlined text-primary text-5xl animate-spin">
+                                        progress_activity
+                                    </span>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-slate-900 text-sm font-semibold">Sedang mencari lokasimu...</p>
+                                    <p className="text-gray-500 text-xs mt-1">Pastikan GPS aktif</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 1 && (
+                        <button
+                            onClick={handleGetLocation}
+                            disabled={isGPSLoading}
+                            className="absolute bottom-6 right-4 size-12 bg-white rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-transform border border-slate-100 disabled:opacity-50 z-[500]"
+                            title="Gunakan Lokasi Saat Ini"
+                        >
+                            <span
+                                className="material-symbols-outlined text-primary text-[28px]"
+                                style={{ fontVariationSettings: "'FILL' 1" }}
+                            >
+                                my_location
+                            </span>
+                        </button>
+                    )}
+
+                    {/* Geofencing Warning Overlay */}
+                    {!isWithinBounds && (
+                        <div className="absolute top-4 left-4 right-4 z-[500] bg-red-100 border border-red-300 text-red-700 px-3 py-2.5 rounded-xl shadow-md text-xs font-semibold flex items-start gap-2 animate-fade-in">
+                            <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+                            <p>Lokasi ini berada di luar jangkauan pengiriman BANTOO (Maksimal {geoRadiusMeters / 1000}km dari pusat kota).</p>
+                        </div>
+                    )}
+
+                    {/* Step 2 Map Overlay - Display text as confirmation */}
+                    {step === 2 && (
+                        <div className="absolute inset-0 z-[600] bg-black/30 flex items-center justify-center bg-gradient-to-t from-black/60 to-transparent">
+                            <div className="text-white text-center mt-auto mb-4 px-4 drop-shadow-md">
+                                <p className="text-xs font-semibold opacity-90 mb-1">Titik Lokasi Terpilih</p>
+                                <p className="text-sm font-bold truncate max-w-[300px]">{mapReferenceAddress || "Koordinat Tersimpan"}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* --- STEP 2: Detail Form Section --- */}
+                {step === 2 && (
+                    <div className="px-4 py-6 space-y-6 flex-1 bg-white animate-fade-in-up">
+                        {/* Label Selection */}
+                        <div className="space-y-3">
+                            <h2 className="text-base font-bold text-slate-800">Label Alamat</h2>
+                            <div className="flex flex-wrap gap-3">
+                                {addressLabels.map(label => (
+                                    <label key={label.id} className="group cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="label"
+                                            checked={form.label === label.id}
+                                            onChange={() => handleChange('label', label.id)}
+                                            className="peer sr-only"
+                                        />
+                                        <div className={`flex h-9 items-center justify-center gap-x-2 rounded-xl bg-white border px-4 transition-all
+                                        ${form.label === label.id
+                                                ? 'bg-primary/10 border-primary text-primary'
+                                                : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            {label.icon && (
+                                                <span className="material-symbols-outlined text-[18px]">{label.icon}</span>
+                                            )}
+                                            <span className="text-sm font-medium">{label.id}</span>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Form Fields */}
+                        <div className="grid grid-cols-1 gap-5">
+                            {/* Address */}
+                            <div className="space-y-2">
+                                <label className="flex items-center justify-between text-sm font-medium text-slate-500 pl-1" htmlFor="address">
+                                    <span>Alamat Lengkap</span>
+                                    {mapReferenceAddress && mapReferenceAddress !== form.address && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleChange('address', mapReferenceAddress)}
+                                            className="text-xs text-primary hover:underline font-semibold flex items-center gap-1 active:scale-95"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">place</span>
+                                            Pakai Alamat Peta
+                                        </button>
+                                    )}
+                                </label>
+                                <textarea
+                                    id="address"
+                                    value={form.address}
+                                    onChange={(e) => handleChange('address', e.target.value)}
+                                    placeholder="Contoh: Jl. Merdeka No. 1, RT 01/RW 02"
+                                    rows="3"
+                                    className={`w-full rounded-2xl border bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none shadow-sm leading-relaxed
+                                    ${errors.address ? 'border-red-400' : 'border-slate-200'}`}
+                                />
+                                {errors.address && <p className="text-xs text-red-500 pl-1">{errors.address}</p>}
+                                <div className="flex justify-between items-start pt-1 px-1 min-h-[1.5rem]">
+                                    {isGeocoding ? (
+                                        <p className="text-xs text-primary animate-pulse w-full">Memuat referensi alamat dari satelit...</p>
+                                    ) : mapReferenceAddress ? (
+                                        <p className="text-xs text-gray-500 w-full">
+                                            <span className="font-semibold text-slate-700">Peta:</span> {mapReferenceAddress}
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 italic">Geser peta untuk mendapatkan referensi alamat</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Name */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-500 pl-1" htmlFor="name">
+                                    Nama Penerima
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="name"
+                                        type="text"
+                                        value={form.name}
+                                        onChange={(e) => handleChange('name', e.target.value)}
+                                        placeholder="Contoh: Budi Santoso"
+                                        className={`w-full rounded-2xl border bg-white px-4 py-3.5 pr-12 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm
+                                        ${errors.name ? 'border-red-400' : 'border-slate-200'}`}
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                        <span className="material-symbols-outlined text-[20px]">person</span>
+                                    </div>
+                                </div>
+                                {errors.name && <p className="text-xs text-red-500 pl-1">{errors.name}</p>}
+                            </div>
+
+                            {/* Phone */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-500 pl-1" htmlFor="phone">
+                                    Nomor Telepon
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="phone"
+                                        type="tel"
+                                        value={form.phone}
+                                        onChange={(e) => handleChange('phone', e.target.value)}
+                                        placeholder="Contoh: 0812..."
+                                        className={`w-full rounded-2xl border bg-white px-4 py-3.5 pr-12 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm
+                                        ${errors.phone ? 'border-red-400' : 'border-slate-200'}`}
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                        <span className="material-symbols-outlined text-[20px]">call</span>
+                                    </div>
+                                </div>
+                                {errors.phone && <p className="text-xs text-red-500 pl-1">{errors.phone}</p>}
+                            </div>
+
+                            {/* Landmark */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-500 pl-1" htmlFor="detail">
+                                    Patokan (Opsional)
+                                </label>
+                                <input
+                                    id="detail"
+                                    type="text"
+                                    value={form.detail}
+                                    onChange={(e) => handleChange('detail', e.target.value)}
+                                    placeholder="Contoh: Pagar hitam, depan masjid..."
+                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </main>
+
+            {/* Fixed Bottom Button */}
+            <div className="fixed bottom-0 left-0 right-0 z-30 w-full max-w-md mx-auto bg-background-light/80 backdrop-blur-md px-4 py-5 border-t border-black/5">
+                {step === 1 ? (
+                    <button
+                        onClick={handleNextStep}
+                        disabled={isGPSLoading || !isWithinBounds}
+                        className={`w-full rounded-2xl py-4 text-center text-base font-bold text-white transition-all flex items-center justify-center gap-2 ${(isGPSLoading || !isWithinBounds)
+                            ? 'bg-slate-300 opacity-60 cursor-not-allowed'
+                            : 'bg-primary active:scale-[0.98] hover:bg-primary/90 shadow-lg'
+                            }`}
+                    >
+                        {isWithinBounds ? 'Konfirmasi Lokasi Ini' : 'Lokasi Terlalu Jauh'}
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleSave}
+                        className="w-full rounded-2xl py-4 text-center text-base font-bold text-white transition-all flex items-center justify-center gap-2 bg-primary active:scale-[0.98] hover:bg-primary/90 shadow-lg"
+                    >
+                        Simpan Alamat
+                    </button>
+                )}
+            </div>
+
+            {/* Location Found Modal (Auto Close) */}
+            <LocationFoundModal
+                isOpen={showLocationFound}
+                onClose={() => setShowLocationFound(false)}
+                onConfirm={() => setShowLocationFound(false)}
+            />
+
+            {/* Location Failed Modal */}
+            <LocationFailedModal
+                isOpen={showLocationFailed}
+                onClose={() => setShowLocationFailed(false)}
+                onRetry={handleRetryGPS}
+                onManual={handleManualSelect}
+            />
+        </div>
+    )
+}
+
+export default AddAddressPage

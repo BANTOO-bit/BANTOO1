@@ -2,9 +2,9 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-import PageLoader from '../components/shared/PageLoader'
-import SuspendedAccountPage from '../pages/shared/SuspendedAccountPage'
-import TerminatedAccountPage from '../pages/shared/TerminatedAccountPage'
+import PageLoader from '@/features/shared/components/PageLoader'
+import SuspendedAccountPage from '@/features/shared/pages/SuspendedAccountPage'
+import TerminatedAccountPage from '@/features/shared/pages/TerminatedAccountPage'
 
 import { AuthRoutes, OnboardingPage } from './authRoutes'
 import UserRoutes from './userRoutes'
@@ -12,7 +12,7 @@ import MerchantRoutes from './merchantRoutes'
 import DriverRoutes from './driverRoutes'
 import AdminRoutes from './adminRoutes'
 
-const NotFoundPage = lazy(() => import('../pages/shared/NotFoundPage'))
+const NotFoundPage = lazy(() => import('@/features/shared/pages/NotFoundPage'))
 
 export default function AppRoutes() {
     const { isAuthenticated, user, logout } = useAuth()

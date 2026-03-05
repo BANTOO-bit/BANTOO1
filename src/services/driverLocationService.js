@@ -18,11 +18,16 @@ import { supabase } from './supabaseClient'
  * Uses Supabase Broadcast (peer-to-peer via server), no DB writes needed.
  */
 
+// Minimum distance (meters) driver must move before broadcasting a new position.
+// Prevents redundant updates when stationary (e.g., at a traffic light).
+const MIN_BROADCAST_DISTANCE_METERS = 10
+
 let broadcastChannel = null
 let watchId = null
 let broadcastInterval = null
 let historyInterval = null
 let lastPosition = null
+let lastBroadcastedPosition = null
 
 /**
  * Start broadcasting driver's GPS location for a specific order.
@@ -64,18 +69,31 @@ export function startBroadcastingLocation(orderId, driverId = null) {
         )
 
         // Broadcast position every 5 seconds (realtime, no DB write)
-        // Only broadcast if GPS accuracy is within 100 meters
+        // Only broadcast if GPS accuracy is within 100 meters AND driver moved ≥ MIN distance
         broadcastInterval = setInterval(() => {
             if (lastPosition && broadcastChannel) {
                 if (lastPosition.accuracy && lastPosition.accuracy > 100) {
                     console.warn('[DriverLocation] GPS accuracy too low:', lastPosition.accuracy, 'm — skipping broadcast')
                     return
                 }
+
+                // Skip broadcast if driver hasn't moved significantly
+                if (lastBroadcastedPosition) {
+                    const dist = _haversineMeters(
+                        lastBroadcastedPosition.lat, lastBroadcastedPosition.lng,
+                        lastPosition.lat, lastPosition.lng
+                    )
+                    if (dist < MIN_BROADCAST_DISTANCE_METERS) {
+                        return // stationary — don't waste bandwidth
+                    }
+                }
+
                 broadcastChannel.send({
                     type: 'broadcast',
                     event: 'location_update',
                     payload: lastPosition
                 })
+                lastBroadcastedPosition = { lat: lastPosition.lat, lng: lastPosition.lng }
             }
         }, 5000)
 
@@ -147,6 +165,22 @@ export function stopBroadcasting() {
         broadcastChannel = null
     }
     lastPosition = null
+    lastBroadcastedPosition = null
+}
+
+/**
+ * Fast Haversine in meters (internal helper).
+ * Used only for min-distance filtering — not for user-facing ETA.
+ */
+function _haversineMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000 // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
 /**

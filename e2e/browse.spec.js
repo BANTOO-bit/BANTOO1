@@ -51,7 +51,7 @@ test.describe('Browse & Navigation', () => {
 
         const manifest = await response.json()
         expect(manifest.name).toContain('BANTOO')
-        expect(manifest.icons).toHaveLength(2)
+        expect(manifest.icons).toHaveLength(4)
         expect(manifest.display).toBe('standalone')
     })
 

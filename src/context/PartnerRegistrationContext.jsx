@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import { useAuth } from './AuthContext'
-import { supabase } from '../services/supabaseClient'
+import { authService } from '../services/authService'
 import { storageService, STORAGE_PATHS } from '../services/storageService'
 import logger from '../utils/logger'
 import imageCompression from 'browser-image-compression'
@@ -106,8 +106,8 @@ export function PartnerRegistrationProvider({ children }) {
     // Accept step3FormData to avoid stale state issue
     const submitDriverRegistration = async (step3FormData) => {
         try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('Anda belum login. Silakan login terlebih dahulu.')
+            const authUser = await authService.getCurrentUser()
+            if (!authUser) throw new Error('Anda belum login. Silakan login terlebih dahulu.')
 
             // Merge latest step3 data with existing driver state
             const finalData = {
@@ -139,25 +139,25 @@ export function PartnerRegistrationProvider({ children }) {
             // 1. Upload Photos via storageService
             logger.debug('[Driver Reg] Compressing and Uploading photos...')
             const compressedSelfie = await compressIfNeeded(finalData.step1.selfiePhoto);
-            const selfieUrl = await storageService.upload(compressedSelfie, STORAGE_PATHS.DRIVER_SELFIE, user.id)
+            const selfieUrl = await storageService.upload(compressedSelfie, STORAGE_PATHS.DRIVER_SELFIE, authUser.id)
 
             const compressedVehicle = await compressIfNeeded(finalData.step2.vehiclePhoto);
-            const vehiclePhotoUrl = await storageService.upload(compressedVehicle, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
+            const vehiclePhotoUrl = await storageService.upload(compressedVehicle, STORAGE_PATHS.DRIVER_VEHICLE, authUser.id)
 
             const compressedStnk = await compressIfNeeded(finalData.step2.stnkPhoto);
-            const stnkUrl = await storageService.upload(compressedStnk, STORAGE_PATHS.DRIVER_VEHICLE, user.id)
+            const stnkUrl = await storageService.upload(compressedStnk, STORAGE_PATHS.DRIVER_VEHICLE, authUser.id)
 
             const compressedIdCard = await compressIfNeeded(finalData.step3.idCardPhoto);
-            const idCardUrl = await storageService.upload(compressedIdCard, STORAGE_PATHS.DRIVER_KTP, user.id)
+            const idCardUrl = await storageService.upload(compressedIdCard, STORAGE_PATHS.DRIVER_KTP, authUser.id)
 
             const compressedPhotoWithVehicle = await compressIfNeeded(finalData.step3.photoWithVehicle);
-            const photoWithVehicleUrl = await storageService.upload(compressedPhotoWithVehicle, STORAGE_PATHS.DRIVER_WITH_VEHICLE, user.id)
+            const photoWithVehicleUrl = await storageService.upload(compressedPhotoWithVehicle, STORAGE_PATHS.DRIVER_WITH_VEHICLE, authUser.id)
 
             logger.debug('[Driver Reg] Photos compressed and uploaded successfully')
 
             // 2. Insert Driver Record
-            const { error } = await supabase.from('drivers').insert({
-                user_id: user.id,
+            const { error } = await authService.insertDriverRecord({
+                user_id: authUser.id,
                 vehicle_type: finalData.step2.vehicleType === 'motor' ? 'motorcycle' : finalData.step2.vehicleType,
                 vehicle_plate: finalData.step2.plateNumber,
                 vehicle_brand: finalData.step2.vehicleBrand,
@@ -180,10 +180,10 @@ export function PartnerRegistrationProvider({ children }) {
             }
 
             // 3. Update profile with registration info
-            await supabase.from('profiles').update({
+            await authService.updateProfileData(authUser.id, {
                 full_name: finalData.step1.fullName || undefined,
                 phone: finalData.step1.phoneNumber || undefined
-            }).eq('id', user.id)
+            })
 
             logger.debug('[Driver Reg] Registration submitted successfully!')
             clearDriverData()
@@ -201,8 +201,8 @@ export function PartnerRegistrationProvider({ children }) {
     // Accept step2FormData to avoid stale state issue  
     const submitMerchantRegistration = async (step2FormData) => {
         try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('Anda belum login. Silakan login terlebih dahulu.')
+            const authUser = await authService.getCurrentUser()
+            if (!authUser) throw new Error('Anda belum login. Silakan login terlebih dahulu.')
 
             // Merge latest step2 data with existing merchant state
             const finalData = {
@@ -234,16 +234,16 @@ export function PartnerRegistrationProvider({ children }) {
             // 1. Upload Photos via storageService
             logger.debug('[Merchant Reg] Compressing and Uploading photos...')
             const compressedIdCard = await compressIfNeeded(finalData.step2.idCardPhoto);
-            const idCardUrl = await storageService.upload(compressedIdCard, STORAGE_PATHS.MERCHANT_KTP, user.id)
+            const idCardUrl = await storageService.upload(compressedIdCard, STORAGE_PATHS.MERCHANT_KTP, authUser.id)
 
             const compressedShopPhoto = await compressIfNeeded(finalData.step2.shopPhoto);
-            const shopPhotoUrl = await storageService.upload(compressedShopPhoto, STORAGE_PATHS.MERCHANT_LOGO, user.id)
+            const shopPhotoUrl = await storageService.upload(compressedShopPhoto, STORAGE_PATHS.MERCHANT_LOGO, authUser.id)
 
             logger.debug('[Merchant Reg] Photos compressed and uploaded:', { idCardUrl, shopPhotoUrl })
 
             // 2. Insert Merchant Record 
             const insertData = {
-                owner_id: user.id,
+                owner_id: authUser.id,
                 name: finalData.step1.shopName,
                 address: finalData.step1.address,
                 phone: finalData.step1.phoneNumber,
@@ -259,7 +259,7 @@ export function PartnerRegistrationProvider({ children }) {
 
             logger.debug('[Merchant Reg] Inserting merchant:', insertData)
 
-            const { error } = await supabase.from('merchants').insert(insertData)
+            const { error } = await authService.insertMerchantRecord(insertData)
 
             if (error) {
                 console.error('[Merchant Reg] Insert error:', error)
@@ -267,9 +267,9 @@ export function PartnerRegistrationProvider({ children }) {
             }
 
             // 3. Update profile with merchant owner info
-            await supabase.from('profiles').update({
+            await authService.updateProfileData(authUser.id, {
                 full_name: finalData.step1.ownerName || undefined
-            }).eq('id', user.id)
+            })
 
             logger.debug('[Merchant Reg] Registration submitted successfully!')
             clearMerchantData()

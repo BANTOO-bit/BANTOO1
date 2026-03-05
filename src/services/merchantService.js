@@ -3,6 +3,12 @@ import settingsService, { haversineDistance } from './settingsService'
 import logger from '../utils/logger'
 
 /**
+ * @typedef {import('../types').ServiceResponse} ServiceResponse
+ * @typedef {import('../types').Merchant} Merchant
+ * @typedef {import('../types').MenuItem} MenuItem
+ */
+
+/**
  * Merchant Service - Handle merchant and menu data from Supabase
  */
 export const merchantService = {
@@ -27,11 +33,9 @@ export const merchantService = {
         }
     },
     /**
-     * Get all merchants
-     * @param {Object} options - Query options
-     * @param {string} options.category - Filter by category
-     * @param {string} options.search - Search by name
-     * @param {boolean} options.isOpen - Filter by open status
+     * Get menus by category
+     * @param {string} categoryId 
+     * @returns {Promise<Array<MenuItem & {merchant_name: string, merchant_rating: number, merchant_image: string, merchant_delivery_fee: number, merchant_delivery_time: string, image: string}>>}
      */
     async getMenusByCategory(categoryId) {
         try {
@@ -73,6 +77,15 @@ export const merchantService = {
         }
     },
 
+    /**
+     * Get all merchants
+     * @param {Object} options - Query options
+     * @param {string|null} [options.category=null] - Filter by category
+     * @param {string|null} [options.search=null] - Search by name
+     * @param {boolean|null} [options.isOpen=null] - Filter by open status
+     * @param {number|null} [options.limit=null] - Limit number of results
+     * @returns {Promise<Partial<Merchant>[]>}
+     */
     async getMerchants({ category = null, search = null, isOpen = null, limit = null } = {}) {
         // Use cache only if fetching ALL merchants (common case for initial load/filtering)
         // If limit is provided, we probably shouldn't use the 'all merchants' cache unless we slice it?
@@ -125,6 +138,8 @@ export const merchantService = {
 
     /**
      * Search merchants by name
+     * @param {string} query 
+     * @returns {Promise<Partial<Merchant>[]>}
      */
     async searchMerchants(query) {
         return this.getMerchants({ search: query, limit: 5 })
@@ -132,6 +147,8 @@ export const merchantService = {
 
     /**
      * Get merchant by ID
+     * @param {string} id 
+     * @returns {Promise<Partial<Merchant>|null>}
      */
     async getMerchantById(id) {
         try {
@@ -156,6 +173,8 @@ export const merchantService = {
 
     /**
      * Get menus for a merchant
+     * @param {string} merchantId 
+     * @returns {Promise<Array<MenuItem & {merchantId: string, merchantName: string}>>}
      */
     async getMenusByMerchantId(merchantId) {
         try {
@@ -187,6 +206,11 @@ export const merchantService = {
 
     /**
      * Get all menus across all merchants (for search/popular)
+     * @param {Object} options 
+     * @param {string|null} [options.search=null] 
+     * @param {boolean} [options.popular=false] 
+     * @param {number} [options.limit=50] 
+     * @returns {Promise<Array<MenuItem & {merchantId: string, merchantName: string, merchantImage: string}>>}
      */
     async getAllMenus({ search = null, popular = false, limit = 50 } = {}) {
         const cacheKey = popular ? `popularMenus_${limit}` : (search ? null : `allMenus_${limit}`)
@@ -239,6 +263,8 @@ export const merchantService = {
 
     /**
      * Get popular menus (for homepage)
+     * @param {number} [limit=5] 
+     * @returns {Promise<Array<MenuItem & {merchantId: string, merchantName: string, merchantImage: string}>>}
      */
     async getPopularMenus(limit = 5) {
         try {
@@ -252,6 +278,7 @@ export const merchantService = {
 
     /**
      * Get unique categories from merchants
+     * @returns {Promise<string[]>}
      */
     async getCategories() {
         if (this._isValidCache('categories')) {
@@ -275,13 +302,13 @@ export const merchantService = {
     },
 
     /**
- * Calculate delivery fee based on distance using tier config
- * Uses OSRM for real road distance, falls back to haversine × 1.3
- * @param {string} merchantId - Merchant ID
- * @param {number} userLat - Customer latitude
- * @param {number} userLng - Customer longitude
- * @returns {Promise<Object>} { totalFee, adminFee, driverNet, distance, tierLabel, outOfRange, routeCoords, duration }
- */
+     * Calculate delivery fee based on distance using tier config
+     * Uses OSRM for real road distance, falls back to haversine × 1.3
+     * @param {string} merchantId - Merchant ID
+     * @param {number} userLat - Customer latitude
+     * @param {number} userLng - Customer longitude
+     * @returns {Promise<{totalFee: number, adminFee: number, driverNet: number, distance: number, tierLabel: string, outOfRange: boolean, routeCoords: any, duration: any}>}
+     */
     async getDeliveryFee(merchantId, userLat, userLng) {
         try {
             // 1. Get merchant location
@@ -327,6 +354,8 @@ export const merchantService = {
 
     /**
      * Get merchants for verification (admin panel)
+     * @param {string} [status='pending'] 
+     * @returns {Promise<Merchant[]>}
      */
     async getMerchantsForVerification(status = 'pending') {
         try {
@@ -349,6 +378,8 @@ export const merchantService = {
 
     /**
      * Get merchant for review (admin panel)
+     * @param {string} id 
+     * @returns {Promise<Merchant>}
      */
     async getMerchantForReview(id) {
         try {
@@ -371,6 +402,9 @@ export const merchantService = {
 
     /**
      * Update merchant profile
+     * @param {string} id 
+     * @param {Partial<Merchant>} updates 
+     * @returns {Promise<Merchant>}
      */
     async updateMerchant(id, updates) {
         try {
@@ -397,6 +431,9 @@ export const merchantService = {
 
     /**
      * Approve merchant registration
+     * @param {string} merchantId 
+     * @param {string} adminId 
+     * @returns {Promise<Merchant>}
      */
     async approveMerchant(merchantId, adminId) {
         try {
@@ -435,6 +472,9 @@ export const merchantService = {
 
     /**
      * Reject merchant registration
+     * @param {string} merchantId 
+     * @param {string} [reason=''] 
+     * @returns {Promise<Merchant>}
      */
     async rejectMerchant(merchantId, reason = '') {
         try {
@@ -460,6 +500,10 @@ export const merchantService = {
 
     /**
      * Get merchant sales stats (Revenue, Orders, Graph)
+     * @param {string} merchantId 
+     * @param {Date} startDate 
+     * @param {Date} endDate 
+     * @returns {Promise<{totalRevenue: number, totalOrders: number, averageOrderValue: number, graphData: Array<{name: string, value: number}>, topSellers: Array<{name: string, sold: number, revenue: number, percentage: number}>}>}
      */
     async getSalesStats(merchantId, startDate, endDate) {
         try {
@@ -550,6 +594,8 @@ export const merchantService = {
 
     /**
      * Get merchant balance (Virtual calculation from Orders - Withdrawal)
+     * @param {string} merchantId 
+     * @returns {Promise<{balance: number, bank_name: string|null, bank_account_number: string|null, bank_account_name: string|null}>}
      */
     async getBalance(merchantId) {
         try {
@@ -670,7 +716,122 @@ export const merchantService = {
             logger.error('Failed to get available drivers count', error, 'merchantService')
             return 0 // Fallback to 0 in case of error
         }
-    }
+    },
+
+    // ============================================================
+    // MERCHANT OWNER-SIDE FUNCTIONS
+    // ============================================================
+
+    /**
+     * Get merchant status by merchantId
+     */
+    async getMerchantStatus(merchantId) {
+        const { data, error } = await supabase
+            .from('merchants')
+            .select('status')
+            .eq('id', merchantId)
+            .single()
+        if (error) throw error
+        return data?.status || 'approved'
+    },
+
+    /**
+     * Get recent completed orders for balance history
+     */
+    async getRecentCompletedOrders(merchantId, limit = 5) {
+        const { data, error } = await supabase
+            .from('orders')
+            .select('id, created_at, total_amount, status')
+            .eq('merchant_id', merchantId)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(limit)
+        if (error) throw error
+        return data || []
+    },
+
+    /**
+     * Get bank account data for merchant owner
+     */
+    async getBankData(userId) {
+        const { data, error } = await supabase
+            .from('merchants')
+            .select('bank_name, bank_account_number, bank_account_name')
+            .eq('owner_id', userId)
+            .single()
+        if (error) throw error
+        return data
+    },
+
+    /**
+     * Save bank account data for merchant owner
+     */
+    async saveBankData(userId, bankData) {
+        const { error } = await supabase
+            .from('merchants')
+            .update({
+                bank_name: bankData.bank_name,
+                bank_account_number: bankData.bank_account_number,
+                bank_account_name: bankData.bank_account_name,
+            })
+            .eq('owner_id', userId)
+        if (error) throw error
+        return true
+    },
+
+    /**
+     * Get operating hours for merchant owner
+     */
+    async getOperatingHours(userId) {
+        const { data, error } = await supabase
+            .from('merchants')
+            .select('id, operating_hours')
+            .eq('owner_id', userId)
+            .single()
+        if (error) throw error
+        return data
+    },
+
+    /**
+     * Save operating hours for merchant owner
+     */
+    async saveOperatingHours(userId, schedule) {
+        const { error } = await supabase
+            .from('merchants')
+            .update({ operating_hours: schedule })
+            .eq('owner_id', userId)
+        if (error) throw error
+        return true
+    },
+
+    // ============================================================
+    // SHOP STATUS (extracted from AuthContext)
+    // ============================================================
+
+    /**
+     * Get shop open/close status
+     */
+    async getShopStatus(merchantId) {
+        const { data, error } = await supabase
+            .from('merchants')
+            .select('is_open')
+            .eq('id', merchantId)
+            .single()
+        if (error) throw error
+        return data?.is_open ?? false
+    },
+
+    /**
+     * Toggle shop open/close status
+     */
+    async setShopOpen(merchantId, isOpen) {
+        const { error } = await supabase
+            .from('merchants')
+            .update({ is_open: isOpen })
+            .eq('id', merchantId)
+        if (error) throw error
+        return true
+    },
 }
 
 export default merchantService

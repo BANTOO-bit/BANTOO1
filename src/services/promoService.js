@@ -155,6 +155,31 @@ export const promoService = {
      */
     async deactivatePromo(promoId) {
         return this.updatePromo(promoId, { is_active: false })
+    },
+
+    /**
+     * Get promo by ID (admin)
+     */
+    async getPromoById(promoId) {
+        const { data, error } = await supabase
+            .from('promos')
+            .select('*')
+            .eq('id', promoId)
+            .single()
+        if (error) throw error
+        return data
+    },
+
+    /**
+     * Delete promo (admin)
+     */
+    async deletePromo(promoId) {
+        const { error } = await supabase
+            .from('promos')
+            .delete()
+            .eq('id', promoId)
+        if (error) throw error
+        return true
     }
 }
 

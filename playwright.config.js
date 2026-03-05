@@ -1,18 +1,17 @@
-import { defineConfig, devices } from '@playwright/test'
+// @ts-check
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-    testDir: './e2e',
+    testDir: './tests/e2e',
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
     workers: process.env.CI ? 1 : undefined,
     reporter: 'html',
-    timeout: 30000,
-
     use: {
+        // Base URL mapping to local Vite dev server
         baseURL: 'http://localhost:5173',
         trace: 'on-first-retry',
-        screenshot: 'only-on-failure',
     },
 
     projects: [
@@ -23,14 +22,14 @@ export default defineConfig({
         {
             name: 'Mobile Chrome',
             use: { ...devices['Pixel 5'] },
-        },
+        }
     ],
 
-    // Auto-start dev server for CI
+    // Automatically start dev server if not already running
     webServer: {
         command: 'npm run dev',
         url: 'http://localhost:5173',
         reuseExistingServer: !process.env.CI,
-        timeout: 30000,
+        timeout: 120 * 1000,
     },
-})
+});

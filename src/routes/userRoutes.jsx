@@ -1,105 +1,74 @@
 import { lazy } from 'react'
 import { Route } from 'react-router-dom'
-import RoleLockRedirect from '../components/shared/RoleLockRedirect'
+import RoleLockRedirect from '@/features/shared/components/RoleLockRedirect'
 
 // ============================================
 // LAZY LOADED USER PAGES
 // ============================================
 
 // Core User Pages
-const HomePage = lazy(() => import('../pages/user/home/HomePage'))
-const SearchPage = lazy(() => import('../pages/user/browse/SearchPage'))
-const OrdersPage = lazy(() => import('../pages/user/order/OrdersPage'))
-const ProfilePage = lazy(() => import('../pages/user/profile/ProfilePage'))
+const HomePage = lazy(() => import('@/features/customer/pages/home/HomePage'))
+const SearchPage = lazy(() => import('@/features/customer/pages/browse/SearchPage'))
+const OrdersPage = lazy(() => import('@/features/customer/pages/order/OrdersPage'))
+const ProfilePage = lazy(() => import('@/features/customer/pages/profile/ProfilePage'))
 
 // Browse & Discovery
-const MerchantDetailPage = lazy(() => import('../pages/user/browse/MerchantDetailPage'))
-const AllMerchantsPage = lazy(() => import('../pages/user/browse/AllMerchantsPage'))
-const AllPopularMenuPage = lazy(() => import('../pages/user/browse/AllPopularMenuPage'))
-const AllCategoriesPage = lazy(() => import('../pages/user/browse/AllCategoriesPage'))
-const CategoryDetailPage = lazy(() => import('../pages/user/browse/CategoryDetailPage'))
+const MerchantDetailPage = lazy(() => import('@/features/customer/pages/browse/MerchantDetailPage'))
+const AllMerchantsPage = lazy(() => import('@/features/customer/pages/browse/AllMerchantsPage'))
+const AllPopularMenuPage = lazy(() => import('@/features/customer/pages/browse/AllPopularMenuPage'))
+const AllCategoriesPage = lazy(() => import('@/features/customer/pages/browse/AllCategoriesPage'))
+const CategoryDetailPage = lazy(() => import('@/features/customer/pages/browse/CategoryDetailPage'))
 
 // Order Flow
-const CartPage = lazy(() => import('../pages/user/order/CartPage'))
-const CheckoutPage = lazy(() => import('../pages/user/order/CheckoutPage'))
-const PaymentSimulationPage = lazy(() => import('../pages/user/order/PaymentSimulationPage'))
-const OrderSuccessPage = lazy(() => import('../pages/user/order/OrderSuccessPage'))
-const OrderDetailPage = lazy(() => import('../pages/user/order/OrderDetailPage'))
-const TrackingPage = lazy(() => import('../pages/user/order/TrackingPage'))
-const ReviewPage = lazy(() => import('../pages/user/order/ReviewPage'))
-const ChatDriverPage = lazy(() => import('../pages/user/order/ChatDriverPage'))
+const CartPage = lazy(() => import('@/features/customer/pages/order/CartPage'))
+const CheckoutPage = lazy(() => import('@/features/customer/pages/order/CheckoutPage'))
+const PaymentSimulationPage = lazy(() => import('@/features/customer/pages/order/PaymentSimulationPage'))
+const OrderSuccessPage = lazy(() => import('@/features/customer/pages/order/OrderSuccessPage'))
+const OrderDetailPage = lazy(() => import('@/features/customer/pages/order/OrderDetailPage'))
+const TrackingPage = lazy(() => import('@/features/customer/pages/order/TrackingPage'))
+const ReviewPage = lazy(() => import('@/features/customer/pages/order/ReviewPage'))
+const ChatDriverPage = lazy(() => import('@/features/customer/pages/order/ChatDriverPage'))
 
 // Profile & Settings
-const EditProfilePage = lazy(() => import('../pages/user/profile/EditProfilePage'))
-const FavoritesPage = lazy(() => import('../pages/user/profile/FavoritesPage'))
-const PaymentMethodsPage = lazy(() => import('../pages/user/profile/PaymentMethodsPage'))
-const SecurityPage = lazy(() => import('../pages/user/profile/SecurityPage'))
-const AboutPage = lazy(() => import('../pages/user/profile/AboutPage'))
-const RegistrationStatusPage = lazy(() => import('../pages/user/profile/RegistrationStatusPage'))
+const EditProfilePage = lazy(() => import('@/features/customer/pages/profile/EditProfilePage'))
+const FavoritesPage = lazy(() => import('@/features/customer/pages/profile/FavoritesPage'))
+const PaymentMethodsPage = lazy(() => import('@/features/customer/pages/profile/PaymentMethodsPage'))
+const SecurityPage = lazy(() => import('@/features/customer/pages/profile/SecurityPage'))
+const AboutPage = lazy(() => import('@/features/customer/pages/profile/AboutPage'))
+const RegistrationStatusPage = lazy(() => import('@/features/customer/pages/profile/RegistrationStatusPage'))
 
 // Address
-const AddressListPage = lazy(() => import('../pages/user/address/AddressListPage'))
-const AddAddressPage = lazy(() => import('../pages/user/address/AddAddressPage'))
+const AddressListPage = lazy(() => import('@/features/customer/pages/address/AddressListPage'))
+const AddAddressPage = lazy(() => import('@/features/customer/pages/address/AddAddressPage'))
 
 // Notifications
-const NotificationsPage = lazy(() => import('../pages/user/notifications/NotificationsPage'))
+const NotificationsPage = lazy(() => import('@/features/customer/pages/notifications/NotificationsPage'))
 
 // Shared Pages
-const TermsPage = lazy(() => import('../pages/shared/TermsPage'))
-const PartnerRegistrationPage = lazy(() => import('../pages/shared/PartnerRegistrationPage'))
+const TermsPage = lazy(() => import('@/features/shared/pages/TermsPage'))
+const PartnerRegistrationPage = lazy(() => import('@/features/shared/pages/PartnerRegistrationPage'))
 
 // Help Center - Main
-const HelpCenterPage = lazy(() => import('../pages/user/help/HelpCenterPage'))
-const HelpOrderPage = lazy(() => import('../pages/user/help/HelpOrderPage'))
-const HelpPaymentPage = lazy(() => import('../pages/user/help/HelpPaymentPage'))
-const HelpPromoPage = lazy(() => import('../pages/user/help/HelpPromoPage'))
-const HelpAccountPage = lazy(() => import('../pages/user/help/HelpAccountPage'))
-const HelpSecurityPage = lazy(() => import('../pages/user/help/HelpSecurityPage'))
-const HelpDetailPage = lazy(() => import('../pages/user/help/HelpDetailPage'))
+const HelpCenterPage = lazy(() => import('@/features/customer/pages/help/HelpCenterPage'))
+const HelpOrderPage = lazy(() => import('@/features/customer/pages/help/HelpOrderPage'))
+const HelpPaymentPage = lazy(() => import('@/features/customer/pages/help/HelpPaymentPage'))
+const HelpPromoPage = lazy(() => import('@/features/customer/pages/help/HelpPromoPage'))
+const HelpAccountPage = lazy(() => import('@/features/customer/pages/help/HelpAccountPage'))
+const HelpSecurityPage = lazy(() => import('@/features/customer/pages/help/HelpSecurityPage'))
 
-// Help - Order Issues
-const OrderNotArrivedPage = lazy(() => import('../pages/user/help/order/OrderNotArrivedPage'))
-const OrderIncompletePage = lazy(() => import('../pages/user/help/order/OrderIncompletePage'))
-const OrderDamagedPage = lazy(() => import('../pages/user/help/order/OrderDamagedPage'))
-const OrderIncorrectPage = lazy(() => import('../pages/user/help/order/OrderIncorrectPage'))
-const OrderNotReceivedPage = lazy(() => import('../pages/user/help/order/OrderNotReceivedPage'))
-const CancelOrderPage = lazy(() => import('../pages/user/help/order/CancelOrderPage'))
-const DriverExpensesPage = lazy(() => import('../pages/user/help/order/DriverExpensesPage'))
-const OrderNotArrivedFAQPage = lazy(() => import('../pages/user/help/order/OrderNotArrivedFAQPage'))
-const DriverTrackingHelpPage = lazy(() => import('../pages/user/help/order/DriverTrackingHelpPage'))
-const ChangePaymentHelpPage = lazy(() => import('../pages/user/help/order/ChangePaymentHelpPage'))
-
-// Help - Payment
-const TopUpGuidePage = lazy(() => import('../pages/user/help/payment/TopUpGuidePage'))
-const TransactionFailedPage = lazy(() => import('../pages/user/help/payment/TransactionFailedPage'))
-const RefundProcedurePage = lazy(() => import('../pages/user/help/payment/RefundProcedurePage'))
-const VoucherPromoHelpPage = lazy(() => import('../pages/user/help/payment/VoucherPromoHelpPage'))
-
-// Help - Promo
-const VoucherIssuesPage = lazy(() => import('../pages/user/help/promo/VoucherIssuesPage'))
-const NewUserPromoPage = lazy(() => import('../pages/user/help/promo/NewUserPromoPage'))
-const RefundedVoucherPage = lazy(() => import('../pages/user/help/promo/RefundedVoucherPage'))
-const WarungPromoPage = lazy(() => import('../pages/user/help/promo/WarungPromoPage'))
-
-// Help - Account
-const DeleteAccountPage = lazy(() => import('../pages/user/help/account/DeleteAccountPage'))
-const AccountSecurityPage = lazy(() => import('../pages/user/help/account/AccountSecurityPage'))
-const EditProfileHelpPage = lazy(() => import('../pages/user/help/account/EditProfileHelpPage'))
-const OtpIssuesHelpPage = lazy(() => import('../pages/user/help/account/OtpIssuesHelpPage'))
-
-// Help - Security
-const PermissionHelpPage = lazy(() => import('../pages/user/help/security/PermissionHelpPage'))
+// Help - Data-driven article page (replaces 23+ individual detail page imports)
+const HelpArticlePage = lazy(() => import('@/features/customer/pages/help/HelpArticlePage'))
 
 // Partner Registration - Driver
-const DriverRegistrationStep1 = lazy(() => import('../pages/user/partner/DriverRegistrationStep1'))
-const DriverRegistrationStep2 = lazy(() => import('../pages/user/partner/DriverRegistrationStep2'))
-const DriverRegistrationStep3 = lazy(() => import('../pages/user/partner/DriverRegistrationStep3'))
-const DriverRegistrationStatus = lazy(() => import('../pages/user/partner/DriverRegistrationStatus'))
+const DriverRegistrationStep1 = lazy(() => import('@/features/customer/pages/partner/DriverRegistrationStep1'))
+const DriverRegistrationStep2 = lazy(() => import('@/features/customer/pages/partner/DriverRegistrationStep2'))
+const DriverRegistrationStep3 = lazy(() => import('@/features/customer/pages/partner/DriverRegistrationStep3'))
+const DriverRegistrationStatus = lazy(() => import('@/features/customer/pages/partner/DriverRegistrationStatus'))
 
 // Partner Registration - Merchant
-const MerchantRegistrationStep1 = lazy(() => import('../pages/user/partner/MerchantRegistrationStep1'))
-const MerchantRegistrationStep2 = lazy(() => import('../pages/user/partner/MerchantRegistrationStep2'))
-const MerchantRegistrationStatus = lazy(() => import('../pages/user/partner/MerchantRegistrationStatus'))
+const MerchantRegistrationStep1 = lazy(() => import('@/features/customer/pages/partner/MerchantRegistrationStep1'))
+const MerchantRegistrationStep2 = lazy(() => import('@/features/customer/pages/partner/MerchantRegistrationStep2'))
+const MerchantRegistrationStatus = lazy(() => import('@/features/customer/pages/partner/MerchantRegistrationStatus'))
 
 
 // ============================================
@@ -166,42 +135,11 @@ export default function UserRoutes({ logout }) {
             <Route path="/help/account" element={<HelpAccountPage />} />
             <Route path="/help/security" element={<HelpSecurityPage />} />
 
-            {/* Help - Order Issues */}
-            <Route path="/help/order/not-arrived" element={<OrderNotArrivedPage />} />
-            <Route path="/help/order/incomplete" element={<OrderIncompletePage />} />
-            <Route path="/help/order/damaged" element={<OrderDamagedPage />} />
-            <Route path="/help/order/incorrect" element={<OrderIncorrectPage />} />
-            <Route path="/help/order/not-received" element={<OrderNotReceivedPage />} />
-            <Route path="/help/order/cancel" element={<CancelOrderPage />} />
-            <Route path="/help/order/driver-expenses" element={<DriverExpensesPage />} />
-
-            {/* Help - Payment */}
-            <Route path="/help/payment/methods" element={<PaymentMethodsPage />} />
-            <Route path="/help/payment/topup" element={<TopUpGuidePage />} />
-            <Route path="/help/payment/failed" element={<TransactionFailedPage />} />
-            <Route path="/help/payment/refund" element={<RefundProcedurePage />} />
-            <Route path="/help/payment/voucher" element={<VoucherPromoHelpPage />} />
-
-            {/* Help - Promo */}
-            <Route path="/help/promo/voucher-issues" element={<VoucherIssuesPage />} />
-            <Route path="/help/promo/new-user" element={<NewUserPromoPage />} />
-            <Route path="/help/promo/refunded-voucher" element={<RefundedVoucherPage />} />
-            <Route path="/help/promo/warung" element={<WarungPromoPage />} />
-
-            {/* Help - Account */}
-            <Route path="/help/account/delete" element={<DeleteAccountPage />} />
-            <Route path="/help/account/security" element={<AccountSecurityPage />} />
-            <Route path="/help/account/edit-profile" element={<EditProfileHelpPage />} />
-            <Route path="/help/account/otp-issues" element={<OtpIssuesHelpPage />} />
-
-            {/* Help - Security */}
-            <Route path="/help/security/permissions" element={<PermissionHelpPage />} />
-
-            {/* Help - Misc */}
+            {/* Help - Dynamic detail articles (data-driven) */}
             <Route path="/help/partner-registration" element={<PartnerRegistrationPage />} />
-            <Route path="/help/driver-tracking" element={<DriverTrackingHelpPage />} />
-            <Route path="/help/change-payment" element={<ChangePaymentHelpPage />} />
-            <Route path="/help/order-not-arrived-faq" element={<OrderNotArrivedFAQPage />} />
+            <Route path="/help/payment/methods" element={<PaymentMethodsPage />} />
+            <Route path="/help/:category/:slug" element={<HelpArticlePage />} />
+            <Route path="/help/:category" element={<HelpArticlePage />} />
         </>
     )
 }
