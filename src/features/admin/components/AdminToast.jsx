@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 
 // Default value prevents crash when useToast() is called outside provider
 // (e.g. AdminMerchantsPage renders AdminLayout as child, not parent)
-const defaultToastContext = { addToast: () => console.warn('[AdminToast] No provider found') }
+const defaultToastContext = { addToast: () => { if (import.meta.env.DEV) console.warn('[AdminToast] No provider found') } }
 const ToastContext = createContext(defaultToastContext)
 
 export function useToast() {

@@ -235,9 +235,6 @@ function DriverEarningsPage() {
                     <div className="flex-1 flex flex-col mt-2">
                         <div className="flex items-center justify-between mb-3 px-1">
                             <h3 className="text-slate-900 text-lg font-bold">Riwayat Transaksi</h3>
-                            {hasTransactions && (
-                                <a className="text-[#0d59f2] text-xs font-semibold hover:underline" href="#">Lihat Semua</a>
-                            )}
                         </div>
 
                         {hasTransactions ? (

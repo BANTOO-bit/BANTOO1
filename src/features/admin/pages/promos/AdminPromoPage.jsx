@@ -38,7 +38,7 @@ export default function AdminPromoPage() {
                 }
             })
             setPromos(mapped)
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setLoading(false) }
     }
 

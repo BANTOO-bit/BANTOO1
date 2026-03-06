@@ -65,7 +65,7 @@ function DriverPaymentConfirmation() {
             // Navigate to completion
             navigate('/driver/order/complete')
         } catch (error) {
-            console.error('Error confirming payment:', error)
+            if (import.meta.env.DEV) console.error('Error confirming payment:', error)
             handleError(error, toast, { context: 'Confirm Payment' })
         } finally {
             setIsConfirming(false)

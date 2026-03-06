@@ -308,7 +308,7 @@ function TrackingPage() {
             const data = await orderService.getOrderWithLocations(targetOrderId)
             setOrder(data)
         } catch (err) {
-            console.error('Failed to fetch order:', err)
+            if (import.meta.env.DEV) console.error('Failed to fetch order:', err)
             setError(err.message || 'Gagal memuat pesanan')
         } finally {
             setLoading(false)
@@ -431,7 +431,7 @@ function TrackingPage() {
             setCancelModalOpen(false)
             navigate('/orders')
         } catch (err) {
-            console.error('Error cancelling order:', err)
+            if (import.meta.env.DEV) console.error('Error cancelling order:', err)
             handleError(err, toast, { context: 'Cancel Order' })
         } finally {
             setIsCancelling(false)

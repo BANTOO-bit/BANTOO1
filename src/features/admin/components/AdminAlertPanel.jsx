@@ -62,7 +62,7 @@ export default function AdminAlertPanel() {
 
             setAlerts(alertItems)
         } catch (err) {
-            console.error('Error fetching alerts:', err)
+            if (import.meta.env.DEV) console.error('Error fetching alerts:', err)
         } finally {
             setLoading(false)
         }

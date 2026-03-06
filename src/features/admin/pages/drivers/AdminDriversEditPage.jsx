@@ -40,7 +40,7 @@ export default function AdminDriversEditPage() {
                 vehicle_brand: data.vehicle_brand || '',
             })
         } catch (err) {
-            console.error('Error fetching driver:', err)
+            if (import.meta.env.DEV) console.error('Error fetching driver:', err)
             setError('Gagal memuat data driver')
         } finally {
             setLoading(false)

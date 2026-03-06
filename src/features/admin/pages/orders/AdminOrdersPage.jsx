@@ -94,7 +94,7 @@ export default function AdminOrdersPage() {
                 cancelled: data.filter(o => o.status === 'cancelled').length,
             })
         } catch (err) {
-            console.error('Error fetching admin orders:', err)
+            if (import.meta.env.DEV) console.error('Error fetching admin orders:', err)
             setError(err.message || 'Gagal memuat data pesanan')
         } finally {
             setIsLoading(false)

@@ -46,7 +46,7 @@ export default function AdminCreatePromoPage() {
             setToast({ type: 'success', message: 'Promo berhasil dibuat!' })
             setTimeout(() => navigate('/admin/promos'), 1500)
         } catch (err) {
-            console.error('Error creating promo:', err)
+            if (import.meta.env.DEV) console.error('Error creating promo:', err)
             setToast({ type: 'error', message: 'Gagal membuat promo: ' + (err.message || 'Unknown error') })
             setTimeout(() => setToast(null), 5000)
         } finally {

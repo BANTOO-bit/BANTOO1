@@ -38,7 +38,7 @@ export default function CreateAdminPage() {
                 navigate('/manage/auth')
             }, 3000)
         } catch (err) {
-            console.error('Admin registration failed:', err)
+            if (import.meta.env.DEV) console.error('Admin registration failed:', err)
             if (err.message?.includes('already registered')) {
                 setFormError('Email ini sudah terdaftar. Silakan gunakan email lain atau langsung login.')
             } else {

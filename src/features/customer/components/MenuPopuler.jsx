@@ -5,6 +5,7 @@ import merchantService from '@/services/merchantService'
 import Skeleton, { MenuCardSkeleton } from '@/features/shared/components/Skeleton'
 
 function MenuCard({ item }) {
+    const navigate = useNavigate()
     const { addToCart, getItemQuantity, updateQuantity } = useCart()
     const quantity = getItemQuantity(item.id)
 
@@ -15,22 +16,32 @@ function MenuCard({ item }) {
         image: item.merchantImage
     }
 
-    const handleAdd = () => {
-        // No merchant restriction - just add to cart
+    const handleAdd = (e) => {
+        e.stopPropagation()
         addToCart({
             ...item,
             merchantName: item.merchantName
         }, merchant)
     }
 
-    const handleDecrease = () => {
+    const handleDecrease = (e) => {
+        e.stopPropagation()
         if (quantity > 0) {
             updateQuantity(item.id, quantity - 1)
         }
     }
 
+    const handleCardClick = () => {
+        if (item.merchantId) {
+            navigate(`/merchant/${item.merchantId}`)
+        }
+    }
+
     return (
-        <div className="flex-none w-[185px] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col transition-transform active:scale-[0.98]">
+        <div
+            onClick={handleCardClick}
+            className="flex-none w-[185px] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col transition-transform active:scale-[0.98] cursor-pointer"
+        >
             <div className="h-32 w-full p-2 relative">
                 <div
                     className="absolute inset-2 rounded-xl bg-cover bg-center overflow-hidden bg-gray-100"
@@ -116,14 +127,15 @@ function MenuPopuler() {
     }
 
     return (
-        <section className="mt-2">
+        <section>
             <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-bold text-text-main">Rekomendasi Untukmu</h2>
+                <h2 className="text-[15px] font-bold text-text-main">Rekomendasi Untukmu</h2>
                 <button
                     onClick={() => navigate('/popular-menu')}
                     className="text-sm text-primary font-medium hover:text-primary/80"
                 >
                     Lihat Semua
+                    <span className="material-symbols-outlined text-[14px]">chevron_right</span>
                 </button>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">

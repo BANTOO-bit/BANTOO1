@@ -17,7 +17,7 @@ class AdminErrorBoundaryInner extends Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error('[AdminErrorBoundary] Caught error:', error, errorInfo)
+        if (import.meta.env.DEV) console.error('[AdminErrorBoundary] Caught error:', error, errorInfo)
     }
 
     handleReset = () => {

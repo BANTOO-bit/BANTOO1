@@ -14,7 +14,7 @@ export default function AdminIssueDetailPage() {
             const data = await adminService.getIssueDetail(id)
             setIssue(data)
         } catch (err) {
-            console.error('Error fetching issue:', err)
+            if (import.meta.env.DEV) console.error('Error fetching issue:', err)
             setError('Gagal memuat detail masalah')
         } finally {
             setLoading(false)

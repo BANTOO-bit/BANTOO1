@@ -58,7 +58,7 @@ function DriverDepositPage() {
 
             navigate('/driver/deposit/verification', { state: { deposit: result } })
         } catch (err) {
-            console.error('Failed to submit deposit:', err)
+            if (import.meta.env.DEV) console.error('Failed to submit deposit:', err)
             setError(err.message || 'Gagal mengirim bukti setoran. Coba beberapa saat lagi.')
         } finally {
             setIsSubmitting(false)

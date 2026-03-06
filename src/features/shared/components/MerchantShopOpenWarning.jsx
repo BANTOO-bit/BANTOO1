@@ -29,7 +29,7 @@ function MerchantShopOpenWarning({ blocking = false, onShopClosed }) {
                 onShopClosed()
             }
         } catch (error) {
-            console.error('Error closing shop:', error)
+            if (import.meta.env.DEV) console.error('Error closing shop:', error)
             handleError(error, toast, { context: 'Close Shop' })
         } finally {
             setIsClosing(false)

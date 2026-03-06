@@ -47,7 +47,7 @@ export default function AdminWithdrawalsPage() {
                 processedAmount: 0 // Placeholder or fetch real
             })
         } catch (error) {
-            console.error('Failed to fetch withdrawals:', error)
+            if (import.meta.env.DEV) console.error('Failed to fetch withdrawals:', error)
         } finally {
             setLoading(false)
         }
@@ -68,7 +68,7 @@ export default function AdminWithdrawalsPage() {
                 fetchWithdrawals() // Refresh list
             }
         } catch (error) {
-            console.error('Failed to approve withdrawal:', error)
+            if (import.meta.env.DEV) console.error('Failed to approve withdrawal:', error)
             addToast('Gagal memproses penarikan', 'error')
         }
     }
@@ -139,7 +139,7 @@ export default function AdminWithdrawalsPage() {
                                 try {
                                     await exportService.exportWithdrawals({ status: activeTab !== 'all' ? activeTab : undefined })
                                 } catch (err) {
-                                    console.error('Export failed:', err)
+                                    if (import.meta.env.DEV) console.error('Export failed:', err)
                                 } finally {
                                     setExporting(false)
                                 }

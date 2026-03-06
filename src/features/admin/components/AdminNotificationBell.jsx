@@ -48,7 +48,7 @@ function AdminNotificationBell() {
                 const count = await notificationService.getUnreadCount()
                 setUnreadCount(count)
             } catch (err) {
-                console.error('Failed to load notifications:', err)
+                if (import.meta.env.DEV) console.error('Failed to load notifications:', err)
             }
         }
 
@@ -70,7 +70,7 @@ function AdminNotificationBell() {
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
             setUnreadCount(0)
         } catch (err) {
-            console.error('Failed to mark all as read:', err)
+            if (import.meta.env.DEV) console.error('Failed to mark all as read:', err)
         }
     }
 

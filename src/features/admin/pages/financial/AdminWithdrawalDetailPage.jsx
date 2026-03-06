@@ -25,7 +25,7 @@ export default function AdminWithdrawalDetailPage() {
             const data = await adminService.getWithdrawalDetail(id)
             setWithdrawal(data)
         } catch (err) {
-            console.error('Error fetching withdrawal:', err)
+            if (import.meta.env.DEV) console.error('Error fetching withdrawal:', err)
             setError('Gagal memuat detail penarikan')
         } finally {
             setLoading(false)

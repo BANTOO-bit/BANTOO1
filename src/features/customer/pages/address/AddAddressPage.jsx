@@ -65,7 +65,7 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
                     setGeoRadiusMeters(tiersConfig.max_radius_km * 1000);
                 }
             } catch (err) {
-                console.error("Failed to load operational radius", err)
+                if (import.meta.env.DEV) console.error("Failed to load operational radius", err)
             }
         }
         fetchSettings()

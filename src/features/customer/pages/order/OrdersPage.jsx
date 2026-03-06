@@ -18,13 +18,14 @@ import { useToast } from '@/context/ToastContext'
 import { handleError } from '@/utils/errorHandler'
 import VirtualList from '@/features/shared/components/VirtualList'
 import ConfirmationModal from '@/features/shared/components/ConfirmationModal'
+import usePullToRefresh from '@/hooks/usePullToRefresh'
 
 function OrdersPage() {
     const navigate = useNavigate()
     const { user } = useAuth()
     const toast = useToast()
     const { addToCart, setMerchantInfo, clearCart, cartItems } = useCart()
-    const { orders: contextOrders, loading: contextLoading } = useOrder()
+    const { orders: contextOrders, loading: contextLoading, fetchOrders } = useOrder()
     const [activeTab, setActiveTab] = useState('aktif')
     const [showReorderToast, setShowReorderToast] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
@@ -147,7 +148,7 @@ function OrdersPage() {
             setCancelModalOpen(false)
             setSelectedOrderToCancel(null)
         } catch (err) {
-            console.error('Error cancelling order:', err)
+            if (import.meta.env.DEV) console.error('Error cancelling order:', err)
             handleError(err, toast, { context: 'Cancel Order' })
         } finally {
             setIsCancelling(false)
@@ -210,8 +211,12 @@ function OrdersPage() {
         return 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop'
     }
 
+    const { pullRef, PullIndicator } = usePullToRefresh(async () => {
+        await fetchOrders()
+    })
+
     return (
-        <div className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light dark:bg-background-dark">
+        <div ref={pullRef} className="relative min-h-screen flex flex-col overflow-x-hidden pb-bottom-nav bg-background-light dark:bg-background-dark overflow-y-auto">
             {/* Header */}
             <header className="sticky top-0 z-50 bg-card-light dark:bg-card-dark px-4 pt-12 pb-4 border-b border-border-color dark:border-gray-800">
                 <div className="relative flex items-center justify-center min-h-[40px]">
@@ -254,7 +259,8 @@ function OrdersPage() {
             </header>
 
             {/* Main Content */}
-            <main className="flex flex-col gap-4 p-4">
+            <PullIndicator />
+            <main className="flex flex-col gap-4 p-4 animate-fade-in-up">
                 {isLoading ? (
                     /* Loading Skeleton */
                     <div className="flex flex-col gap-3">

@@ -60,7 +60,7 @@ function DriverPickupOrder() {
             const { driverService } = await import('@/services/driverService')
             await driverService.reportIssue(dbOrderId, reason, 'cancel')
         } catch (err) {
-            console.error('Gagal melaporkan kendala:', err)
+            if (import.meta.env.DEV) console.error('Gagal melaporkan kendala:', err)
             // Still proceed with local cleanup even if backend fails
         }
         setShowIssueModal(false)
@@ -111,7 +111,7 @@ function DriverPickupOrder() {
                 lat = position.coords.latitude;
                 lng = position.coords.longitude;
             } catch (gpsError) {
-                console.warn('Gagal mendapatkan GPS instan, mencoba fallback...', gpsError);
+                if (import.meta.env.DEV) console.warn('Gagal mendapatkan GPS instan, mencoba fallback...', gpsError);
                 // Fallback ke tracking GPS terkahir jika ada
                 if (activeOrder.driverCoords && activeOrder.driverCoords.length === 2) {
                     lat = activeOrder.driverCoords[0];
@@ -141,7 +141,7 @@ function DriverPickupOrder() {
             // Navigate to delivery page
             navigate(`/driver/order/delivery/${dbOrderId}`)
         } catch (error) {
-            console.error('Error confirming pickup:', error)
+            if (import.meta.env.DEV) console.error('Error confirming pickup:', error)
             // Error bisa datang dari backend karena reject radius
             handleError(error, toast, { context: 'Confirm Pickup' })
         } finally {

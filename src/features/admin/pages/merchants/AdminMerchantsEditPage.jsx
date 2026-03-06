@@ -37,7 +37,7 @@ export default function AdminMerchantsEditPage() {
                 address: data.address || '',
             })
         } catch (err) {
-            console.error('Error fetching merchant:', err)
+            if (import.meta.env.DEV) console.error('Error fetching merchant:', err)
             setError('Gagal memuat data warung')
         } finally {
             setLoading(false)

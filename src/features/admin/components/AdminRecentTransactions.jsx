@@ -22,7 +22,7 @@ export default function AdminRecentTransactions() {
                 statusColor: getStatusColor(o.status)
             })))
         } catch (err) {
-            console.error('Unexpected error:', err)
+            if (import.meta.env.DEV) console.error('Unexpected error:', err)
         } finally {
             setLoading(false)
         }

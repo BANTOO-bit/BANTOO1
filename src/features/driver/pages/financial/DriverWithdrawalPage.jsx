@@ -32,7 +32,7 @@ function DriverWithdrawalPage() {
                 })
             }
         } catch (err) {
-            console.error('Failed to load wallet balance:', err)
+            if (import.meta.env.DEV) console.error('Failed to load wallet balance:', err)
             setError('Gagal memuat saldo')
         } finally {
             setIsLoading(false)

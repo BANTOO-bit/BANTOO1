@@ -51,7 +51,7 @@ function DriverWithdrawalConfirm() {
             })
             navigate('/driver/withdrawal/status', { state: { amount } })
         } catch (err) {
-            console.error('Failed to request withdrawal:', err)
+            if (import.meta.env.DEV) console.error('Failed to request withdrawal:', err)
             setError(err.message || 'Gagal memproses penarikan. Silakan coba lagi.')
         } finally {
             setIsSubmitting(false)

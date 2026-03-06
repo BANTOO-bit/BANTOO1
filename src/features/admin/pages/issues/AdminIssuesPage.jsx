@@ -36,7 +36,7 @@ export default function AdminIssuesPage() {
 
             setIssues(transformedIssues)
         } catch (error) {
-            console.error('Error fetching issues:', error)
+            if (import.meta.env.DEV) console.error('Error fetching issues:', error)
         } finally {
             setLoading(false)
         }

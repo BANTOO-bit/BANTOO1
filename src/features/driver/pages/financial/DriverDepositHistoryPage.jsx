@@ -18,7 +18,7 @@ function DriverDepositHistoryPage() {
                 const data = await driverService.getCodAdminFeeBalance(user.id)
                 setCodData(data)
             } catch (err) {
-                console.error('Error fetching COD data:', err)
+                if (import.meta.env.DEV) console.error('Error fetching COD data:', err)
             } finally {
                 setLoading(false)
             }

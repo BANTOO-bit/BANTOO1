@@ -28,7 +28,7 @@ export default function AdminDriversReviewPage() {
             setDriver(data)
             setError(null)
         } catch (err) {
-            console.error('Failed to fetch driver:', err)
+            if (import.meta.env.DEV) console.error('Failed to fetch driver:', err)
             setError('Gagal memuat data driver')
         } finally {
             setLoading(false)
@@ -49,7 +49,7 @@ export default function AdminDriversReviewPage() {
             alert('Driver berhasil disetujui!')
             navigate('/admin/drivers')
         } catch (err) {
-            console.error('Failed to approve driver:', err)
+            if (import.meta.env.DEV) console.error('Failed to approve driver:', err)
             alert('Gagal menyetujui driver')
         } finally {
             setIsApproving(false)
@@ -73,7 +73,7 @@ export default function AdminDriversReviewPage() {
             alert('Driver berhasil ditolak')
             navigate('/admin/drivers/verification')
         } catch (err) {
-            console.error('Failed to reject driver:', err)
+            if (import.meta.env.DEV) console.error('Failed to reject driver:', err)
             alert('Gagal menolak driver')
         } finally {
             setIsRejecting(false)

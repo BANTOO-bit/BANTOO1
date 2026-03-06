@@ -60,7 +60,7 @@ function MerchantTotalOrdersPage() {
 
                 setAllOrders(transformed)
             } catch (error) {
-                console.error('Error fetching orders:', error)
+                if (import.meta.env.DEV) console.error('Error fetching orders:', error)
             } finally {
                 setLoading(false)
             }

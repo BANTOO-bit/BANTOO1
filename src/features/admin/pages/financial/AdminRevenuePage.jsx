@@ -28,7 +28,7 @@ export default function AdminRevenuePage() {
             setStats(data)
             setError(null)
         } catch (err) {
-            console.error('Failed to fetch revenue stats:', err)
+            if (import.meta.env.DEV) console.error('Failed to fetch revenue stats:', err)
             setError('Gagal memuat data pendapatan')
         } finally {
             setLoading(false)
@@ -71,7 +71,7 @@ export default function AdminRevenuePage() {
                             try {
                                 await exportService.exportRevenue()
                             } catch (err) {
-                                console.error('Export failed:', err)
+                                if (import.meta.env.DEV) console.error('Export failed:', err)
                             } finally {
                                 setExporting(false)
                             }

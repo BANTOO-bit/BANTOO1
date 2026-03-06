@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
 import merchantService from '@/services/merchantService'
+import { reviewService } from '@/services/reviewService'
 import LoadingState from '@/features/shared/components/LoadingState'
 import ErrorState from '@/features/shared/components/ErrorState'
 import EmptyState from '@/features/shared/components/EmptyState'
@@ -118,6 +119,7 @@ function MerchantDetailPage() {
     const [activeCategory, setActiveCategory] = useState('all')
     const [currentMerchant, setCurrentMerchant] = useState(null)
     const [merchantMenus, setMerchantMenus] = useState([])
+    const [merchantReviews, setMerchantReviews] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const { cartCount, cartTotal, merchantInfo } = useCart()
@@ -137,6 +139,11 @@ function MerchantDetailPage() {
             }
             setCurrentMerchant(merchant)
             setMerchantMenus(menus)
+
+            // Fetch reviews (non-blocking)
+            reviewService.getMerchantReviews(id, 5).then(reviews => {
+                setMerchantReviews(reviews || [])
+            }).catch(() => { })
         } catch (err) {
             setError(err.message || 'Gagal memuat data warung')
         } finally {
@@ -244,8 +251,70 @@ function MerchantDetailPage() {
                         <span className="material-symbols-outlined text-text-secondary text-sm">schedule</span>
                         <span className="text-xs text-text-secondary">{currentMerchant?.deliveryTime}</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-text-secondary text-sm">local_shipping</span>
+                        <span className="text-xs text-text-secondary">{currentMerchant?.deliveryFee || 'Rp 5.000'}</span>
+                    </div>
+                </div>
+
+                {/* Operating Hours */}
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border-color">
+                    <span className="material-symbols-outlined text-green-500 text-sm">access_time</span>
+                    <span className="text-xs text-text-secondary">Jam Operasional: </span>
+                    <span className="text-xs font-medium text-text-main">{currentMerchant?.operatingHours || '08:00 - 22:00'}</span>
                 </div>
             </div>
+
+            {/* Customer Reviews Section */}
+            {merchantReviews.length > 0 && (
+                <div className="mx-4 mt-3 bg-white rounded-2xl p-4 shadow-soft border border-border-color animate-fade-in-up">
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-sm font-bold text-text-main flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-yellow-500 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            Ulasan Pelanggan
+                        </h2>
+                        <span className="text-xs text-text-secondary">{merchantReviews.length} ulasan</span>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        {merchantReviews.slice(0, 3).map(review => (
+                            <div key={review.id} className="flex gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center shrink-0">
+                                    {review.customer?.avatar_url ? (
+                                        <img src={review.customer.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                        <span className="text-xs font-bold text-orange-500">
+                                            {(review.customer?.full_name || 'U')[0].toUpperCase()}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-text-main truncate">
+                                            {review.customer?.full_name || 'Pelanggan'}
+                                        </span>
+                                        <div className="flex items-center gap-0.5">
+                                            {Array.from({ length: 5 }).map((_, i) => (
+                                                <span
+                                                    key={i}
+                                                    className={`material-symbols-outlined text-[12px] ${i < (review.merchant_rating || 0) ? 'text-yellow-400' : 'text-gray-200'
+                                                        }`}
+                                                    style={{ fontVariationSettings: "'FILL' 1" }}
+                                                >star</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {review.comment && (
+                                        <p className="text-[11px] text-text-secondary mt-0.5 line-clamp-2">{review.comment}</p>
+                                    )}
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        {new Date(review.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Category Tabs */}
             <CategoryTabs />

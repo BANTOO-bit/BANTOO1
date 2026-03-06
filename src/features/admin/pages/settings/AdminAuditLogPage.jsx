@@ -54,7 +54,7 @@ export default function AdminAuditLogPage() {
                 })
                 setLogs(data)
             } catch (err) {
-                console.error('Error fetching audit logs:', err)
+                if (import.meta.env.DEV) console.error('Error fetching audit logs:', err)
             } finally {
                 setLoading(false)
             }

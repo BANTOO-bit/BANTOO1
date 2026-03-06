@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
             // Admin verified - redirect to dashboard
             navigate('/admin/dashboard')
         } catch (err) {
-            console.error('Admin login failed:', err)
+            if (import.meta.env.DEV) console.error('Admin login failed:', err)
             if (err.message?.includes('Email not confirmed')) {
                 setError('Email belum dikonfirmasi. Periksa kotak masuk Anda.')
             } else if (err.message?.includes('Invalid')) {

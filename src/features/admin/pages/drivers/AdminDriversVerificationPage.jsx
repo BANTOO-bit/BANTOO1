@@ -20,7 +20,7 @@ export default function AdminDriversVerificationPage() {
             setVerificationQueue(data)
             setError(null)
         } catch (err) {
-            console.error('Failed to fetch drivers:', err)
+            if (import.meta.env.DEV) console.error('Failed to fetch drivers:', err)
             setError('Gagal memuat data driver')
         } finally {
             setLoading(false)

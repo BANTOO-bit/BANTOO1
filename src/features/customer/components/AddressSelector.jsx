@@ -23,9 +23,9 @@ function AddressSelector() {
     return (
         <>
             {/* Address Button */}
-            <div className="px-4 pt-1 pb-1">
+            <div className="px-4 pt-2 pb-2">
                 <div className="flex flex-col">
-                    <span className="text-xs text-text-secondary font-medium mb-0.5">Antar ke</span>
+                    <span className="text-[10px] text-text-secondary font-medium mb-0.5 uppercase tracking-wide">Antar ke</span>
                     <button
                         onClick={() => setIsOpen(true)}
                         className="flex items-center gap-1 active:opacity-70 transition-opacity w-fit text-left"
@@ -33,7 +33,7 @@ function AddressSelector() {
                         <span className="material-symbols-outlined text-primary text-[18px] mr-1">
                             {currentAddress ? getLabelIcon(currentAddress.label) : 'location_on'}
                         </span>
-                        <span className="font-bold text-text-main truncate max-w-[280px]">
+                        <span className="font-semibold text-sm text-text-main truncate max-w-[260px]">
                             {currentAddress
                                 ? `${currentAddress.label} - ${currentAddress.address.substring(0, 25)}${currentAddress.address.length > 25 ? '...' : ''}`
                                 : 'Pilih Alamat'
@@ -104,20 +104,17 @@ function AddressSelector() {
                                             <button
                                                 key={addr.id}
                                                 onClick={() => handleSelect(addr.id)}
-                                                className={`w-full flex items-start gap-3 p-3.5 rounded-xl transition-all text-left ${
-                                                    currentAddress?.id === addr.id
+                                                className={`w-full flex items-start gap-3 p-3.5 rounded-xl transition-all text-left ${currentAddress?.id === addr.id
                                                         ? 'bg-orange-50 border-2 border-primary/40 shadow-sm'
                                                         : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100 active:scale-[0.98]'
-                                                }`}
+                                                    }`}
                                             >
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                                    addr.label === 'Rumah' ? 'bg-blue-100' :
-                                                    addr.label === 'Kantor' ? 'bg-green-100' : 'bg-orange-100'
-                                                }`}>
-                                                    <span className={`material-symbols-outlined text-lg ${
-                                                        addr.label === 'Rumah' ? 'text-blue-600' :
-                                                        addr.label === 'Kantor' ? 'text-green-600' : 'text-primary'
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${addr.label === 'Rumah' ? 'bg-blue-100' :
+                                                        addr.label === 'Kantor' ? 'bg-green-100' : 'bg-orange-100'
                                                     }`}>
+                                                    <span className={`material-symbols-outlined text-lg ${addr.label === 'Rumah' ? 'text-blue-600' :
+                                                            addr.label === 'Kantor' ? 'text-green-600' : 'text-primary'
+                                                        }`}>
                                                         {getLabelIcon(addr.label)}
                                                     </span>
                                                 </div>

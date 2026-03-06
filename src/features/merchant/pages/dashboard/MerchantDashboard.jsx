@@ -42,7 +42,7 @@ function MerchantDashboard() {
                 const status = await merchantService.getMerchantStatus(user.merchantId)
                 setMerchantStatus(status)
             } catch (err) {
-                console.error('Error fetching merchant status:', err)
+                if (import.meta.env.DEV) console.error('Error fetching merchant status:', err)
             }
         }
 

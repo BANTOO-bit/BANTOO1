@@ -23,7 +23,7 @@ export default function AdminCODPage() {
             const data = await codService.getDeposits()
             setDeposits(data)
             setStats(prev => ({ ...prev, pending: data.filter(d => d.status === 'pending').length }))
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setLoading(false) }
     }
 
@@ -37,7 +37,7 @@ export default function AdminCODPage() {
                 totalOwed: results.reduce((s, d) => s + (d.cod?.balance || 0), 0),
                 totalDeposited: results.reduce((s, d) => s + (d.cod?.deposits_made || 0), 0)
             }))
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setLoading(false) }
     }
 
@@ -47,7 +47,7 @@ export default function AdminCODPage() {
         try {
             const data = await codService.getDriverLedger(driverId)
             setLedger(data)
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setLoading(false) }
     }
 
@@ -57,7 +57,7 @@ export default function AdminCODPage() {
         try {
             const data = await codService.getSummary()
             setSummary(data)
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setLoading(false) }
     }
 
@@ -93,7 +93,7 @@ export default function AdminCODPage() {
         try {
             await codService.handleDepositAction(depositId, action)
             fetchDeposits()
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setActionLoading(null) }
     }
 

@@ -44,7 +44,7 @@ function DriverDeliveryOrder() {
             const { driverService } = await import('@/services/driverService')
             await driverService.reportIssue(dbOrderId, reason, 'cancel')
         } catch (err) {
-            console.error('Gagal melaporkan kendala:', err)
+            if (import.meta.env.DEV) console.error('Gagal melaporkan kendala:', err)
         }
         setShowIssueModal(false)
         stopBroadcasting()
@@ -123,7 +123,7 @@ function DriverDeliveryOrder() {
                 lat = position.coords.latitude;
                 lng = position.coords.longitude;
             } catch (gpsError) {
-                console.warn('Gagal mendapatkan GPS instan, mencoba fallback...', gpsError);
+                if (import.meta.env.DEV) console.warn('Gagal mendapatkan GPS instan, mencoba fallback...', gpsError);
                 if (activeOrder.driverCoords && activeOrder.driverCoords.length === 2) {
                     lat = activeOrder.driverCoords[0];
                     lng = activeOrder.driverCoords[1];
@@ -156,7 +156,7 @@ function DriverDeliveryOrder() {
                 navigate('/driver/order/complete')
             }
         } catch (error) {
-            console.error('Error confirming delivery:', error)
+            if (import.meta.env.DEV) console.error('Error confirming delivery:', error)
             handleError(error, toast, { context: 'Confirm Delivery' })
         } finally {
             setIsConfirming(false)

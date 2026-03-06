@@ -36,7 +36,7 @@ export default function AdminNotificationsPage() {
                 const data = await notificationService.getNotifications(50)
                 setNotifications(data || [])
             } catch (err) {
-                console.error('Error fetching notifications:', err)
+                if (import.meta.env.DEV) console.error('Error fetching notifications:', err)
             } finally {
                 setLoading(false)
             }
@@ -62,7 +62,7 @@ export default function AdminNotificationsPage() {
             await notificationService.markAsRead(id)
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
         } catch (err) {
-            console.error('Error marking as read:', err)
+            if (import.meta.env.DEV) console.error('Error marking as read:', err)
         }
     }
 

@@ -22,7 +22,7 @@ export default function AdminUsersPage() {
         try {
             const data = await adminService.getCustomers()
             setUsers(data)
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setLoading(false) }
     }
 
@@ -30,7 +30,7 @@ export default function AdminUsersPage() {
         try {
             const data = await adminService.getCustomerStats()
             setStats(data)
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
     }
 
     useEffect(() => { fetchUsers(); fetchStats() }, [])

@@ -96,7 +96,7 @@ function MerchantTodayEarningsPage() {
 
                 setTransactions(txList)
             } catch (error) {
-                console.error('Error fetching earnings:', error)
+                if (import.meta.env.DEV) console.error('Error fetching earnings:', error)
             } finally {
                 setLoading(false)
             }

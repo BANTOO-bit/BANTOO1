@@ -41,7 +41,7 @@ export default function AdminEditPromoPage() {
             })
             setPromoType(data.type === 'flat' ? 'freeshipping' : 'discount')
         } catch (err) {
-            console.error('Error fetching promo:', err)
+            if (import.meta.env.DEV) console.error('Error fetching promo:', err)
             setError('Gagal memuat data promo')
         } finally {
             setLoading(false)
@@ -80,7 +80,7 @@ export default function AdminEditPromoPage() {
             setToast({ type: 'success', message: 'Promo berhasil diperbarui!' })
             setTimeout(() => navigate('/admin/promos'), 1500)
         } catch (err) {
-            console.error('Error updating promo:', err)
+            if (import.meta.env.DEV) console.error('Error updating promo:', err)
             setToast({ type: 'error', message: 'Gagal memperbarui: ' + (err.message || 'Unknown error') })
             setTimeout(() => setToast(null), 5000)
         } finally {

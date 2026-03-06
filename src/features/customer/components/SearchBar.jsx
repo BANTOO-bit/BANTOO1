@@ -103,6 +103,17 @@ function SearchBar() {
     const [merchantResults, setMerchantResults] = useState([])
     const [isSearching, setIsSearching] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [isFocused, setIsFocused] = useState(false)
+
+    // Get recent searches from localStorage
+    const getRecentSearches = () => {
+        try {
+            const saved = localStorage.getItem('bantoo_recent_searches')
+            return saved ? JSON.parse(saved) : []
+        } catch { return [] }
+    }
+
+    const [recentSearches, setRecentSearches] = useState(getRecentSearches)
 
     // Search effect with debounce
     useEffect(() => {
@@ -125,7 +136,7 @@ function SearchBar() {
                 setMerchantResults(merchants)
                 setIsSearching(true)
             } catch (error) {
-                console.error('Search failed:', error)
+                if (import.meta.env.DEV) console.error('Search failed:', error)
             } finally {
                 setIsLoading(false)
             }
@@ -158,6 +169,16 @@ function SearchBar() {
         setIsSearching(false)
     }
 
+    const handleClearHistory = () => {
+        localStorage.removeItem('bantoo_recent_searches')
+        setRecentSearches([])
+    }
+
+    const handleRecentClick = (term) => {
+        setSearchQuery(term)
+        setIsFocused(false)
+    }
+
     const handleViewAll = () => {
         const query = searchQuery
         handleClear()
@@ -167,10 +188,10 @@ function SearchBar() {
     const totalResults = menuResults.length + merchantResults.length
 
     return (
-        <div className="relative px-4 pb-4 pt-3 w-full z-30">
-            <div className="relative flex items-center w-full h-14 rounded-xl focus-within:ring-2 focus-within:ring-primary/50 transition-shadow bg-white shadow-sm border border-gray-200 overflow-hidden">
-                <div className="grid place-items-center h-full w-14 text-gray-400">
-                    <span className="material-symbols-outlined text-[22px]">search</span>
+        <div className="relative px-4 pb-3 pt-1 w-full z-30">
+            <div className="relative flex items-center w-full h-12 rounded-xl focus-within:ring-2 focus-within:ring-primary/30 transition-shadow bg-gray-50 overflow-hidden">
+                <div className="grid place-items-center h-full w-12 text-gray-400">
+                    <span className="material-symbols-outlined text-[20px]">search</span>
                 </div>
                 <input
                     className="peer h-full w-full outline-none bg-transparent text-sm text-text-main placeholder:text-text-secondary font-normal pr-10"
@@ -179,6 +200,8 @@ function SearchBar() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setTimeout(() => setIsFocused(false), 200)}
                     aria-label="Cari makanan atau warung"
                 />
                 {searchQuery && (
@@ -191,6 +214,33 @@ function SearchBar() {
                     </button>
                 )}
             </div>
+
+            {/* Recent Searches (when focused with empty query) */}
+            {isFocused && !searchQuery && recentSearches.length > 0 && !isSearching && (
+                <div className="absolute left-4 right-4 top-full mt-1 bg-white rounded-xl shadow-lg border border-border-color z-50 animate-scale-in">
+                    <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wide">Pencarian Terakhir</span>
+                        <button
+                            onClick={handleClearHistory}
+                            className="text-[11px] text-red-400 font-medium hover:text-red-500"
+                        >
+                            Hapus Semua
+                        </button>
+                    </div>
+                    <div className="py-1">
+                        {recentSearches.map((term, i) => (
+                            <button
+                                key={i}
+                                onClick={() => handleRecentClick(term)}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-gray-400 text-[18px]">history</span>
+                                <span className="text-sm text-text-main truncate">{term}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Search Results Dropdown */}
             {isSearching && (

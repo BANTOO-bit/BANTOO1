@@ -21,7 +21,7 @@ function AdminPartnerVerification() {
             const data = await adminService.getPendingPartners(activeTab)
             setRequests(data)
         } catch (err) {
-            console.error(`Error fetching ${activeTab} requests:`, err)
+            if (import.meta.env.DEV) console.error(`Error fetching ${activeTab} requests:`, err)
             setError('Gagal memuat data. Silakan coba lagi.')
         } finally {
             setLoading(false)
@@ -36,7 +36,7 @@ function AdminPartnerVerification() {
             setRequests(prev => prev.filter(req => req.id !== id))
             toast.success('Pendaftaran berhasil disetujui!')
         } catch (err) {
-            console.error('Error approving request:', err)
+            if (import.meta.env.DEV) console.error('Error approving request:', err)
             handleError(err, toast, { context: 'Approve Partner' })
         }
     }
@@ -49,7 +49,7 @@ function AdminPartnerVerification() {
             setRequests(prev => prev.filter(req => req.id !== id))
             toast.success('Pendaftaran berhasil ditolak!')
         } catch (err) {
-            console.error('Error rejecting request:', err)
+            if (import.meta.env.DEV) console.error('Error rejecting request:', err)
             handleError(err, toast, { context: 'Reject Partner' })
         }
     }

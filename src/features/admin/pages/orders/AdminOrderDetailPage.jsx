@@ -46,7 +46,7 @@ export default function AdminOrderDetailPage() {
                 const data = await adminService.getAdminOrderDetail(id)
                 setOrder(data)
             } catch (err) {
-                console.error('Error fetching order:', err)
+                if (import.meta.env.DEV) console.error('Error fetching order:', err)
             } finally {
                 setLoading(false)
             }

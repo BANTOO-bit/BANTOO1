@@ -11,6 +11,18 @@ const onboardingData = [
     },
     {
         id: 2,
+        title: "Jelajahi Kategori",
+        description: "Cari berdasarkan kategori makanan favoritmu — nasi, jajanan, kopi, dessert, dan lainnya!",
+        image: null,
+        isIconSlide: true,
+        slideIcon: "category",
+        slideGradient: "from-violet-500 to-purple-600",
+        slideEmojis: ["🍚", "🍜", "☕", "🍰", "🥤", "🍗"],
+        badge: "14 Kategori Tersedia",
+        badgeIcon: "grid_view"
+    },
+    {
+        id: 3,
         title: "Lacak Pesananmu",
         description: "Update real-time status pengiriman. Kamu selalu tahu di mana pesananmu berada.",
         image: null,
@@ -19,7 +31,19 @@ const onboardingData = [
         badgeIcon: null
     },
     {
-        id: 3,
+        id: 4,
+        title: "Pesan Lagi Favorit",
+        description: "Satu ketuk untuk memesan ulang makanan dari pesanan sebelumnya. Cepat dan mudah!",
+        image: null,
+        isIconSlide: true,
+        slideIcon: "replay",
+        slideGradient: "from-emerald-500 to-teal-600",
+        slideEmojis: ["🔁", "❤️", "⚡", "🛒"],
+        badge: "Quick Reorder",
+        badgeIcon: "bolt"
+    },
+    {
+        id: 5,
         title: "Bayar Mudah & Aman",
         description: "Nikmati kemudahan pembayaran dengan berbagai metode. Keamananmu prioritas kami.",
         image: "/images/onboarding-payment.jpg",
@@ -155,6 +179,43 @@ function OnboardingPage({ onComplete }) {
                 <div className="w-full mt-4 mb-8">
                     {slide.isMapSlide ? (
                         <MapIllustration />
+                    ) : slide.isIconSlide ? (
+                        <div className={`w-full aspect-[4/3] relative rounded-3xl overflow-hidden bg-gradient-to-br ${slide.slideGradient} border border-white/20`}>
+                            {/* Central Icon */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-24 h-24 bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30">
+                                    <span className="material-symbols-outlined text-white text-5xl">{slide.slideIcon}</span>
+                                </div>
+                            </div>
+                            {/* Floating emojis */}
+                            {slide.slideEmojis?.map((emoji, i) => (
+                                <div
+                                    key={i}
+                                    className="absolute text-2xl animate-pulse"
+                                    style={{
+                                        top: `${15 + (i % 3) * 25}%`,
+                                        left: `${10 + (i * 15) % 80}%`,
+                                        animationDelay: `${i * 0.3}s`,
+                                    }}
+                                >
+                                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2 border border-white/20">
+                                        {emoji}
+                                    </div>
+                                </div>
+                            ))}
+                            {/* Decorative circles */}
+                            <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full" />
+                            <div className="absolute -left-8 -bottom-8 w-28 h-28 bg-white/5 rounded-full" />
+                            {/* Badge */}
+                            {slide.badge && (
+                                <div className="absolute bottom-4 left-4 right-4">
+                                    <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/30">
+                                        <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>{slide.badgeIcon}</span>
+                                        <span className="text-white text-xs font-semibold">{slide.badge}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <div className="w-full aspect-[4/3] relative rounded-3xl overflow-hidden border border-gray-100">
                             <img

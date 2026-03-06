@@ -30,7 +30,7 @@ export default function AdminMerchantsReviewPage() {
             setMerchant(data)
             setError(null)
         } catch (err) {
-            console.error('Failed to fetch merchant:', err)
+            if (import.meta.env.DEV) console.error('Failed to fetch merchant:', err)
             setError('Gagal memuat data warung')
         } finally {
             setLoading(false)
@@ -51,7 +51,7 @@ export default function AdminMerchantsReviewPage() {
             addToast('Warung berhasil disetujui!', 'success')
             navigate('/admin/merchants')
         } catch (err) {
-            console.error('Failed to approve merchant:', err)
+            if (import.meta.env.DEV) console.error('Failed to approve merchant:', err)
             addToast('Gagal menyetujui warung', 'error')
         } finally {
             setIsApproving(false)
@@ -75,7 +75,7 @@ export default function AdminMerchantsReviewPage() {
             addToast('Warung berhasil ditolak', 'success')
             navigate('/admin/merchants/verification')
         } catch (err) {
-            console.error('Failed to reject merchant:', err)
+            if (import.meta.env.DEV) console.error('Failed to reject merchant:', err)
             addToast('Gagal menolak warung', 'error')
         } finally {
             setIsRejecting(false)

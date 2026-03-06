@@ -30,7 +30,7 @@ function AdminSearchBar() {
                 setSearchResults(results)
                 setShowSearchResults(true)
             } catch (err) {
-                console.error('Search error:', err)
+                if (import.meta.env.DEV) console.error('Search error:', err)
             } finally {
                 setIsSearching(false)
             }

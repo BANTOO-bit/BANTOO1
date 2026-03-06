@@ -21,7 +21,7 @@ function ActiveOrderCard({ order, onTrack, onCancel }) {
                 const info = await orderService.getDriverInfoById(order.driverId)
                 setDriverInfo(info)
             } catch (err) {
-                console.error('Failed to fetch driver:', err)
+                if (import.meta.env.DEV) console.error('Failed to fetch driver:', err)
             }
         }
 

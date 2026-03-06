@@ -2,6 +2,7 @@
  * Notification Helper Utilities
  * Centralized functions for showing notifications and playing sounds
  */
+import { playNewOrderSound } from '@/utils/soundManager'
 
 /**
  * Show a toast notification
@@ -18,17 +19,13 @@ export const showNotification = (title, message = '', type = 'info') => {
 
 /**
  * Play notification sound
- * Note: Requires user interaction first due to browser autoplay policies
+ * Uses Web Audio API (local, no file dependency)
  */
 export const playNotificationSound = () => {
     try {
-        const audio = new Audio('/notification.mp3')
-        audio.volume = 0.5
-        audio.play().catch(e => {
-            if (import.meta.env.DEV) console.log('Audio play failed (user interaction required):', e.message)
-        })
+        playNewOrderSound()
     } catch (error) {
-        console.error('Error playing notification sound:', error)
+        // Silent fail — audio not critical
     }
 }
 
@@ -61,8 +58,8 @@ export const requestNotificationPermission = async () => {
 export const showBrowserNotification = (title, options = {}) => {
     if (Notification.permission === 'granted') {
         new Notification(title, {
-            icon: '/logo.png',
-            badge: '/logo.png',
+            icon: '/favicon.svg',
+            badge: '/favicon.svg',
             ...options
         })
     }

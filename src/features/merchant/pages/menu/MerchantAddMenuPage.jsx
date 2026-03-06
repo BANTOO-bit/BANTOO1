@@ -97,15 +97,9 @@ function MerchantAddMenuPage() {
                 finalImage = await storageService.upload(imageFile, STORAGE_PATHS.MERCHANT_MENU, user.id)
             }
 
-            // Fallback placeholder logic
+            // Fallback: local SVG placeholder (no external dependency)
             if (!finalImage) {
-                const placeholders = {
-                    makanan: 'https://placehold.co/400x400/orange/white?text=Makanan',
-                    minuman: 'https://placehold.co/400x400/blue/white?text=Minuman',
-                    snack: 'https://placehold.co/400x400/yellow/black?text=Snack',
-                    paket: 'https://placehold.co/400x400/red/white?text=Paket'
-                }
-                finalImage = placeholders[formData.category] || placeholders.makanan
+                finalImage = '/images/default-menu.svg'
             }
 
             // 3. Insert Product
@@ -122,7 +116,7 @@ function MerchantAddMenuPage() {
             navigate('/merchant/menu')
 
         } catch (error) {
-            console.error('Error adding menu:', error)
+            if (import.meta.env.DEV) console.error('Error adding menu:', error)
             handleError(error, toast, { context: 'Add Menu' })
         } finally {
             setIsLoading(false)

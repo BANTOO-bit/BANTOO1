@@ -6,6 +6,7 @@ import orderService from '@/services/orderService'
 import { useRealtimeMulti } from '@/hooks/useRealtime'
 import { generateOrderId, formatOrderId } from '@/utils/orderUtils'
 import { showNotification } from '@/utils/notificationHelper'
+import { playNewOrderSound, playCancelledOrderSound } from '@/utils/soundManager'
 import MerchantBottomNavigation from '@/features/merchant/components/MerchantBottomNavigation'
 import MerchantOrderDetail from '@/features/merchant/components/MerchantOrderDetail'
 import BackToTopButton from '@/features/shared/components/BackToTopButton'
@@ -134,7 +135,7 @@ function MerchantOrdersPage() {
                     fetchOrders()
                 }
             } catch (e) {
-                console.warn('Auto-cancel check failed:', e)
+                if (import.meta.env.DEV) console.warn('Auto-cancel check failed:', e)
             }
         }, 60000)
 
@@ -154,9 +155,8 @@ function MerchantOrdersPage() {
 
                     // Show notification for new order
                     if (payload.new.status === 'pending') {
-                        // Play notification sound
-                        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')
-                        audio.play().catch(e => logger.debug('Audio play failed:', e))
+                        // Play notification sound (local, no CDN)
+                        playNewOrderSound()
 
                         addNotification({
                             type: 'success',
@@ -194,8 +194,8 @@ function MerchantOrdersPage() {
 
                     // Check for cancelled order and alert the merchant
                     if (payload.new.status === 'cancelled' && payload.old.status !== 'cancelled') {
-                        const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2864/2864-preview.mp3')
-                        alertAudio.play().catch(e => logger.debug('Alert audio play failed:', e))
+                        // Play alert sound (local, no CDN)
+                        playCancelledOrderSound()
 
                         addNotification({
                             type: 'error',
@@ -265,7 +265,7 @@ function MerchantOrdersPage() {
             // Auto-hide success message
             setTimeout(() => setShowSuccess(false), 3000)
         } catch (err) {
-            console.error('Error accepting order:', err)
+            if (import.meta.env.DEV) console.error('Error accepting order:', err)
             handleError(err, toast, { context: 'Accept Order' })
         } finally {
             setActionLoading(false)
@@ -286,7 +286,7 @@ function MerchantOrdersPage() {
             closeModal()
             handleSuccess('Pesanan berhasil ditolak', toast)
         } catch (err) {
-            console.error('Error rejecting order:', err)
+            if (import.meta.env.DEV) console.error('Error rejecting order:', err)
             handleError(err, toast, { context: 'Reject Order' })
         } finally {
             setActionLoading(false)
@@ -309,7 +309,7 @@ function MerchantOrdersPage() {
             // Auto-hide success message
             setTimeout(() => setShowSuccess(false), 3000)
         } catch (err) {
-            console.error('Error handing over order:', err)
+            if (import.meta.env.DEV) console.error('Error handing over order:', err)
             handleError(err, toast, { context: 'Handover Order' })
         } finally {
             setActionLoading(false)
@@ -326,14 +326,9 @@ function MerchantOrdersPage() {
     }
 
     const handleOrderClick = (order) => {
-        if (activeTab === 'selesai' || activeTab === 'diproses' || activeTab === 'baru') {
-            // For now only 'selesai' has full detail view designed, but we can enable for others if needed
-            // The request specifically asked for "detail pesanan untuk riwayat pesanan selesai"
-            if (activeTab === 'selesai') {
-                setSelectedOrder(order)
-                setViewMode('detail')
-            }
-        }
+        // Order detail accessible from ALL tabs (baru, diproses, selesai)
+        setSelectedOrder(order)
+        setViewMode('detail')
     }
 
     if (viewMode === 'detail' && selectedOrder) {

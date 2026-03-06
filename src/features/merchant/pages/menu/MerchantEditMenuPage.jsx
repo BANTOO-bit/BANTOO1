@@ -73,7 +73,7 @@ function MerchantEditMenuPage() {
                 setPreviewImage(data.image_url)
                 setOriginalImage(data.image_url)
             } catch (err) {
-                console.error('Error fetching menu:', err)
+                if (import.meta.env.DEV) console.error('Error fetching menu:', err)
                 handleError(err, toast, { context: 'Load Menu' })
                 navigate('/merchant/menu')
             } finally {
@@ -159,7 +159,7 @@ function MerchantEditMenuPage() {
             navigate('/merchant/menu')
 
         } catch (err) {
-            console.error('Error updating menu:', err)
+            if (import.meta.env.DEV) console.error('Error updating menu:', err)
             handleError(err, toast, { context: 'Update Menu' })
         } finally {
             setIsSaving(false)

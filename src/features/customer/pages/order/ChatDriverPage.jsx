@@ -57,7 +57,7 @@ function ChatDriverPage() {
                     setDriverInfo(driverData)
                 }
             } catch (err) {
-                console.error('Error fetching order info:', err)
+                if (import.meta.env.DEV) console.error('Error fetching order info:', err)
             }
         }
 
@@ -108,7 +108,7 @@ function ChatDriverPage() {
             await chatService.sendMessage(orderId, text, 'customer')
             if (import.meta.env.DEV) console.log('[CustomerChat] Message sent successfully')
         } catch (error) {
-            console.error('[CustomerChat] Failed to send message:', error)
+            if (import.meta.env.DEV) console.error('[CustomerChat] Failed to send message:', error)
             toast.error(`Gagal kirim pesan: ${error.message || 'Unknown error'}`)
             setInputText(text)
         } finally {

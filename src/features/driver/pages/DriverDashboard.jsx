@@ -76,9 +76,12 @@ function DriverDashboard() {
                                 <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform text-white">support_agent</span>
                                 Hubungi Pusat Bantuan
                             </button>
-                            <a className="mt-4 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors border-b border-transparent hover:border-gray-400" href="#">
+                            <button
+                                onClick={() => navigate('/driver/help')}
+                                className="mt-4 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors border-b border-transparent hover:border-gray-400"
+                            >
                                 Baca Syarat & Ketentuan Mitra
-                            </a>
+                            </button>
                         </div>
                     ) : (
                         /* Normal Active State */

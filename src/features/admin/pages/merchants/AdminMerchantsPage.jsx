@@ -32,7 +32,7 @@ export default function AdminMerchantsPage() {
             const data = await adminService.getAdminMerchants()
             setMerchants(data)
         } catch (err) {
-            console.error('Error fetching merchants:', err)
+            if (import.meta.env.DEV) console.error('Error fetching merchants:', err)
         } finally {
             setLoading(false)
         }
@@ -43,7 +43,7 @@ export default function AdminMerchantsPage() {
             const data = await adminService.getMerchantStats()
             setStats(data)
         } catch (err) {
-            console.error('Stats error:', err)
+            if (import.meta.env.DEV) console.error('Stats error:', err)
         }
     }
 

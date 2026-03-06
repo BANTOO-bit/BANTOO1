@@ -30,7 +30,7 @@ export default function AdminDriversPage() {
         try {
             const data = await adminService.getAdminDrivers()
             setDrivers(data)
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setLoading(false) }
     }
 
@@ -38,7 +38,7 @@ export default function AdminDriversPage() {
         try {
             const data = await adminService.getDriverStats()
             setStats(data)
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
     }
 
     useEffect(() => { fetchDrivers(); fetchStats() }, [])

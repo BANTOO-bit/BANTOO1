@@ -19,7 +19,7 @@ export default function AdminMerchantsVerificationPage() {
             setVerificationQueue(data)
             setError(null)
         } catch (err) {
-            console.error('Failed to fetch merchants:', err)
+            if (import.meta.env.DEV) console.error('Failed to fetch merchants:', err)
             setError('Gagal memuat data warung')
         } finally {
             setLoading(false)

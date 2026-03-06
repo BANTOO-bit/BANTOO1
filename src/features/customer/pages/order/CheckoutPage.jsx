@@ -161,7 +161,7 @@ function CheckoutPage() {
                         toast.error('Gagal mempersiapkan simulasi pembayaran')
                     }
                 } catch (err) {
-                    console.error('Payment preparation error:', err)
+                    if (import.meta.env.DEV) console.error('Payment preparation error:', err)
                     toast.error('Terjadi kesalahan sistem pembayaran')
                 }
                 return
@@ -170,7 +170,7 @@ function CheckoutPage() {
             // Navigate to success page for cash/wallet with order ID
             navigate('/order-success', { state: { orderId: order.id } })
         } catch (error) {
-            console.error('Error creating order:', error)
+            if (import.meta.env.DEV) console.error('Error creating order:', error)
             handleError(error, toast, { context: 'Create Order' })
         } finally {
             setIsProcessing(false)

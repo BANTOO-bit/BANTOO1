@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
                 const tiers = await settingsService.getDeliveryFeeTiers()
                 setTiersConfig(tiers)
             } catch (err) {
-                console.error('Failed to load settings:', err)
+                if (import.meta.env.DEV) console.error('Failed to load settings:', err)
             } finally {
                 setLoading(false)
             }
@@ -62,7 +62,7 @@ export default function AdminSettingsPage() {
             await settingsService.save('operational', operational)
             showToast('Pengaturan operasional berhasil disimpan')
         } catch (err) {
-            console.error(err)
+            if (import.meta.env.DEV) console.error(err)
             showToast('Gagal menyimpan pengaturan', 'error')
         } finally {
             setSaving(false)
@@ -77,7 +77,7 @@ export default function AdminSettingsPage() {
             await settingsService.saveDeliveryFeeTiers(tiersConfig)
             showToast('Pengaturan keuangan & tarif ongkir berhasil disimpan')
         } catch (err) {
-            console.error(err)
+            if (import.meta.env.DEV) console.error(err)
             showToast(err.message || 'Gagal menyimpan pengaturan', 'error')
         } finally {
             setSaving(false)
@@ -140,7 +140,7 @@ export default function AdminSettingsPage() {
             await settingsService.save('admin_profile', adminProfile)
             showToast('Profil admin berhasil disimpan')
         } catch (err) {
-            console.error(err)
+            if (import.meta.env.DEV) console.error(err)
             showToast('Gagal menyimpan profil', 'error')
         } finally {
             setSaving(false)

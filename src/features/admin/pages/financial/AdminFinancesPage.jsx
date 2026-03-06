@@ -27,7 +27,7 @@ export default function AdminFinancesPage() {
                 { label: 'Sudah Disetor', value: formatCurrency(deposited), subtext: `${codData.filter(o => o.payment_status === 'paid').length} pesanan`, icon: 'verified', color: 'green' },
                 { label: 'Sisa Belum Disetor', value: formatCurrency(remaining), subtext: remaining > 0 ? 'Perlu tindak lanjut' : 'Semua sudah lunas', icon: 'pending_actions', color: 'red' },
             ])
-        } catch (err) { console.error(err) }
+        } catch (err) { if (import.meta.env.DEV) console.error(err) }
         finally { setLoading(false) }
     }
 

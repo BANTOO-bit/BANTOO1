@@ -18,9 +18,18 @@ const filters = [
     { id: 'free', label: 'Gratis Ongkir', active: false },
 ]
 
+const sortOptions = [
+    { id: 'default', label: 'Default' },
+    { id: 'rating-desc', label: 'Rating Tertinggi' },
+    { id: 'name-asc', label: 'Nama A-Z' },
+    { id: 'name-desc', label: 'Nama Z-A' },
+]
+
 function AllMerchantsPage() {
     const navigate = useNavigate()
     const [activeFilter, setActiveFilter] = useState('all')
+    const [activeSort, setActiveSort] = useState('default')
+    const [showSortMenu, setShowSortMenu] = useState(false)
     const { isFavorite, toggleFavorite } = useFavorites()
     const { cartItems } = useCart()
 
@@ -60,17 +69,34 @@ function AllMerchantsPage() {
     }
 
     const merchants = (() => {
+        let result
         switch (activeFilter) {
             case 'rating':
-                return fetchedMerchants.filter(m => m.rating >= 4.5)
+                result = fetchedMerchants.filter(m => m.rating >= 4.5)
+                break
             case 'promo':
-                return fetchedMerchants.filter(m => m.hasPromo || m.has_promo)
+                result = fetchedMerchants.filter(m => m.hasPromo || m.has_promo)
+                break
             case 'popular':
-                return [...fetchedMerchants].sort((a, b) => b.rating - a.rating)
+                result = [...fetchedMerchants].sort((a, b) => b.rating - a.rating)
+                break
             case 'free':
-                return fetchedMerchants.filter(m => m.deliveryFee === 'Gratis' || m.delivery_fee === 0)
+                result = fetchedMerchants.filter(m => m.deliveryFee === 'Gratis' || m.delivery_fee === 0)
+                break
             default:
-                return fetchedMerchants
+                result = [...fetchedMerchants]
+        }
+
+        // Apply sort
+        switch (activeSort) {
+            case 'rating-desc':
+                return result.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+            case 'name-asc':
+                return result.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+            case 'name-desc':
+                return result.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
+            default:
+                return result
         }
     })()
 
@@ -127,6 +153,45 @@ function AllMerchantsPage() {
                             {filter.label}
                         </button>
                     ))}
+
+                    {/* Sort Button */}
+                    <div className="relative flex-none">
+                        <button
+                            onClick={() => setShowSortMenu(!showSortMenu)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap flex items-center gap-1 transition-all ${activeSort !== 'default'
+                                    ? 'bg-primary text-white'
+                                    : 'bg-white border border-border-color text-text-main'
+                                }`}
+                        >
+                            <span className="material-symbols-outlined text-[18px]">sort</span>
+                            Urutkan
+                        </button>
+                        {showSortMenu && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
+                                <div className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-border-color z-50 min-w-[180px] py-1 animate-scale-in">
+                                    {sortOptions.map(option => (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => {
+                                                setActiveSort(option.id)
+                                                setShowSortMenu(false)
+                                            }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${activeSort === option.id
+                                                    ? 'text-primary font-semibold bg-orange-50'
+                                                    : 'text-text-main hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {option.label}
+                                            {activeSort === option.id && (
+                                                <span className="material-symbols-outlined text-primary text-[18px]">check</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 

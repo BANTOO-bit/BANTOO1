@@ -60,12 +60,13 @@ function MerchantList() {
     return (
         <section className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
-                <h2 className="text-lg font-bold text-text-main">Daftar Warung</h2>
+                <h2 className="text-[15px] font-bold text-text-main">Warung Terdekat</h2>
                 <button
                     onClick={() => navigate('/merchants')}
                     className="text-sm text-primary font-medium hover:text-primary/80"
                 >
                     Lihat Semua
+                    <span className="material-symbols-outlined text-[14px]">chevron_right</span>
                 </button>
             </div>
             {merchants.map(merchant => (

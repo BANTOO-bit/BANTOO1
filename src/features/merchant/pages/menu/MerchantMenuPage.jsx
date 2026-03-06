@@ -32,7 +32,7 @@ function MerchantMenuPage() {
         setMerchantId(mId)
         return products.map(p => ({
             ...p,
-            image: p.image_url || 'https://placehold.co/400x400/orange/white?text=Menu',
+            image: p.image_url || '/images/default-menu.svg',
             price: p.price,
             isAvailable: p.is_available
         }))
@@ -129,7 +129,7 @@ function MerchantMenuPage() {
                 setItemToDelete(null)
                 mutate() // Revalidate
             } catch (err) {
-                console.error('Error deleting product:', err)
+                if (import.meta.env.DEV) console.error('Error deleting product:', err)
                 mutate(backupData, false) // Revert
                 handleError(err, toast, { context: 'Delete Menu' })
             }

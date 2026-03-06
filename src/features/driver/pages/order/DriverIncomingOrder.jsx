@@ -27,7 +27,7 @@ function DriverIncomingOrder() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => setDriverPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => console.warn('Geolocation not available')
+                () => { if (import.meta.env.DEV) console.warn('Geolocation not available') }
             )
         }
     }, [])
@@ -146,7 +146,7 @@ function DriverIncomingOrder() {
             // Navigate to pickup page
             navigate(`/driver/order/pickup/${availableOrder.id}`)
         } catch (error) {
-            console.error('Error accepting order:', error)
+            if (import.meta.env.DEV) console.error('Error accepting order:', error)
             handleError(error, toast, { context: 'Accept Order' })
             // If failed (e.g. taken by other), return to dashboard
             if (error.message?.includes('sudah diambil') || error.message?.includes('tidak tersedia')) {
@@ -164,7 +164,7 @@ function DriverIncomingOrder() {
             await driverService.rejectOrder(availableOrder.id)
             toast.success('Pesanan ditolak')
         } catch (error) {
-            console.error('Error rejecting order:', error)
+            if (import.meta.env.DEV) console.error('Error rejecting order:', error)
         } finally {
             navigate('/driver/dashboard')
         }

@@ -11,7 +11,7 @@ export default function AdminQuickActions() {
             const data = await adminService.getQuickActionCounts()
             setCounts(data)
         } catch (err) {
-            console.error('Error fetching quick action counts:', err)
+            if (import.meta.env.DEV) console.error('Error fetching quick action counts:', err)
         }
     }
 

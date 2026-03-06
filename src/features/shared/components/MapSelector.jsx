@@ -31,7 +31,7 @@ function MapSelector({ location, onLocationChange, onClose }) {
                     setGeoRadiusMeters(tiersConfig.max_radius_km * 1000); // km to meters
                 }
             } catch (err) {
-                console.error("Failed to load map radius settings, using fallback", err)
+                if (import.meta.env.DEV) console.error("Failed to load map radius settings, using fallback", err)
             }
         }
         fetchSettings()
@@ -65,7 +65,7 @@ function MapSelector({ location, onLocationChange, onClose }) {
             setFlyToCoords(coords)
             handlePositionChange(coords) // Update marker and parent
         } catch (error) {
-            console.error("GPS Error:", error)
+            if (import.meta.env.DEV) console.error("GPS Error:", error)
             alert("Gagal mengambil lokasi: " + error.message)
         } finally {
             setIsGPSLoading(false)

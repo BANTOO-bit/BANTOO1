@@ -19,7 +19,7 @@ export default function AdminMerchantDetailPage() {
             setOrderCount(data.orderCount)
             setTotalRevenue(data.totalRevenue)
         } catch (err) {
-            console.error('Error fetching merchant:', err)
+            if (import.meta.env.DEV) console.error('Error fetching merchant:', err)
             setError('Gagal memuat data warung')
         } finally {
             setLoading(false)

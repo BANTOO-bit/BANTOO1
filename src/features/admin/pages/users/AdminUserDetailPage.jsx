@@ -24,7 +24,7 @@ export default function AdminUserDetailPage() {
             setRecentOrders(orders.slice(0, 5))
             setTotalSpent(orders.filter(o => ['completed', 'delivered'].includes(o.status)).reduce((sum, o) => sum + (o.total_amount || 0), 0))
         } catch (err) {
-            console.error('Error fetching user:', err)
+            if (import.meta.env.DEV) console.error('Error fetching user:', err)
             setError('Gagal memuat data pengguna')
         } finally {
             setLoading(false)
