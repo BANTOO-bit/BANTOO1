@@ -10,7 +10,7 @@ import locationService from '@/services/locationService'
 import settingsService from '@/services/settingsService'
 import { useToast } from '@/context/ToastContext'
 import { handleError } from '@/utils/errorHandler'
-import * as turf from '@turf/turf'
+import { distanceKm } from '@/utils/geoUtils'
 import { validateForm, hasErrors, required, minLength, indonesianPhone } from '@/utils/validation'
 
 const addressLabels = [
@@ -73,9 +73,10 @@ function AddAddressPage({ editAddress = null, onAddressAdded }) {
 
     // Validate if the selected address is within the operational range
     useEffect(() => {
-        const from = turf.point([mapCenter.lng, mapCenter.lat]);
-        const to = turf.point([GEO_CENTER.lng, GEO_CENTER.lat]);
-        const distance = turf.distance(from, to, { units: 'kilometers' });
+        const distance = distanceKm(
+            mapCenter.lat, mapCenter.lng,
+            GEO_CENTER.lat, GEO_CENTER.lng
+        );
 
         setIsWithinBounds(distance <= (geoRadiusMeters / 1000));
     }, [mapCenter, geoRadiusMeters]);

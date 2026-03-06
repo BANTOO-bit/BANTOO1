@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
         }
     }
 
-    const { fullUser, isAuthenticated, refreshProfile, clearProfile } = useUserProfile(null, async () => {
+    const { fullUser, setFullUser, isAuthenticated, refreshProfile, clearProfile } = useUserProfile(null, async () => {
         // Logout callback from realtime terminate event
         await handleLogoutBase(fullUser?.id, fullUser?.roles?.includes('admin'))
         clearProfile()
@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
     )
 
     // 4. Role Management
-    const { switchRole, hasRole } = useRoleManager(fullUser, refreshProfile)
+    const { switchRole, hasRole } = useRoleManager(fullUser, refreshProfile, setFullUser)
 
     // 5. Auth Action Methods (Rate limited)
     const checkRateLimit = () => {

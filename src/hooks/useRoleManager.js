@@ -1,6 +1,6 @@
 import { authService } from '@/services/authService';
 
-export function useRoleManager(user, refreshProfile) {
+export function useRoleManager(user, refreshProfile, setFullUser) {
     const switchRole = async (newRole) => {
         if (!user) throw new Error('Not authenticated');
         if (user.roles.includes('admin')) throw new Error('Admin role is locked. Cannot switch roles.');
@@ -18,7 +18,13 @@ export function useRoleManager(user, refreshProfile) {
 
         localStorage.setItem('user_last_active_role', newRole);
         await authService.updateActiveRole(user.id, newRole);
-        await refreshProfile();
+
+        // Optimistic update — only activeRole changed, skip full refreshProfile (5 queries)
+        setFullUser(prev => ({
+            ...prev,
+            activeRole: newRole,
+            role: newRole, // Legacy prop
+        }));
     };
 
     const hasRole = (roleName) => user?.roles?.includes(roleName) || false;

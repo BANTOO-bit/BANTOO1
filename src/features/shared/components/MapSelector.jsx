@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import locationService from '@/services/locationService'
 import settingsService from '@/services/settingsService'
 import LeafletMapPicker from '@/features/shared/components/LeafletMapPicker'
-import * as turf from '@turf/turf' // Use turf.js for precise geofencing calculation
+import { distanceKm } from '@/utils/geoUtils'
 
 function MapSelector({ location, onLocationChange, onClose }) {
     const [currentPosition, setCurrentPosition] = useState(location)
@@ -39,9 +39,10 @@ function MapSelector({ location, onLocationChange, onClose }) {
 
     // Validate location on change
     useEffect(() => {
-        const from = turf.point([currentPosition.lng, currentPosition.lat]);
-        const to = turf.point([GEO_CENTER.lng, GEO_CENTER.lat]);
-        const distance = turf.distance(from, to, { units: 'kilometers' });
+        const distance = distanceKm(
+            currentPosition.lat, currentPosition.lng,
+            GEO_CENTER.lat, GEO_CENTER.lng
+        );
 
         setIsWithinBounds(distance <= (geoRadiusMeters / 1000));
     }, [currentPosition, geoRadiusMeters]);

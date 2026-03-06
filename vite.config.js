@@ -33,10 +33,9 @@ export default defineConfig(({ mode }) => ({
             options: { cacheName: 'map-tiles-cache', expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 } }
           },
           {
-            // Network-first for Supabase API
+            // Network-only for Supabase API — data must always be fresh
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-api-cache', expiration: { maxEntries: 50, maxAgeSeconds: 5 * 60 } }
+            handler: 'NetworkOnly',
           }
         ]
       }
@@ -52,9 +51,25 @@ export default defineConfig(({ mode }) => ({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-leaflet': ['leaflet', 'react-leaflet'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) {
+            return 'vendor-react'
+          }
+          if (id.includes('node_modules/leaflet') || id.includes('node_modules/react-leaflet')) {
+            return 'vendor-leaflet'
+          }
+          if (id.includes('node_modules/@supabase')) {
+            return 'vendor-supabase'
+          }
+          if (id.includes('node_modules/firebase')) {
+            return 'vendor-firebase'
+          }
+          if (id.includes('node_modules/@sentry')) {
+            return 'vendor-sentry'
+          }
+          if (id.includes('node_modules/@turf')) {
+            return 'vendor-turf'
+          }
         },
       },
     },
