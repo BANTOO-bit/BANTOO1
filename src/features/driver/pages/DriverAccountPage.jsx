@@ -36,7 +36,7 @@ function DriverAccountPage() {
             }
         }
         fetchData()
-    }, [user])
+    }, [user?.id])
 
     // Fetch merchant pending orders for badge
     useEffect(() => {
@@ -45,7 +45,7 @@ function DriverAccountPage() {
                 .then(orders => setMerchantPendingCount(orders?.length || 0))
                 .catch(() => { })
         }
-    }, [user])
+    }, [user?.id, user?.merchantId, user?.merchantStatus])
 
     const [activeOrderCount, setActiveOrderCount] = useState(0)
 
@@ -73,23 +73,29 @@ function DriverAccountPage() {
         }
     }
 
-    // Safety check before switching role
+    // Safety check before switching role — warn instead of block
     const handleSwitchRole = async (targetRole, targetPath) => {
         try {
-            // 1. Check for active orders — block if found
+            let warnings = []
+
+            // 1. Check for active orders — warn (not block)
             const activeOrders = await driverService.getActiveOrders()
-            if (activeOrders.length > 0) {
-                toast.error(`Anda masih punya ${activeOrders.length} order aktif. Selesaikan dulu sebelum pindah role.`)
-                return
+            if (activeOrders && activeOrders.length > 0) {
+                warnings.push(`${activeOrders.length} order aktif yang masih berjalan`)
             }
 
-            // 2. If driver is online, show confirmation
+            // 2. If driver is online, add to warning
             if (profile?.is_active) {
-                setSwitchConfirm({ targetRole, targetPath })
+                warnings.push('status driver Anda akan menjadi Offline')
+            }
+
+            // 3. Show confirmation if there are warnings
+            if (warnings.length > 0) {
+                setSwitchConfirm({ targetRole, targetPath, warnings })
                 return
             }
 
-            // 3. No issues — proceed directly
+            // 4. No warnings — proceed directly
             await executeSwitchRole(targetRole, targetPath)
         } catch (err) {
             if (import.meta.env.DEV) console.error('Error checking before switch:', err)
@@ -325,7 +331,7 @@ function DriverAccountPage() {
                     </div>
                 )}
 
-                {/* Switch Role Confirmation Modal */}
+                {/* Switch Role Confirmation Modal (Active Orders / Driver Online) */}
                 {switchConfirm && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                         <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl transform transition-all scale-100">
@@ -333,10 +339,21 @@ function DriverAccountPage() {
                                 <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-4">
                                     <span className="material-symbols-outlined text-amber-500 text-[32px]">warning</span>
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">Anda Sedang Online</h3>
-                                <p className="text-slate-500 text-sm mb-6">
-                                    Status Anda akan menjadi <strong>Offline</strong> dan Anda tidak akan menerima orderan baru. Yakin ingin pindah?
-                                </p>
+                                <h3 className="text-lg font-bold text-slate-900 mb-2">Perhatian</h3>
+                                <div className="text-sm text-slate-500 mb-6 space-y-2">
+                                    <p>Jika Anda pindah sekarang:</p>
+                                    <ul className="text-left space-y-1.5 pl-1">
+                                        {switchConfirm.warnings.map((w, i) => (
+                                            <li key={i} className="flex items-start gap-2">
+                                                <span className="material-symbols-outlined text-amber-500 text-[16px] mt-0.5 shrink-0">info</span>
+                                                <span>{w}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <p className="text-xs text-gray-400 mt-3">
+                                        Anda bisa kembali kapan saja untuk mengelola order.
+                                    </p>
+                                </div>
                                 <div className="flex gap-3 w-full">
                                     <button
                                         onClick={() => setSwitchConfirm(null)}

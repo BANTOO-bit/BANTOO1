@@ -1,9 +1,15 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '@/context/NotificationsContext'
 
 function NotificationsPage() {
     const navigate = useNavigate()
-    const { notifications, markAsRead, markAllAsRead, deleteNotification, unreadCount } = useNotifications()
+    const { notifications, markAsRead, markAllAsRead, deleteNotification, unreadCount, ensureLoaded, loading } = useNotifications()
+
+    // Lazy-load full notifications list when page is opened
+    useEffect(() => {
+        ensureLoaded()
+    }, [ensureLoaded])
 
     const getIconColor = (color) => {
         const colors = {

@@ -7,6 +7,24 @@
     ],
     "headers": [
         {
+            "source": "/index.html",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "no-cache, no-store, must-revalidate"
+                }
+            ]
+        },
+        {
+            "source": "/(sw\\.js|registerSW\\.js|workbox-.*\\.js)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "no-cache, no-store, must-revalidate"
+                }
+            ]
+        },
+        {
             "source": "/assets/(.*)",
             "headers": [
                 {

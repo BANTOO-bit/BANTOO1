@@ -89,14 +89,8 @@ export function useUserProfile(user, onLogout) {
         }
     }, [user]);
 
-    // Periodic role refresh
-    useEffect(() => {
-        if (!fullUser?.id) return;
-        const interval = setInterval(() => refreshProfile(), TIMEOUTS.PROFILE_REFRESH_INTERVAL_MS);
-        return () => clearInterval(interval);
-    }, [fullUser?.id, refreshProfile]);
-
     // Realtime profile changes (multi-device awareness)
+    // No periodic polling needed — realtime subscription handles updates
     useEffect(() => {
         if (!fullUser?.id) return;
         const cleanup = authService.subscribeToProfileChanges(fullUser.id, async (payload) => {
@@ -117,6 +111,7 @@ export function useUserProfile(user, onLogout) {
 
     return {
         fullUser,
+        setFullUser,
         isAuthenticated,
         refreshProfile,
         clearProfile

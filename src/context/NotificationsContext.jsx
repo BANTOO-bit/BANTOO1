@@ -35,9 +35,11 @@ export function NotificationsProvider({ children }) {
 
     // ===== Persistent Notifications State =====
     const [allNotifications, setAllNotifications] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
+    const [unreadCountDirect, setUnreadCountDirect] = useState(0)
     const unsubscribeRef = useRef(null)
     const pushUnsubscribeRef = useRef(null)
+    const hasFetchedFull = useRef(false)
 
     // ===== Toast Notifications State (must be declared before useEffect that uses addToast) =====
     const [toasts, setToasts] = useState([])
@@ -86,37 +88,42 @@ export function NotificationsProvider({ children }) {
         }
     }, [user?.id])
 
-    // Fetch notifications from Supabase on mount / user change
+    // ===== Lazy-load: only fetch unread count on mount (lightweight) =====
+    // Full notification list is fetched on-demand via ensureLoaded()
+    const ensureLoaded = useCallback(async () => {
+        if (hasFetchedFull.current || !user?.id) return
+        hasFetchedFull.current = true
+        setLoading(true)
+        try {
+            const data = await notificationService.getNotifications(100)
+            setAllNotifications((data || []).map(n => ({
+                ...n,
+                read: n.is_read,
+                time: formatRelativeTime(n.created_at),
+                icon: getIconForType(n.type),
+                color: getColorForType(n.type),
+                role: n.type === 'driver' ? 'driver' : n.type === 'merchant' ? 'merchant' : 'customer'
+            })))
+        } catch (err) {
+            console.error('Failed to fetch notifications:', err)
+        } finally {
+            setLoading(false)
+        }
+    }, [user?.id])
+
+    // On mount: only fetch unread count (1 lightweight query) + setup subscriptions
     useEffect(() => {
         if (!user?.id) {
             setAllNotifications([])
-            setLoading(false)
+            setUnreadCountDirect(0)
+            hasFetchedFull.current = false
             return
         }
 
-        let cancelled = false
-
-        async function fetchNotifications() {
-            try {
-                const data = await notificationService.getNotifications(100)
-                if (!cancelled) {
-                    setAllNotifications((data || []).map(n => ({
-                        ...n,
-                        read: n.is_read,
-                        time: formatRelativeTime(n.created_at),
-                        icon: getIconForType(n.type),
-                        color: getColorForType(n.type),
-                        role: n.type === 'driver' ? 'driver' : n.type === 'merchant' ? 'merchant' : 'customer'
-                    })))
-                }
-            } catch (err) {
-                console.error('Failed to fetch notifications:', err)
-            } finally {
-                if (!cancelled) setLoading(false)
-            }
-        }
-
-        fetchNotifications()
+        // Lightweight unread count fetch
+        notificationService.getUnreadCount().then(count => {
+            setUnreadCountDirect(count)
+        }).catch(() => { /* silent */ })
 
         // Subscribe to real-time notifications
         const unsubscribe = notificationService.subscribeToNotifications(user.id, (newNotif) => {
@@ -128,6 +135,11 @@ export function NotificationsProvider({ children }) {
                 color: getColorForType(newNotif.type),
                 role: newNotif.type === 'driver' ? 'driver' : newNotif.type === 'merchant' ? 'merchant' : 'customer'
             }, ...prev])
+
+            // Increment unread count for badge
+            if (!newNotif.is_read) {
+                setUnreadCountDirect(prev => prev + 1)
+            }
 
             // Play notification sound
             playNotificationSound()
@@ -152,7 +164,6 @@ export function NotificationsProvider({ children }) {
         })
 
         return () => {
-            cancelled = true
             if (unsubscribeRef.current) unsubscribeRef.current()
             if (pushUnsubscribeRef.current) pushUnsubscribeRef.current()
             if (typeof unsubForeground === 'function') unsubForeground()
@@ -169,6 +180,7 @@ export function NotificationsProvider({ children }) {
         setAllNotifications(prev =>
             prev.map(n => n.id === notificationId ? { ...n, read: true, is_read: true } : n)
         )
+        setUnreadCountDirect(prev => Math.max(0, prev - 1))
         try {
             await notificationService.markAsRead(notificationId)
         } catch (err) {
@@ -183,6 +195,7 @@ export function NotificationsProvider({ children }) {
             }
             return n
         }))
+        setUnreadCountDirect(0)
         try {
             await notificationService.markAllAsRead()
         } catch (err) {
@@ -219,19 +232,23 @@ export function NotificationsProvider({ children }) {
         setAllNotifications(prev => [newNotification, ...prev])
     }
 
-    const unreadCount = notifications.filter(n => !n.read).length
+    // Use direct count when full list hasn't been loaded; use computed count once loaded
+    const computedUnreadCount = hasFetchedFull.current
+        ? notifications.filter(n => !n.read).length
+        : unreadCountDirect
 
     // ===== Combined Value =====
     const value = {
         // Persistent notifications
         notifications,
-        unreadCount,
+        unreadCount: computedUnreadCount,
         loading,
         markAsRead,
         markAllAsRead,
         deleteNotification,
         clearAll,
         addNotification,
+        ensureLoaded,
         // Toast notifications
         toasts,
         addToast,
