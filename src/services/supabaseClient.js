@@ -28,9 +28,9 @@ export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
         }
     },
     auth: {
-        // Switch to sessionStorage for better security than localStorage
-        // Automatically destroyed when user closes the browser/tab
-        storage: typeof window !== 'undefined' ? window.sessionStorage : null,
+        // Gunakan localStorage untuk persistensi sesi yang lebih baik
+        // Sangat disarankan untuk tipe aplikasi driver dan customer
+        storage: typeof window !== 'undefined' ? window.localStorage : null,
         storageKey: 'bantoo-auth-token',
         autoRefreshToken: true,
         persistSession: true,

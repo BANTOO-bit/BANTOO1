@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
 
     // 2. Profile Management
     const handleLogoutBase = async (userId, isAdmin) => {
-        const withTimeout = (promise, ms = 5000) => {
+        const withTimeout = (promise, ms = 10000) => {
             let timeoutId
             const timeout = new Promise((_, reject) => {
                 timeoutId = setTimeout(() => reject(new Error('Logout network timeout')), ms)
