@@ -26,7 +26,10 @@ function CheckoutPage() {
     const [showAddressModal, setShowAddressModal] = useState(false)
     const [paymentMethods, setPaymentMethods] = useState([])
     const [codMaxAmount, setCodMaxAmount] = useState(500000) // Default Rp 500.000
+    const [customerServiceFee, setCustomerServiceFee] = useState(500) // Default Rp 500
     const [loadingPayments, setLoadingPayments] = useState(true)
+
+    const finalGrandTotal = grandTotal + customerServiceFee
 
     useEffect(() => {
         const effectiveMerchantId = merchantInfo?.id || (cartItems.length > 0 ? cartItems[0].merchantId : null)
@@ -79,16 +82,22 @@ function CheckoutPage() {
 
         fetchPaymentMethods()
 
-        // Fetch COD max order amount
-        async function fetchCodLimit() {
+        // Fetch operational and financial settings
+        async function fetchSettings() {
             try {
-                const operational = await settingsService.get('operational')
+                const [operational, financial] = await Promise.all([
+                    settingsService.get('operational'),
+                    settingsService.get('financial')
+                ])
                 if (operational?.cod_max_order_amount) {
                     setCodMaxAmount(operational.cod_max_order_amount)
                 }
+                if (financial?.customer_service_fee !== undefined) {
+                    setCustomerServiceFee(financial.customer_service_fee)
+                }
             } catch { /* use default */ }
         }
-        fetchCodLimit()
+        fetchSettings()
     }, [user?.id])
 
     const handlePlaceOrder = async () => {
@@ -142,6 +151,7 @@ function CheckoutPage() {
                 customerLng: selectedAddress.lng || null,
                 paymentMethod: selectedPayment,
                 deliveryFee: typeof deliveryFee === 'number' ? deliveryFee : 8000,
+                applicationFee: customerServiceFee,
                 notes: null
             }
 
@@ -154,7 +164,7 @@ function CheckoutPage() {
             // Handle digital payment redirection
             if (['gopay', 'ovo', 'dana'].includes(selectedPayment)) {
                 try {
-                    const paymentRes = await paymentService.createPaymentTransaction(order.id, grandTotal, selectedPayment)
+                    const paymentRes = await paymentService.createPaymentTransaction(order.id, finalGrandTotal, selectedPayment)
                     if (paymentRes.success) {
                         navigate(paymentRes.redirect_url)
                     } else {
@@ -291,6 +301,10 @@ function CheckoutPage() {
                                 <span className="text-text-secondary">Ongkos Kirim</span>
                                 <span>Rp {deliveryFee.toLocaleString()}</span>
                             </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-text-secondary">Biaya Layanan</span>
+                                <span>Rp {customerServiceFee.toLocaleString()}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -339,7 +353,7 @@ function CheckoutPage() {
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border-color p-4 z-50">
                 <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-text-secondary">Total Pembayaran</span>
-                    <span className="text-lg font-bold text-primary">Rp {grandTotal.toLocaleString()}</span>
+                    <span className="text-lg font-bold text-primary">Rp {finalGrandTotal.toLocaleString()}</span>
                 </div>
                 <button
                     onClick={handlePlaceOrder}
@@ -374,7 +388,7 @@ function CheckoutPage() {
                         </div>
                         <div className="space-y-2">
                             {paymentMethods.map(method => {
-                                const isCodDisabled = (method.id === 'cash' || method.id === 'cod') && grandTotal > codMaxAmount
+                                const isCodDisabled = (method.id === 'cash' || method.id === 'cod') && finalGrandTotal > codMaxAmount
                                 return (
                                     <button
                                         key={method.id}

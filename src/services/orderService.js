@@ -83,7 +83,8 @@ export const orderService = {
             paymentMethod = 'cod',
             promoCode = null,
             notes = null,
-            deliveryFee = null
+            deliveryFee = null,
+            applicationFee = 0
         } = orderData
 
         // Prepare items for RPC (only IDs and quantities — prices come from DB)
@@ -98,12 +99,6 @@ export const orderService = {
         const timeoutId = setTimeout(() => controller.abort(), 15000)
 
         try {
-            // Server-side price calculation via RPC
-            // NOTE: Item prices are fetched from DB inside the RPC — safe.
-            // SECURITY: p_delivery_fee is sent as a "hint" from client-side calculation.
-            // The RPC should re-validate using calculate_delivery_fee_server()
-            // (see validate_delivery_fee.sql) with ±20% tolerance to prevent tampering.
-            // If client fee < 80% of server-calculated fee → RPC rejects the order.
             const { data: rpcResult, error: rpcError } = await supabase.rpc('create_order', {
                 p_merchant_id: merchantId,
                 p_items: orderItems,
@@ -116,7 +111,8 @@ export const orderService = {
                 p_payment_method: paymentMethod,
                 p_promo_code: promoCode,
                 p_notes: notes,
-                p_delivery_fee: deliveryFee
+                p_delivery_fee: deliveryFee,
+                p_application_fee: applicationFee
             })
 
             if (rpcError) {

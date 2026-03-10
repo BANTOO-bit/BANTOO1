@@ -5,7 +5,7 @@ import settingsService from '@/services/settingsService'
 // Default values (fallback if DB is empty)
 const DEFAULTS = {
     operational: { service_radius_km: 10, open_time: '08:00', close_time: '21:00', cod_balance_limit: 10000, cod_time_limit_hours: 48, cod_max_order_amount: 500000 },
-    financial: { commission_percent: 10, base_delivery_fare: 8000, parking_fee: 2000, cod_admin_fee: 0 },
+    financial: { commission_percent: 10, base_delivery_fare: 8000, parking_fee: 2000, cod_admin_fee: 0, customer_service_fee: 500 },
     bank: { bank_name: 'BCA', account_number: '', account_holder: '' },
     admin_profile: { full_name: '', whatsapp: '', office_address: '', office_lat: -6.2088, office_lng: 106.8456 }
 }
@@ -349,7 +349,22 @@ export default function AdminSettingsPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {/* Customer Service Fee */}
+                            <div className="bg-white dark:bg-[#1a2632] p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-colors">
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Biaya Layanan Aplikasi</label>
+                                        <span className="material-symbols-outlined text-gray-400 text-lg">monetization_on</span>
+                                    </div>
+                                    <div className="relative rounded-md shadow-sm">
+                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4"><span className="text-gray-500 font-medium">Rp</span></div>
+                                        <input className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pl-12 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white" type="number" value={financial.customer_service_fee} onChange={e => setFinancial(p => ({ ...p, customer_service_fee: Number(e.target.value) }))} />
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Dibebankan ke pelanggan.</p>
+                                </div>
+                            </div>
+
                             {/* Commission */}
                             <div className="bg-white dark:bg-[#1a2632] p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-colors">
                                 <div className="flex flex-col gap-4">
@@ -384,14 +399,14 @@ export default function AdminSettingsPage() {
                             <div className="bg-white dark:bg-[#1a2632] p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-colors">
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Batas Potongan Ongkir COD</label>
+                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Potongan Ongkir COD</label>
                                         <span className="material-symbols-outlined text-gray-400 text-lg">price_check</span>
                                     </div>
                                     <div className="relative rounded-md shadow-sm">
                                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4"><span className="text-gray-500 font-medium">Rp</span></div>
                                         <input className="block w-full rounded-lg border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 pl-12 py-3 focus:border-primary focus:ring-primary sm:text-lg font-bold text-gray-900 dark:text-white" type="number" value={financial.cod_admin_fee} onChange={e => setFinancial(p => ({ ...p, cod_admin_fee: Number(e.target.value) }))} />
                                     </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Potongan biaya admin dari ongkos kirim.</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Dipotong dari ongkos kirim.</p>
                                 </div>
                             </div>
                         </div>
