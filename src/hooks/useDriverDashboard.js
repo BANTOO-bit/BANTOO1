@@ -238,6 +238,37 @@ export function useDriverDashboard(user) {
 
     // Toggle handler
     const toggleOnline = async () => {
+        // Jika driver sedang ONLINE dan ingin OFFLINE
+        if (isOnline) {
+            try {
+                // Periksa apakah driver memiliki order aktif (Pickup/Delivering)
+                const activeOrder = await driverService.getActiveOrder()
+                if (activeOrder) {
+                    addNotification({ 
+                        type: 'error', 
+                        message: 'Selesaikan pesanan aktif Anda terlebih dahulu sebelum offline', 
+                        duration: 4000,
+                        sticky: true
+                    })
+                    return // Batal toggle
+                }
+            } catch (err) {
+                if (import.meta.env.DEV) console.error('Gagal cek pesanan aktif driver', err)
+            }
+        } else {
+            // Jika driver sedang OFFLINE dan ingin ONLINE
+            // Tambahkan proteksi limit COD jika nilainya sudah di-fetch melalui checkCodFeeBalance()
+            if (codFeeBalance && codFeeBalance.isLimitExceeded) {
+                addNotification({
+                    type: 'error',
+                    message: 'Limit saldo COD melebihi batas. Segera Setor tunai ke Admin untuk bisa Online kembali.',
+                    duration: 5000,
+                    sticky: true
+                })
+                return // Batal toggle
+            }
+        }
+
         const newValue = !isOnline
         setIsOnline(newValue)
         try {

@@ -32,6 +32,23 @@ export function useMerchantShop() {
     const toggleShopStatus = async () => {
         if (!user?.merchantId) return
 
+        // Jika akan menutup warung (kondisi isShopOpen bernilai true)
+        if (isShopOpen) {
+            try {
+                // Gunakan orderService untuk mencari pesanan yang belum selesai
+                const { orderService } = await import('../services/orderService')
+                // Ambil semua daftar order, filter array
+                const orders = await orderService.getMerchantOrders(user.merchantId, ['pending', 'accepted', 'preparing'])
+                
+                if (orders && orders.length > 0) {
+                    throw new Error('merchant_has_active_orders')
+                }
+            } catch (err) {
+                // Lempar ke UI agar bisa di-toast
+                throw err
+            }
+        }
+
         const newStatus = !isShopOpen
         try {
             await merchantService.setShopOpen(user.merchantId, newStatus)

@@ -154,16 +154,38 @@ function MerchantDashboard() {
             <MerchantHeader />
 
             <main className="flex flex-col gap-6 px-4 pt-2">
-                {/* Offline Status Banner */}
-                {!isShopOpen && (
-                    <div className="bg-gray-100 dark:bg-gray-800 border-l-4 border-gray-500 text-gray-700 dark:text-gray-300 p-4 rounded-r shadow-sm flex items-start gap-3 animate-fade-in">
-                        <span className="material-symbols-outlined text-gray-500">storefront</span>
-                        <div>
-                            <p className="font-bold text-sm">Warung Sedang Tutup (Offline)</p>
-                            <p className="text-xs mt-0.5">Anda tidak akan menerima pesanan baru. Gunakan waktu ini untuk istirahat atau mengelola stok.</p>
-                        </div>
+                {/* Offline Status Banner / Toggle Button */}
+                <div className={`p-4 rounded-xl shadow-sm flex items-start gap-3 animate-fade-in border ${isShopOpen ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30' : 'bg-gray-100 dark:bg-gray-800 border-l-4 border-gray-500 text-gray-700 dark:text-gray-300'}`}>
+                    <span className={`material-symbols-outlined mt-0.5 ${isShopOpen ? 'text-green-600 dark:text-green-500' : 'text-gray-500'}`}>
+                        {isShopOpen ? 'storefront' : 'store_closed'}
+                    </span>
+                    <div className="flex-1">
+                        <p className={`font-bold text-sm ${isShopOpen ? 'text-green-800 dark:text-green-400' : ''}`}>
+                            {isShopOpen ? 'Warung Buka (Online)' : 'Warung Tutup (Offline)'}
+                        </p>
+                        <p className={`text-xs mt-0.5 ${isShopOpen ? 'text-green-700 dark:text-green-500' : ''}`}>
+                            {isShopOpen ? 'Warung Anda siap menerima pesanan masuk.' : 'Anda tidak akan menerima pesanan baru. Gunakan waktu ini untuk rehat.'}
+                        </p>
                     </div>
-                )}
+                    <button 
+                        onClick={async () => {
+                            try {
+                                await toggleShopStatus()
+                                if (!isShopOpen) {
+                                    toast.success('Warung berhasil BUKA')
+                                } else {
+                                    toast.success('Warung berhasil TUTUP')
+                                }
+                            } catch (err) {
+                                // Akan ditangkap otomatis dari errorHandler.js (lewat useMerchantShop/orderService)
+                                toast.error(err)
+                            }
+                        }}
+                        className={`shrink-0 px-4 py-2 text-xs font-bold rounded-lg transition-colors ${isShopOpen ? 'bg-red-100 hover:bg-red-200 text-red-700' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                    >
+                        {isShopOpen ? 'TUTUP WARUNG' : 'BUKA WARUNG'}
+                    </button>
+                </div>
                 {/* Stats Section */}
                 <section className="grid grid-cols-2 gap-3">
                     <button

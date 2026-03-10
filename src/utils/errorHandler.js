@@ -38,6 +38,7 @@ const ERROR_MESSAGES = {
     'Order not found': 'Pesanan tidak ditemukan.',
     'Merchant closed': 'Warung sedang tutup.',
     'Out of stock': 'Stok habis.',
+    'merchant_has_active_orders': 'Warung tidak bisa ditutup karena masih ada pesanan yang belum diselesaikan (Pending/Preparing).',
 
     // COD & Wallet errors
     'cod_limit_exceeded': 'Fee COD telah melebihi batas. Segera lakukan setoran.',
