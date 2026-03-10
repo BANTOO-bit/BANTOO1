@@ -23,8 +23,10 @@ const logger = {
             console.error(`[Error${context ? ` - ${context}` : ''}]:`, message, error)
         }
 
-        // In production, you could send to error tracking service
-        // Example: Sentry.captureException(error, { tags: { context } })
+        // Send to Sentry error tracking service in production
+        if (isProduction && window.Sentry) {
+            window.Sentry.captureException(error, { extra: { context, message } });
+        }
     },
 
     /**

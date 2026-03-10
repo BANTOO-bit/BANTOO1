@@ -20,11 +20,15 @@ export function useRoleManager(user, refreshProfile, setFullUser) {
         await authService.updateActiveRole(user.id, newRole);
 
         // Optimistic update — only activeRole changed, skip full refreshProfile (5 queries)
-        setFullUser(prev => ({
-            ...prev,
-            activeRole: newRole,
-            role: newRole, // Legacy prop
-        }));
+        if (typeof setFullUser === 'function') {
+            setFullUser(prev => ({
+                ...prev,
+                activeRole: newRole,
+                role: newRole, // Legacy prop
+            }));
+        } else if (typeof refreshProfile === 'function') {
+            await refreshProfile();
+        }
     };
 
     const hasRole = (roleName) => user?.roles?.includes(roleName) || false;

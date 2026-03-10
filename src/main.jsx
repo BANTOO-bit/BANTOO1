@@ -23,6 +23,7 @@ if (SENTRY_DSN) {
             replaysSessionSampleRate: 0.1, // 10% of sessions
             replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
         })
+        window.Sentry = Sentry; // Make available for global logger
     }).catch(() => {
         // Silent fail — Sentry is non-critical
     })
