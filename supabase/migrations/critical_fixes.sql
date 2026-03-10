@@ -105,8 +105,8 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'message', 'Pesanan belum diantar');
     END IF;
 
-    -- Must be COD
-    IF v_order.payment_method != 'cod' THEN
+    -- Must be COD (accept all variants: cod, cash, tunai)
+    IF LOWER(v_order.payment_method) NOT IN ('cod', 'cash', 'tunai') THEN
         RETURN jsonb_build_object('success', false, 'message', 'Pesanan ini bukan COD');
     END IF;
 

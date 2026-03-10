@@ -48,8 +48,8 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'message', 'Pesanan belum diambil dari merchant (status: ' || v_order.status || ')');
     END IF;
 
-    -- Validate payment method is COD
-    IF v_order.payment_method != 'cod' THEN
+    -- Validate payment method is COD (accept all variants: cod, cash, tunai)
+    IF LOWER(v_order.payment_method) NOT IN ('cod', 'cash', 'tunai') THEN
         RETURN jsonb_build_object('success', false, 'message', 'Fungsi ini hanya untuk pesanan COD');
     END IF;
 
