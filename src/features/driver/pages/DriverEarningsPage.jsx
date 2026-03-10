@@ -138,7 +138,7 @@ function DriverEarningsPage() {
             return { driver: 0, codFee: 0 }
         }
         const driverIncome = filteredTransactions.reduce((acc, curr) => acc + ((curr.delivery_fee || 0) - (curr.admin_fee || 0)), 0)
-        const codFee = filteredTransactions.reduce((acc, curr) => acc + (curr.admin_fee || 0), 0)
+        const codFee = filteredTransactions.reduce((acc, curr) => acc + (curr.method === 'Tunai (COD)' ? (curr.admin_fee || 0) : 0), 0)
         return { driver: driverIncome, codFee: codFee }
     }, [filteredTransactions])
 

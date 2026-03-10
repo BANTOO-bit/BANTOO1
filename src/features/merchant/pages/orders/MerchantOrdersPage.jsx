@@ -77,6 +77,8 @@ function MerchantOrdersPage() {
                 payment: getPaymentLabel(order.payment_method),
                 status: order.status, // Pass raw status for logic, component handles display text
                 total: order.total_amount,
+                subtotal: order.subtotal,
+                discount: order.discount,
                 items: order.items?.map(item => ({
                     qty: item.quantity,
                     name: item.product_name,
@@ -731,7 +733,7 @@ function MerchantOrdersPage() {
                                                 <div className="flex justify-between items-center mt-2">
                                                     <span className="text-xs text-text-secondary">{order.payment}</span>
                                                     <span className="text-sm font-bold text-text-main dark:text-white">
-                                                        Rp {order.total.toLocaleString('id-ID')}
+                                                        Rp {(order.subtotal !== undefined ? (order.subtotal - (order.discount || 0)) : order.total).toLocaleString('id-ID')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -872,7 +874,7 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
                             </div>
                         </div>
                         <span className="text-text-main dark:text-white font-semibold text-xs whitespace-nowrap">
-                            Rp {item.price.toLocaleString('id-ID')}
+                            Rp {(item.price * item.qty).toLocaleString('id-ID')}
                         </span>
                     </div>
                 ))}
@@ -883,8 +885,8 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
             {/* Footer */}
             <div className={`flex justify-between items-center pt-1 ${isDiproses ? 'gap-4' : ''}`}>
                 <div className="flex flex-col shrink-0">
-                    <span className="text-[10px] text-text-secondary">Total Harga</span>
-                    <p className="text-base font-bold text-text-main dark:text-white">Rp {order.total.toLocaleString('id-ID')}</p>
+                    <span className="text-[10px] text-text-secondary">Subtotal Makanan</span>
+                    <p className="text-base font-bold text-text-main dark:text-white">Rp {(order.subtotal !== undefined ? (order.subtotal - (order.discount || 0)) : order.total).toLocaleString('id-ID')}</p>
                 </div>
                 {tab === 'baru' && (
                     <div className="flex gap-2.5">

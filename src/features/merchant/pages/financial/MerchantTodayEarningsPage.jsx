@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import dashboardService from '@/services/dashboardService'
 import orderService from '@/services/orderService'
+import settingsService from '@/services/settingsService'
 import MerchantBottomNavigation from '@/features/merchant/components/MerchantBottomNavigation'
 import { formatOrderId } from '@/utils/orderUtils'
 
@@ -63,10 +64,27 @@ function MerchantTodayEarningsPage() {
                 // Filter to today only
                 const todayOrders = orders.filter(o => new Date(o.created_at) >= todayStart)
 
+                // Fetch commission from settings
+                let commissionPercent = 10;
+                try {
+                    const financial = await settingsService.get('financial');
+                    if (financial?.commission_percent !== undefined) {
+                        commissionPercent = financial.commission_percent;
+                    }
+                } catch (e) {
+                    // fallback to 10
+                }
+
                 // Calculate earnings from completed orders
                 const completedOrders = todayOrders.filter(o => ['completed', 'delivered'].includes(o.status))
-                const gross = completedOrders.reduce((sum, o) => sum + (o.subtotal || 0), 0)
-                const deduction = completedOrders.reduce((sum, o) => sum + (o.service_fee || 0), 0)
+
+                const gross = completedOrders.reduce((sum, o) => {
+                    const sub = o.subtotal || 0;
+                    const disc = o.discount || 0;
+                    return sum + (sub - disc);
+                }, 0)
+
+                const deduction = Math.round(gross * (commissionPercent / 100));
                 const net = gross - deduction
 
                 setEarnings({ gross, deduction, net })

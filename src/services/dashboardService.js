@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import logger from '../utils/logger'
+import settingsService from './settingsService'
 
 /**
  * Dashboard Service - Get stats and analytics for dashboards
@@ -15,10 +16,19 @@ export const dashboardService = {
             today.setHours(0, 0, 0, 0)
             const todayISO = today.toISOString()
 
+            // Fetch financial settings for commission
+            let commissionPercent = 10 // Default
+            try {
+                const financial = await settingsService.get('financial')
+                if (financial?.commission_percent !== undefined) {
+                    commissionPercent = financial.commission_percent
+                }
+            } catch (e) { /* use default */ }
+
             // Get orders for this merchant
             const { data: orders, error: ordersError } = await supabase
                 .from('orders')
-                .select('id, total_amount, status, created_at, payment_status')
+                .select('id, total_amount, subtotal, discount, status, created_at, payment_status')
                 .eq('merchant_id', merchantId)
                 .gte('created_at', todayISO)
 
@@ -30,9 +40,14 @@ export const dashboardService = {
             const activeOrders = orders?.filter(o => ['pending', 'accepted', 'ready', 'pickup'].includes(o.status)).length || 0
 
             // Calculate earnings (only from completed orders)
+            // Revenue = (Subtotal - Discount) - (Komisi %)
             const todayEarnings = orders
                 ?.filter(o => o.status === 'completed')
-                .reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0
+                .reduce((sum, order) => {
+                    const orderGross = (order.subtotal || 0) - (order.discount || 0);
+                    const commission = Math.round(orderGross * (commissionPercent / 100));
+                    return sum + (orderGross - commission);
+                }, 0) || 0
 
             // Get new orders count
             const newOrders = orders?.filter(o => o.status === 'pending').length || 0
@@ -172,16 +187,32 @@ export const dashboardService = {
                     .order('created_at', { ascending: false })
                     .limit(5),
                 supabase.from('orders')
-                    .select('total_amount, delivery_fee, created_at')
+                    .select('total_amount, subtotal, discount, delivery_fee, service_fee, created_at')
                     .eq('status', 'completed')
             ])
 
-            // Calculate revenue
-            const totalRevenue = revenueData?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0
-            const totalDeliveryFees = revenueData?.reduce((sum, order) => sum + (order.delivery_fee || 0), 0) || 0
+            // Fetch financial settings for commission
+            let commissionPercent = 10 // Default
+            try {
+                const financial = await settingsService.get('financial')
+                if (financial?.commission_percent !== undefined) {
+                    commissionPercent = financial.commission_percent
+                }
+            } catch (e) { /* use default */ }
 
-            // Platform net revenue (example: 10% of order value + 20% of delivery fee)
-            const netRevenue = (totalRevenue * 0.10) + (totalDeliveryFees * 0.20)
+            // Calculate revenue
+            // Gross revenue is based on food order values (subtotal - discount)
+            const totalRevenue = revenueData?.reduce((sum, order) => {
+                return sum + ((order.subtotal || 0) - (order.discount || 0));
+            }, 0) || 0
+
+            // Platform net revenue: Commission from merchant + Driver Admin Fee (service_fee)
+            const netRevenue = revenueData?.reduce((sum, order) => {
+                const orderGross = (order.subtotal || 0) - (order.discount || 0);
+                const merchantCommission = orderGross * (commissionPercent / 100);
+                const driverAdminFee = order.service_fee || 0;
+                return sum + merchantCommission + driverAdminFee;
+            }, 0) || 0
 
             // Calculate weekly chart data from real database rows
             const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -248,10 +279,19 @@ export const dashboardService = {
 
             const startISO = startDate.toISOString()
 
+            // Fetch financial settings
+            let commissionPercent = 10 // Default
+            try {
+                const financial = await settingsService.get('financial')
+                if (financial?.commission_percent !== undefined) {
+                    commissionPercent = financial.commission_percent
+                }
+            } catch (e) { /* use default */ }
+
             // Fetch completed orders
             const { data: orders, error } = await supabase
                 .from('orders')
-                .select('id, total_amount, delivery_fee, created_at, status, merchants(name)')
+                .select('id, total_amount, subtotal, discount, delivery_fee, service_fee, created_at, status, merchants(name)')
                 .eq('status', 'completed')
                 .gte('created_at', startISO)
                 .order('created_at', { ascending: false })
@@ -267,18 +307,29 @@ export const dashboardService = {
             if (withdrawalError) throw withdrawalError
 
             // Calculations
-            const totalGrossRevenue = orders?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0
+            const totalGrossRevenue = orders?.reduce((sum, o) => sum + ((o.subtotal || 0) - (o.discount || 0)), 0) || 0
             const totalDeliveryFees = orders?.reduce((sum, o) => sum + (o.delivery_fee || 0), 0) || 0
 
-            // Business Logic (Approximation)
-            // Platform gets 10% of order value + 20% of delivery fee
-            const platformFee = Math.round((totalGrossRevenue * 0.10) + (totalDeliveryFees * 0.20))
+            // Business Logic
+            // Platform gets: Merchant Commission + Driver Admin Fee (service_fee)
+            const platformFee = orders?.reduce((sum, o) => {
+                const orderGross = (o.subtotal || 0) - (o.discount || 0);
+                const merchantCommission = Math.round(orderGross * (commissionPercent / 100));
+                const driverAdminFee = o.service_fee || 0;
+                return sum + merchantCommission + driverAdminFee;
+            }, 0) || 0
 
-            // Driver gets 80% of delivery fee
-            const driverRevenue = Math.round(totalDeliveryFees * 0.80)
+            // Driver gets: Delivery Fee - Driver Admin Fee
+            const driverRevenue = orders?.reduce((sum, o) => {
+                return sum + ((o.delivery_fee || 0) - (o.service_fee || 0));
+            }, 0) || 0
 
-            // Merchant gets 90% of order value
-            const merchantRevenue = Math.round(totalGrossRevenue * 0.90)
+            // Merchant gets: Gross Revenue - Merchant Commission
+            const merchantRevenue = orders?.reduce((sum, o) => {
+                const orderGross = (o.subtotal || 0) - (o.discount || 0);
+                const merchantCommission = Math.round(orderGross * (commissionPercent / 100));
+                return sum + (orderGross - merchantCommission);
+            }, 0) || 0
 
             // Chart Data Generation
             const chartData = []
@@ -311,14 +362,18 @@ export const dashboardService = {
                 pendingWithdrawalsCount: pendingWithdrawalsCount || 0,
                 totalOrders: orders?.length || 0,
                 chartData,
-                recentTransactions: orders?.slice(0, 5).map(o => ({
-                    id: o.id,
-                    merchantName: o.merchants?.name || 'Unknown',
-                    time: new Date(o.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-                    platformFee: Math.round((o.total_amount * 0.10) + (o.delivery_fee * 0.20)),
-                    total: o.total_amount,
-                    status: 'completed'
-                })) || []
+                recentTransactions: orders?.slice(0, 5).map(o => {
+                    const orderGross = (o.subtotal || 0) - (o.discount || 0);
+                    const merchantCommission = Math.round(orderGross * (commissionPercent / 100));
+                    return {
+                        id: o.id,
+                        merchantName: o.merchants?.name || 'Unknown',
+                        time: new Date(o.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                        platformFee: merchantCommission + (o.service_fee || 0),
+                        total: o.total_amount,
+                        status: 'completed'
+                    };
+                }) || []
             }
         } catch (error) {
             console.error('Failed to fetch revenue stats', error)

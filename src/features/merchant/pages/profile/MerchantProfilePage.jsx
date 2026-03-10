@@ -220,7 +220,7 @@ function MerchantProfilePage() {
                         <h3 className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-2 ml-2">Keuangan</h3>
                         <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-soft divide-y divide-border-light dark:divide-border-dark overflow-hidden">
                             <div
-                                onClick={() => navigate('/merchant/balance')}
+                                onClick={() => navigate('/merchant/wallet')}
                                 className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                             >
                                 <div className="flex items-center gap-3">

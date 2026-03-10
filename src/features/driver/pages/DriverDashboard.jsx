@@ -178,20 +178,19 @@ function DriverDashboard() {
                                     <DriverAvailableOrders availableOrders={availableOrders} />
                                 </div>
                             )}
+                            {/* Offline State */}
+                            {!isOnline && (
+                                <div className="flex flex-col items-center justify-center py-12 px-6 mt-4">
+                                    <div className="size-24 rounded-full bg-slate-50 flex items-center justify-center mb-5 ring-1 ring-slate-100">
+                                        <span className="material-symbols-outlined text-[48px] text-slate-300">power_settings_new</span>
+                                    </div>
+                                    <h3 className="text-slate-900 text-xl font-bold leading-tight mb-2 text-center">Anda Sedang Offline</h3>
+                                    <p className="text-slate-500 text-center max-w-[280px] leading-relaxed text-sm">
+                                        Nyalakan tombol di atas untuk mulai menerima orderan masuk.
+                                    </p>
+                                </div>
+                            )}
                         </>
-                    )}
-
-                    {/* Offline State */}
-                    {!isOnline && (
-                        <div className="flex flex-col items-center justify-center py-12 px-6 mt-4">
-                            <div className="size-24 rounded-full bg-slate-50 flex items-center justify-center mb-5 ring-1 ring-slate-100">
-                                <span className="material-symbols-outlined text-[48px] text-slate-300">power_settings_new</span>
-                            </div>
-                            <h3 className="text-slate-900 text-xl font-bold leading-tight mb-2 text-center">Anda Sedang Offline</h3>
-                            <p className="text-slate-500 text-center max-w-[280px] leading-relaxed text-sm">
-                                Nyalakan tombol di atas untuk mulai menerima orderan masuk.
-                            </p>
-                        </div>
                     )}
 
                     <div className="h-6" />

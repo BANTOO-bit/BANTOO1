@@ -1,7 +1,30 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import settingsService from '@/services/settingsService'
 
 function MerchantOrderDetail({ order, onBack }) {
+    const [commissionPercent, setCommissionPercent] = useState(10); // Default 10%
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const financial = await settingsService.get('financial');
+                if (financial?.commission_percent !== undefined) {
+                    setCommissionPercent(financial.commission_percent);
+                }
+            } catch (error) {
+                console.error('Failed to fetch commission percent for order detail:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
     if (!order) return null;
+
+    // Revenue calculations
+    // Fallback to order.total if subtotal is missing (for older orders)
+    const orderGross = order.subtotal !== undefined ? ((order.subtotal || 0) - (order.discount || 0)) : (order.total || 0);
+    const commission = Math.round(orderGross * (commissionPercent / 100));
+    const netIncome = orderGross - commission;
 
     // Mock timeline data if not present (using order time as base)
     const timeline = order.timeline || {
@@ -108,21 +131,49 @@ function MerchantOrderDetail({ order, onBack }) {
 
                     {/* Payment Summary */}
                     <div className="bg-gray-50/50 dark:bg-white/5 p-4 flex flex-col gap-2">
-                        <div className="flex justify-between items-center text-xs text-text-secondary">
-                            <span>Subtotal</span>
-                            <span>Rp {order.total.toLocaleString('id-ID')}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs text-text-secondary">
-                            <span>Komisi (0%)</span>
-                            <span>Rp 0</span>
-                        </div>
-                        <div className="h-px bg-dashed border-t border-dashed border-gray-200 dark:border-gray-700 my-1"></div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-text-main dark:text-gray-300">Total Pendapatan Bersih</span>
-                            <span className={`text-lg font-bold ${order.status === 'cancelled' ? 'text-text-secondary decoration-line-through' : 'text-primary'}`}>
-                                Rp {order.total.toLocaleString('id-ID')}
-                            </span>
-                        </div>
+                        {order.subtotal !== undefined ? (
+                            <>
+                                <div className="flex justify-between items-center text-xs text-text-secondary">
+                                    <span>Subtotal</span>
+                                    <span>Rp {order.subtotal?.toLocaleString('id-ID')}</span>
+                                </div>
+                                {order.discount > 0 && (
+                                    <div className="flex justify-between items-center text-xs text-text-secondary text-green-600">
+                                        <span>Diskon</span>
+                                        <span>-Rp {order.discount?.toLocaleString('id-ID')}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center text-xs text-text-secondary">
+                                    <span>Komisi ({commissionPercent}%)</span>
+                                    <span className="text-red-500">-Rp {commission.toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="h-px bg-dashed border-t border-dashed border-gray-200 dark:border-gray-700 my-1"></div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium text-text-main dark:text-gray-300">Total Pendapatan Bersih</span>
+                                    <span className={`text-lg font-bold ${order.status === 'cancelled' ? 'text-text-secondary decoration-line-through' : 'text-primary'}`}>
+                                        Rp {netIncome.toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex justify-between items-center text-xs text-text-secondary">
+                                    <span>Penjualan</span>
+                                    <span>Rp {order.total.toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs text-text-secondary">
+                                    <span>Komisi</span>
+                                    <span className="text-red-500">-Rp {(order.total * 0.1).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="h-px bg-dashed border-t border-dashed border-gray-200 dark:border-gray-700 my-1"></div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium text-text-main dark:text-gray-300">Total Pendapatan Bersih</span>
+                                    <span className={`text-lg font-bold ${order.status === 'cancelled' ? 'text-text-secondary decoration-line-through' : 'text-primary'}`}>
+                                        Rp {(order.total - (order.total * 0.1)).toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                            </>
+                        )}
                         {order.status === 'cancelled' && (
                             <p className="text-[10px] text-red-500 text-right mt-1">*Pendapatan dibatalkan</p>
                         )}

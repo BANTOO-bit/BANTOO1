@@ -304,61 +304,67 @@ function MerchantMenuPage() {
 
 function MenuItemCard({ item, onToggleAvailability, onEdit, onDelete }) {
     return (
-        <article className={`bg-white dark:bg-card-dark rounded-2xl shadow-soft border border-gray-100 dark:border-gray-700 p-3 flex gap-4 ${!item.isAvailable ? 'opacity-75' : ''}`}>
-            {/* Image */}
+        <article className={`bg-white dark:bg-card-dark rounded-2xl shadow-soft border border-gray-100 dark:border-gray-700 p-3 flex gap-4 ${!item.isAvailable ? 'opacity-75 relative' : 'relative'} transition-opacity`}>
+            {/* Image section */}
             <div className="w-[80px] h-[80px] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 relative">
                 <img
                     src={item.image}
                     alt={item.name}
-                    className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''}`}
+                    className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''} transition-all`}
                 />
                 {!item.isAvailable && (
-                    <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                        <span className="text-[10px] font-bold text-white bg-black/50 px-2 py-1 rounded-md">Habis</span>
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center backdrop-blur-[1px]">
+                        <span className="text-[10px] font-bold text-white bg-black/60 px-2 py-1 rounded border border-white/20 shadow-sm whitespace-nowrap">STOK HABIS</span>
                     </div>
                 )}
             </div>
 
-            {/* Content */}
-            <div className="flex-1 flex flex-col justify-between py-0.5">
-                <div className="flex justify-between items-start gap-2">
-                    <div>
-                        <h3 className="text-sm font-semibold text-text-main dark:text-white leading-tight">{item.name}</h3>
-                        <p className="text-xs text-text-secondary mt-1">Rp {item.price.toLocaleString('id-ID')}</p>
+            {/* Content section */}
+            <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
+                <div className="flex justify-between items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold text-text-main dark:text-white leading-tight truncate pr-1">{item.name}</h3>
+                        <p className="text-xs text-text-secondary mt-1 font-medium">Rp {item.price.toLocaleString('id-ID')}</p>
+
+                        {/* Status Label (optional, clear visual indicator) */}
+                        <div className="mt-1.5 flex items-center gap-1">
+                            <div className={`w-1.5 h-1.5 rounded-full ${item.isAvailable ? 'bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.4)]' : 'bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.4)]'}`}></div>
+                            <span className={`text-[10px] font-semibold ${item.isAvailable ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                                {item.isAvailable ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                        </div>
                     </div>
 
-                    {/* Availability Toggle */}
-                    <div className="flex flex-col items-end gap-1">
-                        <label className="inline-flex items-center cursor-pointer">
+                    {/* Quick Toggle */}
+                    <div className="flex flex-col items-center gap-1.5 shrink-0 pt-0.5">
+                        <span className="text-[9px] font-bold text-text-secondary uppercase tracking-wider">Stok</span>
+                        <label className="inline-flex relative items-center cursor-pointer">
                             <input
                                 type="checkbox"
+                                value=""
+                                className="sr-only peer"
                                 checked={item.isAvailable}
                                 onChange={() => onToggleAvailability(item.id)}
-                                className="sr-only peer"
                             />
-                            <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary shadow-inner"></div>
                         </label>
-                        <span className={`text-[9px] font-medium ${item.isAvailable ? 'text-primary' : 'text-text-secondary'}`}>
-                            {item.isAvailable ? 'Tersedia' : 'Habis'}
-                        </span>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end items-center gap-3 mt-2">
+                <div className="flex justify-end items-center gap-2 mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
                     <button
                         onClick={() => onEdit(item.id)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-text-secondary hover:text-primary active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors active:scale-95"
                     >
-                        <span className="material-symbols-outlined text-[18px]">edit</span>
-                        <span className="text-[10px] font-medium">Edit</span>
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                        <span className="text-[11px] font-bold">Edit</span>
                     </button>
                     <button
                         onClick={onDelete}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-text-secondary hover:text-red-500 active:bg-red-50 dark:active:bg-red-900/20 transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95"
                     >
                         <span className="material-symbols-outlined text-[18px]">delete</span>
-                        <span className="text-[10px] font-medium">Hapus</span>
                     </button>
                 </div>
             </div>

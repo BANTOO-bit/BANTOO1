@@ -53,9 +53,10 @@ function DriverOrdersPage() {
                     time: new Date(o.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     status: getStatusLabel(o.status),
                     statusIcon: getStatusIcon(o.status),
-                    totalCOD: o.payment_method === 'cod' ? o.total_amount : 0,
+                    totalAmount: o.total_amount,
+                    totalCOD: o.payment_method !== 'wallet' ? o.total_amount : 0,
                     deliveryFee: o.delivery_fee,
-                    paymentMethod: o.payment_method === 'cod' ? 'COD' : 'Wallet',
+                    paymentMethod: o.payment_method !== 'wallet' ? 'COD' : 'Wallet',
                     statusKey: o.status
                 }))
                 setActiveOrders(formatted)
@@ -68,9 +69,10 @@ function DriverOrdersPage() {
                     time: new Date(o.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     status: 'Selesai',
                     statusIcon: 'check_circle',
-                    totalCOD: o.payment_method === 'cod' ? o.total_amount : 0,
+                    totalAmount: o.total_amount,
+                    totalCOD: o.payment_method !== 'wallet' ? o.total_amount : 0,
                     deliveryFee: o.delivery_fee,
-                    paymentMethod: o.payment_method === 'cod' ? 'COD' : 'Wallet',
+                    paymentMethod: o.payment_method !== 'wallet' ? 'COD' : 'Wallet',
                     statusKey: o.status
                 }))
                 setCompletedOrders(formatted)
@@ -171,8 +173,12 @@ function DriverOrdersPage() {
                                         <div className="h-px w-full bg-slate-100" />
                                         <div className="flex justify-between items-center">
                                             <div className="flex flex-col gap-1">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Total COD</p>
-                                                <p className="text-lg font-bold text-red-600">Rp {order.totalCOD.toLocaleString('id-ID')}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                                    {order.paymentMethod === 'COD' ? 'Tagihan COD' : 'Sudah Dibayar (Wallet)'}
+                                                </p>
+                                                <p className={`text-lg font-bold ${order.paymentMethod === 'COD' ? 'text-red-600' : 'text-green-600'}`}>
+                                                    Rp {(order.paymentMethod === 'COD' ? order.totalCOD : order.totalAmount).toLocaleString('id-ID')}
+                                                </p>
                                             </div>
                                             <button
                                                 onClick={() => {

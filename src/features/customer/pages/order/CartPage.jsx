@@ -6,6 +6,7 @@ import BackButton from '@/features/shared/components/BackButton'
 import EmptyState from '@/features/shared/components/EmptyState'
 import { useAddress } from '@/context/AddressContext'
 import MerchantShopOpenWarning from '@/features/shared/components/MerchantShopOpenWarning'
+import settingsService from '@/services/settingsService'
 
 function CartPage() {
     const navigate = useNavigate()
@@ -28,6 +29,8 @@ function CartPage() {
     const [notesModal, setNotesModal] = useState({ isOpen: false, merchantName: '', currentNotes: '' })
     // State for address modal
     const [showAddressModal, setShowAddressModal] = useState(false)
+    // State for customer service fee
+    const [customerServiceFee, setCustomerServiceFee] = useState(500) // Default Rp 500
 
     // Group items by merchant
     const merchantGroups = groupByMerchant(cartItems)
@@ -39,6 +42,21 @@ function CartPage() {
             calculateDeliveryFee(effectiveMerchantId, selectedAddress.lat, selectedAddress.lng)
         }
     }, [merchantInfo, cartItems, selectedAddress, calculateDeliveryFee])
+
+    // Fetch financial settings for customer service fee
+    useEffect(() => {
+        async function fetchSettings() {
+            try {
+                const financial = await settingsService.get('financial')
+                if (financial?.customer_service_fee !== undefined) {
+                    setCustomerServiceFee(financial.customer_service_fee)
+                }
+            } catch { /* use default */ }
+        }
+        fetchSettings()
+    }, [])
+
+    const finalGrandTotal = grandTotal + customerServiceFee
 
     // Group items by merchant
     function groupByMerchant(items) {
@@ -318,10 +336,14 @@ function CartPage() {
                                 {deliveryFeeLoading ? 'Menghitung...' : `Rp ${deliveryFee.toLocaleString('id-ID')}`}
                             </span>
                         </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-text-secondary">Biaya Layanan</span>
+                            <span className="font-semibold text-text-main">Rp {customerServiceFee.toLocaleString('id-ID')}</span>
+                        </div>
                         <div className="flex justify-between text-base pt-2 border-t border-border-color">
                             <span className="font-bold text-text-main">Total Pembayaran</span>
                             <span className="font-bold text-primary">
-                                {deliveryFeeLoading ? 'Menghitung...' : `Rp ${grandTotal.toLocaleString('id-ID')}`}
+                                {deliveryFeeLoading ? 'Menghitung...' : `Rp ${finalGrandTotal.toLocaleString('id-ID')}`}
                             </span>
                         </div>
                     </div>

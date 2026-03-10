@@ -22,6 +22,24 @@ function getAudioContext() {
  */
 export function playNewOrderSound() {
     try {
+        const audio = new Audio('/sounds/mixkit-human-male-enjoy-humm-129.wav')
+
+        // Try to play the custom sound
+        audio.play().catch(err => {
+            // If browser blocks autoplay or file fails, fallback to synth beep
+            if (import.meta.env.DEV) console.warn('Custom notification sound failed, falling back to synth beep:', err)
+            playSynthBeep()
+        })
+    } catch (e) {
+        // Silent fail — audio not critical
+    }
+}
+
+/**
+ * Fallback synth beep if the custom audio fails to play
+ */
+function playSynthBeep() {
+    try {
         const ctx = getAudioContext()
         const now = ctx.currentTime
 

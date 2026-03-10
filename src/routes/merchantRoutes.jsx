@@ -33,6 +33,7 @@ const MerchantAddBankAccountPage = lazy(() => import('@/features/merchant/pages/
 const MerchantEditBankAccountPage = lazy(() => import('@/features/merchant/pages/financial/MerchantEditBankAccountPage'))
 const MerchantTodayEarningsPage = lazy(() => import('@/features/merchant/pages/financial/MerchantTodayEarningsPage'))
 const MerchantSalesReportPage = lazy(() => import('@/features/merchant/pages/financial/MerchantSalesReportPage'))
+const MerchantWalletPage = lazy(() => import('@/features/merchant/pages/financial/MerchantWalletPage'))
 
 // Reviews
 const MerchantReviewsPage = lazy(() => import('@/features/merchant/pages/reviews/MerchantReviewsPage'))
@@ -66,6 +67,7 @@ export default function MerchantRoutes() {
             <Route path="/merchant/balance" element={<ProtectedRoute allowedRoles={['merchant']}><MerchantBalancePage /></ProtectedRoute>} />
             <Route path="/merchant/balance/add-bank" element={<ProtectedRoute allowedRoles={['merchant']}><MerchantAddBankAccountPage /></ProtectedRoute>} />
             <Route path="/merchant/balance/edit-bank" element={<ProtectedRoute allowedRoles={['merchant']}><MerchantEditBankAccountPage /></ProtectedRoute>} />
+            <Route path="/merchant/wallet" element={<ProtectedRoute allowedRoles={['merchant']}><MerchantWalletPage /></ProtectedRoute>} />
             <Route path="/merchant/reviews" element={<ProtectedRoute allowedRoles={['merchant']}><MerchantReviewsPage /></ProtectedRoute>} />
             <Route path="/merchant/help" element={<ProtectedRoute allowedRoles={['merchant']}><HelpCenterPage /></ProtectedRoute>} />
         </>
