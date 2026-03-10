@@ -47,10 +47,18 @@ export function useUserProfile(user, onLogout) {
             }
 
             // Determine active role (admin is always locked to 'admin')
-            let determinedRole = isAdmin ? 'admin' : profile.data?.active_role;
+            let determinedRole = isAdmin ? 'admin' : null;
+            
+            // Fix Role Revert Bug: We trust localStorage more if it exists and is valid. 
+            // This prevents race conditions where DB fetch returns old 'customer' status just after switching.
             const savedRole = localStorage.getItem('user_last_active_role');
-            if (determinedRole && !roles.includes(determinedRole)) determinedRole = null;
-            if (!determinedRole && savedRole && roles.includes(savedRole)) determinedRole = savedRole;
+            
+            if (!determinedRole && savedRole && roles.includes(savedRole)) {
+                determinedRole = savedRole; // Trust local state first 
+            } else if (!determinedRole && profile.data?.active_role && roles.includes(profile.data.active_role)) {
+                determinedRole = profile.data.active_role; // Fallback to DB
+            }
+            
             const activeRole = determinedRole || (
                 roles.includes('admin') ? 'admin' :
                     roles.includes('merchant') ? 'merchant' :

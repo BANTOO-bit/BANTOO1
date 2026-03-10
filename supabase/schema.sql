@@ -194,6 +194,80 @@ CREATE TABLE IF NOT EXISTS public.withdrawals (
 
 
 -- ==========================================
+-- ADDITIONAL TABLES (from migration_v2)
+-- ==========================================
+
+-- 11. USER ROLES (Multi-role support)
+CREATE TABLE IF NOT EXISTS public.user_roles (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('customer', 'merchant', 'driver', 'admin')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, role)
+);
+
+-- 12. ADDRESSES (User saved delivery addresses)
+CREATE TABLE IF NOT EXISTS public.addresses (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    label TEXT DEFAULT 'Rumah',
+    recipient_name TEXT,
+    phone TEXT,
+    address TEXT NOT NULL,
+    detail TEXT,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13. REVIEWS (Order ratings & reviews)
+CREATE TABLE IF NOT EXISTS public.reviews (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+    customer_id UUID REFERENCES public.profiles(id),
+    merchant_id UUID REFERENCES public.merchants(id),
+    driver_id UUID REFERENCES public.profiles(id),
+    merchant_rating INTEGER CHECK (merchant_rating >= 1 AND merchant_rating <= 5),
+    driver_rating INTEGER CHECK (driver_rating >= 1 AND driver_rating <= 5),
+    comment TEXT,
+    merchant_reply TEXT,
+    replied_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. NOTIFICATIONS (In-app notifications)
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    message TEXT,
+    type TEXT DEFAULT 'info',
+    reference_id UUID,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 15. ISSUES (Order complaints/reports)
+CREATE TABLE IF NOT EXISTS public.issues (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    order_id UUID REFERENCES public.orders(id),
+    reporter_id UUID REFERENCES public.profiles(id),
+    reporter_type TEXT DEFAULT 'customer',
+    category TEXT,
+    description TEXT,
+    evidence_urls JSONB DEFAULT '[]'::JSONB,
+    status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+    resolution TEXT,
+    resolved_by UUID REFERENCES public.profiles(id),
+    resolved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+-- ==========================================
 -- ROW LEVEL SECURITY (RLS)
 -- ==========================================
 
@@ -206,35 +280,311 @@ ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE withdrawals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE addresses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE issues ENABLE ROW LEVEL SECURITY;
 
--- 1. Profiles
+-- ==========================================
+-- 1. PROFILES
+-- ==========================================
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Users insert own profile" ON profiles;
+CREATE POLICY "Users insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
--- 2. Merchants
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Admin update any profile" ON profiles;
+CREATE POLICY "Admin update any profile" ON profiles FOR UPDATE USING (
+    auth.uid() = id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 2. MERCHANTS
+-- ==========================================
 DROP POLICY IF EXISTS "Merchants viewable by everyone" ON merchants;
 CREATE POLICY "Merchants viewable by everyone" ON merchants FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Owners update own merchant" ON merchants;
-CREATE POLICY "Owners update own merchant" ON merchants FOR UPDATE USING (auth.uid() = owner_id);
-
 DROP POLICY IF EXISTS "Owners insert merchant" ON merchants;
-CREATE POLICY "Owners insert merchant" ON merchants FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "Owners insert merchant" ON merchants FOR INSERT WITH CHECK (
+    auth.uid() = owner_id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
 
--- 3. Orders
-DROP POLICY IF EXISTS "Users view own orders" ON orders;
-CREATE POLICY "Users view own orders" ON orders FOR SELECT USING (
-    auth.uid() = customer_id OR 
-    auth.uid() = driver_id OR 
-    EXISTS (SELECT 1 FROM merchants WHERE id = merchant_id AND owner_id = auth.uid()) OR
+DROP POLICY IF EXISTS "Owners update own merchant" ON merchants;
+DROP POLICY IF EXISTS "Admin update merchants" ON merchants;
+CREATE POLICY "Admin update merchants" ON merchants FOR UPDATE USING (
+    auth.uid() = owner_id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Admin delete merchants" ON merchants;
+CREATE POLICY "Admin delete merchants" ON merchants FOR DELETE USING (
     (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
 );
 
+-- ==========================================
+-- 3. MENU ITEMS
+-- ==========================================
+DROP POLICY IF EXISTS "Menu items viewable by everyone" ON menu_items;
+CREATE POLICY "Menu items viewable by everyone" ON menu_items FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Merchants manage own menu" ON menu_items;
+CREATE POLICY "Merchants manage own menu" ON menu_items FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM merchants WHERE id = menu_items.merchant_id AND owner_id = auth.uid())
+);
+
+DROP POLICY IF EXISTS "Merchants update own menu" ON menu_items;
+CREATE POLICY "Merchants update own menu" ON menu_items FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM merchants WHERE id = menu_items.merchant_id AND owner_id = auth.uid())
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Merchants delete own menu" ON menu_items;
+DROP POLICY IF EXISTS "Admin delete menu items" ON menu_items;
+CREATE POLICY "Admin delete menu items" ON menu_items FOR DELETE USING (
+    EXISTS (SELECT 1 FROM merchants WHERE id = menu_items.merchant_id AND owner_id = auth.uid())
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 4. DRIVERS
+-- ==========================================
+DROP POLICY IF EXISTS "Drivers viewable by everyone" ON drivers;
+CREATE POLICY "Drivers viewable by everyone" ON drivers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can apply as driver" ON drivers;
+CREATE POLICY "Users can apply as driver" ON drivers FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Drivers update own record" ON drivers;
+DROP POLICY IF EXISTS "Admins can update drivers" ON drivers;
+CREATE POLICY "Drivers update own record" ON drivers FOR UPDATE USING (
+    auth.uid() = user_id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Admin delete drivers" ON drivers;
+DROP POLICY IF EXISTS "Admins can delete drivers" ON drivers;
+CREATE POLICY "Admin delete drivers" ON drivers FOR DELETE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 5. ORDERS
+-- ==========================================
+DROP POLICY IF EXISTS "Users view own orders" ON orders;
+CREATE POLICY "Users view own orders" ON orders FOR SELECT USING (
+    auth.uid() = customer_id
+    OR auth.uid() = driver_id
+    OR (driver_id IS NULL AND status = 'ready')
+    OR EXISTS (SELECT 1 FROM merchants WHERE id = orders.merchant_id AND owner_id = auth.uid())
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
 DROP POLICY IF EXISTS "Customers create orders" ON orders;
-CREATE POLICY "Customers create orders" ON orders FOR INSERT WITH CHECK (auth.uid() = customer_id);
+CREATE POLICY "Customers create orders" ON orders FOR INSERT WITH CHECK (
+    auth.uid() = customer_id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Order participants can update" ON orders;
+CREATE POLICY "Order participants can update" ON orders FOR UPDATE USING (
+    auth.uid() = customer_id
+    OR auth.uid() = driver_id
+    OR EXISTS (SELECT 1 FROM merchants WHERE id = orders.merchant_id AND owner_id = auth.uid())
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Admin delete orders" ON orders;
+CREATE POLICY "Admin delete orders" ON orders FOR DELETE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 6. ORDER ITEMS
+-- ==========================================
+DROP POLICY IF EXISTS "Order items viewable by participants" ON order_items;
+CREATE POLICY "Order items viewable by participants" ON order_items FOR SELECT USING (
+    EXISTS (
+        SELECT 1 FROM orders o WHERE o.id = order_items.order_id AND (
+            o.customer_id = auth.uid() OR
+            o.driver_id = auth.uid() OR
+            EXISTS (SELECT 1 FROM merchants m WHERE m.id = o.merchant_id AND m.owner_id = auth.uid()) OR
+            (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+        )
+    )
+);
+
+DROP POLICY IF EXISTS "System insert order items" ON order_items;
+CREATE POLICY "System insert order items" ON order_items FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Merchants can update order items" ON order_items;
+CREATE POLICY "Merchants can update order items" ON order_items FOR UPDATE USING (
+    EXISTS (
+        SELECT 1 FROM orders o
+        JOIN merchants m ON m.id = o.merchant_id
+        WHERE o.id = order_items.order_id AND m.owner_id = auth.uid()
+    )
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 7. WALLETS
+-- ==========================================
+DROP POLICY IF EXISTS "Users view own wallet" ON wallets;
+CREATE POLICY "Users view own wallet" ON wallets FOR SELECT USING (
+    auth.uid() = user_id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Users update own wallet" ON wallets;
+CREATE POLICY "Users update own wallet" ON wallets FOR UPDATE USING (
+    auth.uid() = user_id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "System insert wallets" ON wallets;
+CREATE POLICY "System insert wallets" ON wallets FOR INSERT WITH CHECK (true);
+
+-- ==========================================
+-- 8. TRANSACTIONS
+-- ==========================================
+DROP POLICY IF EXISTS "Users view own transactions" ON transactions;
+CREATE POLICY "Users view own transactions" ON transactions FOR SELECT USING (
+    EXISTS (SELECT 1 FROM wallets WHERE id = transactions.wallet_id AND user_id = auth.uid())
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "System insert transactions" ON transactions;
+CREATE POLICY "System insert transactions" ON transactions FOR INSERT WITH CHECK (true);
+
+-- ==========================================
+-- 9. WITHDRAWALS
+-- ==========================================
+DROP POLICY IF EXISTS "Users view own withdrawals" ON withdrawals;
+CREATE POLICY "Users view own withdrawals" ON withdrawals FOR SELECT USING (
+    auth.uid() = user_id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Users create withdrawals" ON withdrawals;
+CREATE POLICY "Users create withdrawals" ON withdrawals FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin update withdrawals" ON withdrawals;
+CREATE POLICY "Admin update withdrawals" ON withdrawals FOR UPDATE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 10. PROMOS
+-- ==========================================
+DROP POLICY IF EXISTS "Promos viewable by everyone" ON promos;
+CREATE POLICY "Promos viewable by everyone" ON promos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admin manage promos" ON promos;
+CREATE POLICY "Admin manage promos" ON promos FOR INSERT WITH CHECK (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Admin update promos" ON promos;
+CREATE POLICY "Admin update promos" ON promos FOR UPDATE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Admin delete promos" ON promos;
+CREATE POLICY "Admin delete promos" ON promos FOR DELETE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 11. USER ROLES
+-- ==========================================
+DROP POLICY IF EXISTS "Users view own roles" ON user_roles;
+CREATE POLICY "Users view own roles" ON user_roles FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin manage all roles" ON user_roles;
+CREATE POLICY "Admin manage all roles" ON user_roles FOR ALL USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+GRANT SELECT ON public.user_roles TO authenticated;
+GRANT SELECT ON public.user_roles TO anon;
+
+-- ==========================================
+-- 12. ADDRESSES
+-- ==========================================
+DROP POLICY IF EXISTS "Users view own addresses" ON addresses;
+CREATE POLICY "Users view own addresses" ON addresses FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users insert own addresses" ON addresses;
+CREATE POLICY "Users insert own addresses" ON addresses FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users update own addresses" ON addresses;
+CREATE POLICY "Users update own addresses" ON addresses FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users delete own addresses" ON addresses;
+CREATE POLICY "Users delete own addresses" ON addresses FOR DELETE USING (auth.uid() = user_id);
+
+-- ==========================================
+-- 13. REVIEWS
+-- ==========================================
+DROP POLICY IF EXISTS "Reviews viewable by everyone" ON reviews;
+CREATE POLICY "Reviews viewable by everyone" ON reviews FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Customers create reviews" ON reviews;
+CREATE POLICY "Customers create reviews" ON reviews FOR INSERT WITH CHECK (auth.uid() = customer_id);
+
+DROP POLICY IF EXISTS "Merchants reply to reviews" ON reviews;
+DROP POLICY IF EXISTS "Admin update reviews" ON reviews;
+CREATE POLICY "Admin update reviews" ON reviews FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM merchants WHERE id = reviews.merchant_id AND owner_id = auth.uid())
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Admin delete reviews" ON reviews;
+CREATE POLICY "Admin delete reviews" ON reviews FOR DELETE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+-- ==========================================
+-- 14. NOTIFICATIONS
+-- ==========================================
+DROP POLICY IF EXISTS "Users view own notifications" ON notifications;
+CREATE POLICY "Users view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "System insert notifications" ON notifications;
+CREATE POLICY "System insert notifications" ON notifications FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users update own notifications" ON notifications;
+CREATE POLICY "Users update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users delete own notifications" ON notifications;
+CREATE POLICY "Users delete own notifications" ON notifications FOR DELETE USING (auth.uid() = user_id);
+
+-- ==========================================
+-- 15. ISSUES
+-- ==========================================
+DROP POLICY IF EXISTS "Users view own issues" ON issues;
+CREATE POLICY "Users view own issues" ON issues FOR SELECT USING (
+    auth.uid() = reporter_id
+    OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Users create issues" ON issues;
+CREATE POLICY "Users create issues" ON issues FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+
+DROP POLICY IF EXISTS "Admin update issues" ON issues;
+CREATE POLICY "Admin update issues" ON issues FOR UPDATE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
+
+DROP POLICY IF EXISTS "Admin delete issues" ON issues;
+CREATE POLICY "Admin delete issues" ON issues FOR DELETE USING (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+);
 
 -- ==========================================
 -- RPC FUNCTIONS
