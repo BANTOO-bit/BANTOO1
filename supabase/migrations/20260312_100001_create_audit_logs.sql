@@ -1,30 +1,31 @@
 -- =====================================================================================
--- Migration: Create Audit Logs Table
--- Applies to: audit_logs
+-- Migration: Create Admin Audit Logs Table
+-- Applies to: admin_audit_log
 -- Resolves Evaluasi Item 20
 -- =====================================================================================
 
-CREATE TABLE IF NOT EXISTS audit_logs (
+CREATE TABLE IF NOT EXISTS admin_audit_log (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     action VARCHAR(255) NOT NULL,
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    target_type VARCHAR(50),
+    target_id UUID,
     details JSONB DEFAULT '{}'::jsonb,
-    ip_address VARCHAR(45),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Index for fast searching
-CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_admin_id ON admin_audit_log(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_action ON admin_audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at ON admin_audit_log(created_at DESC);
 
 -- RLS: Only admins can view audit logs, insert is via SECURITY DEFINER logic (or service role)
-ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_audit_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Admin can view all audit logs" 
-    ON audit_logs FOR SELECT 
+    ON admin_audit_log FOR SELECT 
     USING (is_admin());
 
-CREATE POLICY "Service roles or backend can insert audit logs"
-    ON audit_logs FOR INSERT 
-    WITH CHECK (true); -- Usually restricted to service_role in a real setup or triggers
+CREATE POLICY "Admins can insert audit logs"
+    ON admin_audit_log FOR INSERT 
+    WITH CHECK (is_admin());
