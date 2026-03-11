@@ -41,11 +41,17 @@ export const dashboardService = {
 
             // Calculate earnings (only from completed orders)
             // Revenue = (Subtotal - Discount) - (Komisi %)
+            let todayGrossEarnings = 0
+            let todayCommission = 0
             const todayEarnings = orders
                 ?.filter(o => o.status === 'completed')
                 .reduce((sum, order) => {
                     const orderGross = (order.subtotal || 0) - (order.discount || 0);
                     const commission = Math.round(orderGross * (commissionPercent / 100));
+                    
+                    todayGrossEarnings += orderGross
+                    todayCommission += commission
+                    
                     return sum + (orderGross - commission);
                 }, 0) || 0
 
@@ -54,6 +60,8 @@ export const dashboardService = {
 
             return {
                 todayEarnings,
+                todayGrossEarnings,
+                todayCommission,
                 totalOrders,
                 completedOrders,
                 activeOrders,

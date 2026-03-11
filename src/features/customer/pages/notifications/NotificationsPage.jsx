@@ -4,7 +4,7 @@ import { useNotifications } from '@/context/NotificationsContext'
 
 function NotificationsPage() {
     const navigate = useNavigate()
-    const { notifications, markAsRead, markAllAsRead, deleteNotification, unreadCount, ensureLoaded, loading } = useNotifications()
+    const { notifications, markAsRead, markAllAsRead, deleteNotification, clearAll, unreadCount, ensureLoaded, loading } = useNotifications()
 
     // Lazy-load full notifications list when page is opened
     useEffect(() => {
@@ -21,6 +21,12 @@ function NotificationsPage() {
         return colors[color] || colors.gray
     }
 
+    const handleClearAll = () => {
+        if (window.confirm('Apakah kamu yakin ingin menghapus semua notifikasi?')) {
+            clearAll()
+        }
+    }
+
     return (
         <div className="min-h-screen flex flex-col bg-background-light">
             {/* Header */}
@@ -33,14 +39,28 @@ function NotificationsPage() {
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
                     <h1 className="text-lg font-bold">Notifikasi</h1>
-                    {unreadCount > 0 && (
-                        <button
-                            onClick={markAllAsRead}
-                            className="absolute right-0 text-sm text-primary font-medium"
-                        >
-                            Tandai Semua
-                        </button>
-                    )}
+                    
+                    <div className="absolute right-0 flex items-center gap-3">
+                        {unreadCount > 0 && (
+                            <button
+                                onClick={markAllAsRead}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-primary hover:bg-orange-50 active:scale-95 transition-all"
+                                title="Tandai Semua"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">done_all</span>
+                            </button>
+                        )}
+                        {notifications.length > 0 && (
+                            <button
+                                onClick={handleClearAll}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50 active:scale-95 transition-all"
+                                title="Hapus Semua"
+                                disabled={loading}
+                            >
+                                <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </header>
 

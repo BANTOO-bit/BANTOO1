@@ -19,9 +19,16 @@ function DriverEarningsPage() {
     const [startDate, setStartDate] = useState(null)
     const [endDate, setEndDate] = useState(null)
 
-    // Applied Filter State (what actually filters the list)
-    const [appliedStart, setAppliedStart] = useState(null)
-    const [appliedEnd, setAppliedEnd] = useState(null)
+    // Applied Filter State (Defaults to last 7 days)
+    const defaultStart = new Date()
+    defaultStart.setDate(defaultStart.getDate() - 6)
+    defaultStart.setHours(0, 0, 0, 0)
+    
+    const defaultEnd = new Date()
+    defaultEnd.setHours(23, 59, 59, 999)
+
+    const [appliedStart, setAppliedStart] = useState(defaultStart)
+    const [appliedEnd, setAppliedEnd] = useState(defaultEnd)
 
     // Helper to format currency
     const formatCurrency = (value) => {
@@ -135,12 +142,46 @@ function DriverEarningsPage() {
     // Calculate totals
     const earnings = useMemo(() => {
         if (filteredTransactions.length === 0) {
-            return { driver: 0, codFee: 0 }
+            return { driver: 0, codFee: 0, trips: 0 }
         }
         const driverIncome = filteredTransactions.reduce((acc, curr) => acc + ((curr.delivery_fee || 0) - (curr.admin_fee || 0)), 0)
         const codFee = filteredTransactions.reduce((acc, curr) => acc + (curr.method === 'Tunai (COD)' ? (curr.admin_fee || 0) : 0), 0)
-        return { driver: driverIncome, codFee: codFee }
+        return { driver: driverIncome, codFee: codFee, trips: filteredTransactions.length }
     }, [filteredTransactions])
+
+    // Generate Chart Data based on filtered period
+    const chartData = useMemo(() => {
+        if (!appliedStart || !appliedEnd) return []
+        
+        // Create date range array
+        const days = []
+        let curr = new Date(appliedStart)
+        while (curr <= appliedEnd) {
+            days.push({
+                dateObj: new Date(curr),
+                dateStr: curr.toISOString().split('T')[0],
+                label: curr.toLocaleDateString('id-ID', { weekday: 'short' }),
+                value: 0
+            })
+            curr.setDate(curr.getDate() + 1)
+        }
+        
+        // Sum values into the corresponding day
+        filteredTransactions.forEach(trx => {
+            const dayMatch = days.find(d => d.dateStr === trx.date)
+            if (dayMatch) {
+                dayMatch.value += ((trx.delivery_fee || 0) - (trx.admin_fee || 0))
+            }
+        })
+        
+        // Find max value to scale the bars
+        const maxVal = Math.max(...days.map(d => d.value), 1000) // minimum scale 1000 to avoid div by zero/huge bars
+        
+        return days.map(d => ({
+            ...d,
+            percent: (d.value / maxVal) * 100
+        }))
+    }, [filteredTransactions, appliedStart, appliedEnd])
 
     const hasTransactions = filteredTransactions.length > 0
 
@@ -190,11 +231,15 @@ function DriverEarningsPage() {
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="material-symbols-outlined text-sm">motorcycle</span>
-                                <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider">Pendapatan Driver</p>
+                                <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider">Total Pendapatan Bersih</p>
                             </div>
-                            <h1 className="text-3xl font-extrabold tracking-tight mb-4">
+                            <h1 className="text-3xl font-extrabold tracking-tight mb-2">
                                 {hasTransactions ? formatCurrency(earnings.driver) : 'Rp 0'}
                             </h1>
+                            <div className="flex items-center gap-1.5 mb-5 bg-white/20 w-fit px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                                <span className="material-symbols-outlined text-[14px]">checklist</span>
+                                <span className="text-xs font-bold text-white">{earnings.trips} Trip Terselesaikan</span>
+                            </div>
                             <button
                                 onClick={() => navigate('/driver/withdrawal')}
                                 className={`w-full font-bold py-2.5 rounded-xl text-sm transition-transform active:scale-95 shadow-sm hover:shadow-md flex items-center justify-center gap-2 ${earnings.driver <= 0 ? 'bg-white/40 text-white cursor-not-allowed backdrop-blur-sm opacity-75' : 'bg-white text-[#0d59f2]'}`}
@@ -228,6 +273,45 @@ function DriverEarningsPage() {
                             >
                                 Setor Ke Admin
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Earnings Chart */}
+                    <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm mt-2">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-sm font-bold text-slate-900">Grafik Performa</h3>
+                            <span className="text-[10px] bg-blue-50 text-[#0d59f2] font-bold px-2 py-1 rounded-md">IDR</span>
+                        </div>
+                        
+                        <div className="h-40 flex items-end gap-1.5 relative w-full pt-4">
+                            {/* Grid lines */}
+                            <div className="absolute top-0 w-full border-b border-dashed border-slate-200"></div>
+                            <div className="absolute top-1/2 w-full border-b border-dashed border-slate-200"></div>
+                            <div className="absolute bottom-0 w-full border-b border-solid border-slate-200"></div>
+                            
+                            {/* Bars */}
+                            {chartData.map((day, idx) => (
+                                <div key={idx} className="flex-1 flex flex-col items-center gap-1 relative z-10 group h-full justify-end cursor-pointer">
+                                    {/* Tooltip on hover/active (CSS only) */}
+                                    <div className="opacity-0 group-hover:opacity-100 group-active:opacity-100 absolute -top-8 bg-slate-800 text-white text-[9px] py-1 px-2 rounded font-bold shadow-lg transition-opacity pointer-events-none whitespace-nowrap z-20">
+                                        Rp {(day.value/1000).toFixed(0)}k
+                                    </div>
+                                    
+                                    {/* The Bar */}
+                                    <div 
+                                        className="w-full bg-[#0d59f2] rounded-t-sm opacity-80 group-hover:opacity-100 transition-all min-h-[4px]"
+                                        style={{ height: `${Math.max(day.percent, 0)}%` }}
+                                    ></div>
+                                </div>
+                            ))}
+                        </div>
+                        {/* X-Axis Labels */}
+                        <div className="flex items-center gap-1.5 mt-2">
+                            {chartData.map((day, idx) => (
+                                <div key={idx} className="flex-1 text-center">
+                                    <span className="text-[9px] font-bold text-slate-400 truncate">{day.label}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

@@ -279,6 +279,24 @@ export const driverService = {
     },
 
     /**
+     * Clear all notifications
+     */
+    async clearAllNotifications(driverId) {
+        try {
+            const { error } = await supabase
+                .from('notifications')
+                .delete()
+                .eq('user_id', driverId)
+
+            if (error) throw error
+            return true
+        } catch (error) {
+            console.error('Failed to clear all notifications:', error)
+            throw error
+        }
+    },
+
+    /**
      * Get driver's assigned orders (Wrapper for orderService)
      */
     async getDriverOrders(status = null) {

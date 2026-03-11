@@ -374,6 +374,43 @@ export const orderService = {
     },
 
     /**
+     * Add more preparation time to an order
+     * @param {string} orderId 
+     * @param {number} addedMinutes 
+     * @returns {Promise<Order>}
+     */
+    async addPrepTime(orderId, addedMinutes) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Not authenticated')
+
+        // Fetch current prep_time
+        const { data: order, error: fetchError } = await supabase
+            .from('orders')
+            .select('prep_time')
+            .eq('id', orderId)
+            .single()
+
+        if (fetchError || !order) throw new Error('Pesanan tidak ditemukan')
+
+        const newPrepTime = (order.prep_time || 0) + addedMinutes
+
+        // Update database (bypass RPC since we just update prep_time)
+        const { data: updatedOrder, error: updateError } = await supabase
+            .from('orders')
+            .update({ prep_time: newPrepTime })
+            .eq('id', orderId)
+            .select()
+            .single()
+
+        if (updateError) {
+            console.error('Error adding prep time:', updateError)
+            throw new Error(updateError.message || 'Gagal menambah waktu memasak')
+        }
+
+        return updatedOrder
+    },
+
+    /**
      * Accept order (for driver) — uses RPC for atomic acceptance.
      * C5: No fallback — RPC must be deployed.
      * @param {string} orderId 
@@ -519,7 +556,7 @@ export const orderService = {
         // Validate: can only reject in early stages
         const { data: order, error: fetchError } = await supabase
             .from('orders')
-            .select('status')
+            .select('status, merchant_id')
             .eq('id', orderId)
             .single()
 
@@ -529,9 +566,37 @@ export const orderService = {
             throw new Error(`Pesanan tidak bisa ditolak karena sudah berstatus "${order.status}"`)
         }
 
-        return this.updateStatus(orderId, ORDER_STATUS.CANCELLED, {
+        const result = await this.updateStatus(orderId, ORDER_STATUS.CANCELLED, {
             cancellation_reason: `Ditolak oleh merchant: ${reason}`
         })
+
+        // Anti-Spam (Auto-Close)
+        try {
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            
+            const { count, error: countError } = await supabase
+                .from('orders')
+                .select('*', { count: 'exact', head: true })
+                .eq('merchant_id', order.merchant_id)
+                .eq('status', ORDER_STATUS.CANCELLED)
+                .ilike('cancellation_reason', 'Ditolak oleh merchant:%')
+                .gte('created_at', today.toISOString())
+            
+            // If they rejected 3 or more orders today (including this one), auto-close them
+            if (!countError && count >= 3) {
+                await supabase
+                    .from('merchants')
+                    .update({ is_open: false })
+                    .eq('id', order.merchant_id)
+                
+                result._autoClosed = true
+            }
+        } catch (e) {
+            console.error('Failed to run anti-spam validation:', e)
+        }
+
+        return result
     },
 
     /**

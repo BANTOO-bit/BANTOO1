@@ -140,6 +140,27 @@ function MerchantSalesReportPage() {
                             </div>
                         </section>
 
+                        {/* Rincian Komisi */}
+                        <section className="bg-blue-50 dark:bg-card-dark p-4 rounded-2xl shadow-soft border border-blue-100 dark:border-gray-700 flex flex-col gap-2 text-sm">
+                            <h3 className="font-bold text-text-main dark:text-white mb-1 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[18px] text-blue-600">info</span>
+                                Rincian Pendapatan
+                            </h3>
+                            <div className="flex justify-between text-text-secondary mt-1">
+                                <span>Total Penjualan Kotor</span>
+                                <span className="font-medium text-text-main dark:text-gray-200">Rp {(stats.totalRevenue || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="flex justify-between text-red-500">
+                                <span>Komisi Bantoo (10%)</span>
+                                <span className="font-medium">- Rp {(stats.totalCommission || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="h-px bg-blue-200 dark:bg-gray-700 my-1 w-full"></div>
+                            <div className="flex justify-between font-bold text-blue-700 dark:text-blue-400">
+                                <span>Pendapatan Bersih</span>
+                                <span>Rp {(stats.netRevenue || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                        </section>
+
                         {/* Sales Trend Chart */}
                         <section className="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-soft border border-border-color dark:border-gray-700">
                             <div className="flex justify-between items-center mb-6">

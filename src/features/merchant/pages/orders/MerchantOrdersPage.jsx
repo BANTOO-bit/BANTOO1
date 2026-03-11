@@ -6,7 +6,7 @@ import orderService from '@/services/orderService'
 import { useRealtimeMulti } from '@/hooks/useRealtime'
 import { generateOrderId, formatOrderId } from '@/utils/orderUtils'
 import { showNotification } from '@/utils/notificationHelper'
-import { playNewOrderSound, playCancelledOrderSound } from '@/utils/soundManager'
+import { playNewOrderSound, playCancelledOrderSound, stopNewOrderSound } from '@/utils/soundManager'
 import MerchantBottomNavigation from '@/features/merchant/components/MerchantBottomNavigation'
 import MerchantOrderDetail from '@/features/merchant/components/MerchantOrderDetail'
 import BackToTopButton from '@/features/shared/components/BackToTopButton'
@@ -40,6 +40,8 @@ function MerchantOrdersPage() {
     const [showSuccess, setShowSuccess] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [actionLoading, setActionLoading] = useState(false) // C1: Double-submit guard
+    const [showKDS, setShowKDS] = useState(false) // Kitchen Display System modal
+    const [pickupPin, setPickupPin] = useState('') // Driver Handover PIN input
 
     // Real data from Supabase
     const [orders, setOrders] = useState([])
@@ -217,6 +219,44 @@ function MerchantOrdersPage() {
         !!user?.merchantId
     )
 
+    // Live Timer & Smart Auto-Dispatch
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setNow(new Date())
+
+            // --- Smart Auto Delivery Dispatch Logic ---
+            if (!isLoading && !error && orders.length > 0) {
+                const nowTime = new Date().getTime()
+                
+                orders.forEach(async (order) => {
+                    // Cek jika pesanan sedang diproses dan belum ada driver
+                    if ((order.status === 'preparing' || order.status === 'processing') && !order.driver_id) {
+                        const acceptedAt = new Date(order.accepted_at).getTime()
+                        const targetTime = acceptedAt + (order.prep_time || 0) * 60000
+                        const timeLeft = targetTime - nowTime
+
+                        // Check if time is less than or equal to 5 minutes (300000 ms)
+                        // Dan memastikan tidak mengeksekusi ini terlalu lambat/berulang terus menerus (lebih dari -1 menit)
+                        if (timeLeft <= 300000 && timeLeft > -60000) { 
+                            // Untuk optimasi di lokal tanpa backend event rumit,
+                            // kita tembak update API jika belum berubah. (Bisa saja double fire tapi update API bersifat idempotency jika di-guard di DB)
+                            try {
+                                if (import.meta.env.DEV) console.log(`[Smart Dispatch] Auto-dispatching driver for order ${order.id}`)
+                                await orderService.updateStatus(order.dbId, 'ready')
+                                handleSuccess(`Sistem otomatis memanggil Driver untuk Order #${order.id.slice(-4)} (Kurang dari 5 menit)`, toast)
+                            } catch (e) {
+                                // Silent fail prevent spam
+                            }
+                        }
+                    }
+                })
+            }
+            // ------------------------------------------
+
+        }, 1000)
+        return () => clearInterval(timer)
+    }, [orders, isLoading, error])
+
     // Filter orders based on search query
     const filteredOrders = orders.filter(order => {
         if (!searchQuery) return true
@@ -230,13 +270,20 @@ function MerchantOrdersPage() {
 
     const currentOrders = filteredOrders
 
+    const handleInteraction = () => {
+        // Stop ringing sound upon any significant user interaction
+        stopNewOrderSound()
+    }
+
     const handleAcceptClick = (order) => {
+        handleInteraction()
         setSelectedOrder(order)
         setActiveModal('accept')
         setPrepTime(null)
     }
 
     const handleRejectClick = (order) => {
+        handleInteraction()
         setSelectedOrder(order)
         setActiveModal('reject')
         setRejectReason('')
@@ -244,7 +291,9 @@ function MerchantOrdersPage() {
     }
 
     const handleHandoverClick = (order) => {
+        handleInteraction()
         setSelectedOrder(order)
+        setPickupPin('')
         setActiveModal('handover')
     }
 
@@ -297,6 +346,13 @@ function MerchantOrdersPage() {
 
     const confirmHandover = async () => {
         if (actionLoading) return // C1: guard
+        
+        // Validate PIN (last 4 digits of Order ID)
+        if (pickupPin !== selectedOrder.id.slice(-4)) {
+            handleError(new Error('PIN tidak cocok. Mintalah 4 digit terakhir nomor pesanan (Resi ID) dari Driver.'), toast)
+            return
+        }
+
         setActionLoading(true)
 
         try {
@@ -318,6 +374,23 @@ function MerchantOrdersPage() {
         }
     }
 
+    const handleAddPrepTime = async (order, mins) => {
+        if (actionLoading) return
+        setActionLoading(true)
+        
+        try {
+            await orderService.addPrepTime(order.dbId, mins)
+            fetchOrders()
+            // Optional local toast
+            handleSuccess(`Berhasil menambah waktu ${mins} menit`, toast)
+        } catch (err) {
+            if (import.meta.env.DEV) console.error('Error adding prep time:', err)
+            handleError(err, toast, { context: 'Add Prep Time' })
+        } finally {
+            setActionLoading(false)
+        }
+    }
+
     const closeModal = () => {
         setActiveModal(null)
         setSelectedOrder(null)
@@ -328,6 +401,7 @@ function MerchantOrdersPage() {
     }
 
     const handleOrderClick = (order) => {
+        handleInteraction()
         // Order detail accessible from ALL tabs (baru, diproses, selesai)
         setSelectedOrder(order)
         setViewMode('detail')
@@ -407,7 +481,7 @@ function MerchantOrdersPage() {
                 {/* Tabs */}
                 <div className="flex p-1 bg-gray-200/50 dark:bg-card-dark rounded-xl">
                     <button
-                        onClick={() => setActiveTab('baru')}
+                        onClick={() => { handleInteraction(); setActiveTab('baru') }}
                         className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${activeTab === 'baru'
                             ? 'bg-white dark:bg-gray-700 text-text-main shadow-sm'
                             : 'text-text-secondary hover:bg-white/50 dark:hover:bg-gray-800'
@@ -416,7 +490,7 @@ function MerchantOrdersPage() {
                         Baru {activeTab === 'baru' ? `(${orders.length})` : ''}
                     </button>
                     <button
-                        onClick={() => setActiveTab('diproses')}
+                        onClick={() => { handleInteraction(); setActiveTab('diproses') }}
                         className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${activeTab === 'diproses'
                             ? 'bg-white dark:bg-gray-700 text-text-main shadow-sm'
                             : 'text-text-secondary hover:bg-white/50 dark:hover:bg-gray-800'
@@ -425,7 +499,7 @@ function MerchantOrdersPage() {
                         Diproses {activeTab === 'diproses' ? `(${orders.length})` : ''}
                     </button>
                     <button
-                        onClick={() => setActiveTab('selesai')}
+                        onClick={() => { handleInteraction(); setActiveTab('selesai') }}
                         className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${activeTab === 'selesai'
                             ? 'bg-white dark:bg-gray-700 text-text-main shadow-sm'
                             : 'text-text-secondary hover:bg-white/50 dark:hover:bg-gray-800'
@@ -451,6 +525,17 @@ function MerchantOrdersPage() {
                     </div>
                 )}
 
+                {/* KDS Button for Diproses Tab */}
+                {activeTab === 'diproses' && currentOrders.length > 0 && !isLoading && !error && (
+                    <button
+                        onClick={() => setShowKDS(true)}
+                        className="w-full bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800/40 rounded-xl p-3 flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                    >
+                        <span className="material-symbols-outlined text-primary text-[20px]">soup_kitchen</span>
+                        <span className="text-primary font-bold text-sm tracking-wide">Lihat Rekap Menu Dapur (KDS)</span>
+                    </button>
+                )}
+
                 {/* Orders List */}
                 <div className="flex flex-col gap-3">
                     {!isLoading && !error && currentOrders.map(order => (
@@ -460,6 +545,7 @@ function MerchantOrdersPage() {
                             onAccept={() => handleAcceptClick(order)}
                             onReject={() => handleRejectClick(order)}
                             onHandover={() => handleHandoverClick(order)}
+                            onAddPrepTime={(mins) => handleAddPrepTime(order, mins)}
                             onClick={() => handleOrderClick(order)}
                             tab={activeTab}
                         />
@@ -632,10 +718,36 @@ function MerchantOrdersPage() {
                                 <span className="material-symbols-outlined text-[20px] font-bold">check</span>
                             </div>
                         </div>
+                        
+                        {/* Driver PIN Input Area */}
+                        {selectedOrder?.driver && (
+                            <div className="flex flex-col gap-2 relative mt-2">
+                                <label className="text-xs font-bold text-text-secondary text-center uppercase tracking-wider">
+                                    Masukkan 4-Digit PIN Driver
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={pickupPin}
+                                    onChange={(e) => setPickupPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                    placeholder="• • • •"
+                                    maxLength={4}
+                                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-center text-2xl tracking-[0.5em] font-mono font-bold text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                />
+                                <p className="text-[11px] text-text-secondary text-center">
+                                    Cocokkan dengan 4 angka terakhir nomor pesanan di HP Driver
+                                </p>
+                            </div>
+                        )}
+
                         <div className="flex flex-col gap-3 mt-1">
                             <button
                                 onClick={confirmHandover}
-                                className="w-full py-3.5 rounded-xl bg-primary hover:bg-blue-700 text-white font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                disabled={actionLoading || (selectedOrder?.driver && pickupPin.length < 4)}
+                                className={`w-full py-3.5 rounded-xl font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${
+                                    (selectedOrder?.driver && pickupPin.length < 4) 
+                                        ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                                        : 'bg-primary hover:bg-blue-700 text-white'
+                                }`}
                             >
                                 <span>Konfirmasi Penyerahan</span>
                             </button>
@@ -756,11 +868,19 @@ function MerchantOrdersPage() {
                     </div>
                 </div>
             )}
+
+            {/* Kitchen Display System (KDS) Modal */}
+            {showKDS && (
+                <KitchenDisplaySystem 
+                    orders={orders.filter(o => o.status === 'preparing' || o.status === 'processing')} 
+                    onClose={() => setShowKDS(false)} 
+                />
+            )}
         </div>
     )
 }
 
-function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
+function OrderCard({ order, onAccept, onReject, onHandover, onAddPrepTime, onClick, tab }) {
     const isDigitalPayment = order.payment !== 'Tunai'
     const isDiproses = tab === 'diproses'
     const isSelesai = tab === 'selesai'
@@ -847,9 +967,26 @@ function OrderCard({ order, onAccept, onReject, onHandover, onClick, tab }) {
 
             {/* Timer for Diproses */}
             {isDiproses && (order.status === 'preparing' || order.status === 'processing') && (
-                <div className={`flex items-center gap-1.5 ${isLate ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30' : 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30'} px-3 py-1.5 rounded-lg border w-full sm:w-fit`}>
-                    <span className="material-symbols-outlined text-[18px]">timer</span>
-                    <span className="text-xs font-medium">Waktu tersisa: <span className="font-bold tabular-nums">{timerDisplay}</span></span>
+                <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+                    <div className={`flex items-center gap-1.5 ${isLate ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30' : 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30'} px-3 py-1.5 rounded-lg border w-fit`}>
+                        <span className="material-symbols-outlined text-[18px]">timer</span>
+                        <span className="text-xs font-medium">Sisa: <span className="font-bold tabular-nums">{timerDisplay}</span></span>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onAddPrepTime?.(5) }}
+                            className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg border border-primary text-primary hover:bg-primary/10 transition-colors"
+                        >
+                            +5 Min
+                        </button>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onAddPrepTime?.(10) }}
+                            className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg border border-primary text-primary hover:bg-primary/10 transition-colors"
+                        >
+                            +10 Min
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -982,6 +1119,104 @@ function TimeoutBadge({ createdAt, timeoutMinutes }) {
             <span className="text-xs font-medium">
                 Batas respons: <span className="font-bold tabular-nums">{remaining}</span>
             </span>
+        </div>
+    )
+}
+
+/**
+ * Kitchen Display System Modal
+ * Aggregates all currently preparing/processing items by quantity
+ */
+function KitchenDisplaySystem({ orders, onClose }) {
+    // Aggregate items
+    const itemCounts = {}
+    let totalItems = 0
+
+    orders.forEach(order => {
+        if (!order.items) return
+        order.items.forEach(item => {
+            const key = item.name
+            if (!itemCounts[key]) {
+                itemCounts[key] = {
+                    name: item.name,
+                    quantity: 0,
+                    notes: []
+                }
+            }
+            itemCounts[key].quantity += item.quantity
+            totalItems += item.quantity
+            if (item.notes) {
+                // Attach order ID to notes for reference
+                itemCounts[key].notes.push(`Order #${order.id.slice(-4)}: ${item.notes}`)
+            }
+        })
+    })
+
+    const sortedItems = Object.values(itemCounts).sort((a, b) => b.quantity - a.quantity)
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-card-dark rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+                
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
+                    <div>
+                        <h3 className="text-lg font-bold text-text-main flex items-center gap-2">
+                            <span className="material-symbols-outlined text-orange-500">soup_kitchen</span>
+                            Rekap Dapur (KDS)
+                        </h3>
+                        <p className="text-xs text-text-secondary mt-0.5">
+                            Total {orders.length} pesanan aktif • {totalItems} porsi dimasak
+                        </p>
+                    </div>
+                    <button 
+                        onClick={onClose}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-400 transition-colors"
+                    >
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 overflow-y-auto flex-1">
+                    {sortedItems.length === 0 ? (
+                        <div className="text-center py-10 opacity-60">
+                            <span className="material-symbols-outlined text-4xl mb-2">check_circle</span>
+                            <p className="text-sm">Tidak ada menu yang sedang dimasak</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-3">
+                            {sortedItems.map((item, idx) => (
+                                <div key={idx} className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                                    <div className="flex justify-between items-start gap-3">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-text-main leading-tight">{item.name}</h4>
+                                            
+                                            {/* Notes List */}
+                                            {item.notes.length > 0 && (
+                                                <div className="mt-2 space-y-1">
+                                                    {item.notes.map((note, nIdx) => (
+                                                        <div key={nIdx} className="flex gap-1.5 text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 px-2 py-1.5 rounded-md">
+                                                            <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                                                            <span className="leading-snug">{note}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Badge Quantity */}
+                                        <div className="bg-primary/10 text-primary border border-primary/20 flex flex-col items-center justify-center min-w-[3.5rem] py-1.5 rounded-lg">
+                                            <span className="text-lg font-black leading-none">{item.quantity}</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider mt-0.5">Porsi</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     )
 }

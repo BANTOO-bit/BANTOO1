@@ -7,6 +7,7 @@ import LoadingState from '@/features/shared/components/LoadingState'
 import ErrorState from '@/features/shared/components/ErrorState'
 import EmptyState from '@/features/shared/components/EmptyState'
 import SEO from '@/features/shared/components/SEO'
+import { useRealtime } from '@/hooks/useRealtime'
 
 // Menu categories for filtering
 // Menu categories are now derived dynamically from the data
@@ -154,6 +155,21 @@ function MerchantDetailPage() {
     useEffect(() => {
         fetchMerchantData()
     }, [fetchMerchantData])
+
+    // Realtime sync for instant 'Sold Out' updates
+    useRealtime(`merchant-menu-${id}`, {
+        table: 'menu_items',
+        event: 'UPDATE',
+        filter: `merchant_id=eq.${id}`
+    }, () => {
+        // Silently re-fetch menu when any item is updated by merchant
+        // This ensures sudden 'Sold Out' changes are reflected instantly
+        merchantService.getMenusByMerchantId(id)
+            .then(menus => {
+                setMerchantMenus(menus)
+            })
+            .catch(() => {})
+    }, !!id)
 
     const filteredItems = activeCategory === 'all'
         ? merchantMenus

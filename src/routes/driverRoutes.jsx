@@ -17,8 +17,8 @@ const DriverNotificationsPage = lazy(() => import('@/features/driver/pages/Drive
 const DriverNotificationDetailPage = lazy(() => import('@/features/driver/pages/DriverNotificationDetailPage'))
 const DriverReviewsPage = lazy(() => import('@/features/driver/pages/DriverReviewsPage'))
 
-// Help (reuse user help center)
-const HelpCenterPage = lazy(() => import('@/features/customer/pages/help/HelpCenterPage'))
+// Help (driver specific chatbot)
+const DriverHelpCenterPage = lazy(() => import('@/features/driver/pages/help/DriverHelpCenterPage'))
 
 // Order Flow
 const DriverIncomingOrder = lazy(() => import('@/features/driver/pages/order/DriverIncomingOrder'))
@@ -61,7 +61,7 @@ export default function DriverRoutes() {
             <Route path="/driver/profile/edit" element={<ProtectedRoute allowedRoles={['driver']}><DriverEditProfile /></ProtectedRoute>} />
             <Route path="/driver/notifications" element={<ProtectedRoute allowedRoles={['driver']}><DriverNotificationsPage /></ProtectedRoute>} />
             <Route path="/driver/notifications/:id" element={<ProtectedRoute allowedRoles={['driver']}><DriverNotificationDetailPage /></ProtectedRoute>} />
-            <Route path="/driver/help" element={<ProtectedRoute allowedRoles={['driver']}><HelpCenterPage /></ProtectedRoute>} />
+            <Route path="/driver/help" element={<ProtectedRoute allowedRoles={['driver']}><DriverHelpCenterPage /></ProtectedRoute>} />
 
             {/* Driver Account Sub-Pages */}
             <Route path="/driver/vehicle" element={<ProtectedRoute allowedRoles={['driver']}><DriverVehiclePage /></ProtectedRoute>} />

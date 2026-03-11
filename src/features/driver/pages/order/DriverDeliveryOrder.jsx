@@ -13,6 +13,7 @@ import { startBroadcastingLocation, stopBroadcasting } from '@/services/driverLo
 import { useWakeLock } from '@/hooks/useWakeLock'
 import SlideToConfirm from '@/features/shared/components/SlideToConfirm'
 import DriverIssueModal from '@/features/driver/components/DriverIssueModal'
+import { useUnreadChat } from '@/hooks/useUnreadChat'
 
 function DriverDeliveryOrder() {
     const navigate = useNavigate()
@@ -22,6 +23,8 @@ function DriverDeliveryOrder() {
     const toast = useToast()
     const [isConfirming, setIsConfirming] = useState(false)
     const [showIssueModal, setShowIssueModal] = useState(false)
+    
+    const unreadCount = useUnreadChat(activeOrder?.id, 'driver')
 
     // Wake Lock to keep screen awake
     const { requestWakeLock } = useWakeLock({
@@ -227,17 +230,6 @@ function DriverDeliveryOrder() {
                             </div>
                         </div>
 
-                        {/* Navigasi Maps Ke Customer */}
-                        <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${customerCoords.join(',')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full py-2.5 px-4 bg-blue-50 text-blue-600 font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
-                        >
-                            <span className="material-symbols-outlined text-[20px] rotate-45">navigation</span>
-                            Buka di Google Maps
-                        </a>
-
                         {/* Action Buttons */}
                         <div className="flex gap-3 w-full items-center">
                             <button
@@ -247,10 +239,17 @@ function DriverDeliveryOrder() {
                             </button>
                             <button
                                 onClick={() => navigate(`/driver/chat/${activeOrder.id}`)}
-                                className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
+                                className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-sm relative overflow-hidden"
                             >
-                                <span className="material-symbols-outlined">chat</span>
-                                Chat Pelanggan
+                                <span className="relative flex items-center gap-2">
+                                    <span className="material-symbols-outlined">chat</span>
+                                    Chat Pelanggan
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </span>
                             </button>
                         </div>
 
@@ -280,13 +279,24 @@ function DriverDeliveryOrder() {
 
                         {/* Complete Button */}
                         {!hasArrived ? (
-                            <button
-                                onClick={handleArriveAtCustomer}
-                                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors"
-                            >
-                                <span className="material-symbols-outlined">location_on</span>
-                                SAYA SUDAH DI LOKASI
-                            </button>
+                            <div className="flex flex-col gap-2">
+                                <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${customerCoords.join(',')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
+                                >
+                                    <span className="material-symbols-outlined rotate-45">navigation</span>
+                                    BUKA NAVIGASI PETA
+                                </a>
+                                <button
+                                    onClick={handleArriveAtCustomer}
+                                    className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors"
+                                >
+                                    <span className="material-symbols-outlined">location_on</span>
+                                    SAYA SUDAH DI LOKASI
+                                </button>
+                            </div>
                         ) : (
                             <SlideToConfirm
                                 onConfirm={handleConfirmDelivery}

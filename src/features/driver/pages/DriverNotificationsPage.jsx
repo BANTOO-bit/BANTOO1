@@ -39,6 +39,17 @@ function DriverNotificationsPage() {
         }
     }
 
+    const handleClearAll = async () => {
+        if (window.confirm('Apakah kamu yakin ingin menghapus semua notifikasi?')) {
+            setNotifications([])
+            try {
+                await driverService.clearAllNotifications(user.id)
+            } catch (error) {
+                if (import.meta.env.DEV) console.error('Failed to clear notifications:', error)
+            }
+        }
+    }
+
     const getNotificationStyles = (type, isUnread) => {
         if (type === 'alert') {
             return {
@@ -116,14 +127,28 @@ function DriverNotificationsPage() {
                             <span className="material-symbols-outlined text-slate-900">notifications</span>
                             <h1 className="text-xl font-bold text-slate-900">Notifikasi</h1>
                         </div>
-                        {notifications.length > 0 && !allRead && (
-                            <button
-                                onClick={handleMarkAllRead}
-                                className="text-xs font-bold text-[#0d59f2] hover:text-blue-700 transition-colors uppercase tracking-wide"
-                            >
-                                Tandai Dibaca
-                            </button>
-                        )}
+                        
+                        <div className="flex items-center gap-2">
+                            {notifications.length > 0 && !allRead && (
+                                <button
+                                    onClick={handleMarkAllRead}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full text-[#0d59f2] hover:bg-blue-50 active:scale-95 transition-all"
+                                    title="Tandai Semua Dibaca"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">done_all</span>
+                                </button>
+                            )}
+                            {notifications.length > 0 && (
+                                <button
+                                    onClick={handleClearAll}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50 active:scale-95 transition-all"
+                                    title="Hapus Semua"
+                                    disabled={loading}
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </header>
 

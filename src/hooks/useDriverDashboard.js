@@ -23,17 +23,24 @@ export function useDriverDashboard(user) {
     // State
     const initialOnlineState = sessionStorage.getItem('driver_isOnline') === 'true'
     const initialDriverStatus = sessionStorage.getItem('driver_status') || 'active'
+    const initialAutoAccept = localStorage.getItem('driver_autoAccept') === 'true'
+    const initialRadius = parseFloat(localStorage.getItem('driver_autoAcceptRadius')) || 3.0 // Default 3km
 
     const [isOnline, setIsOnline] = useState(initialOnlineState)
     const [driverStatus, setDriverStatus] = useState(initialDriverStatus)
     const [earnings, setEarnings] = useState({
         todayIncome: 0, codFee: 0, completedOrders: 0, loading: true
     })
+    const [performanceStats, setPerformanceStats] = useState({
+        rating: '-', trips: 0, joinDate: '-', loading: true
+    })
     const [driverProfile, setDriverProfile] = useState(null)
     const [isLoadingProfile, setIsLoadingProfile] = useState(true)
     const [availableOrders, setAvailableOrders] = useState([])
     const [hasUnreadNotification, setHasUnreadNotification] = useState(false)
     const [codFeeBalance, setCodFeeBalance] = useState(null)
+    const [isAutoAccept, setIsAutoAccept] = useState(initialAutoAccept)
+    const [autoAcceptRadius, setAutoAcceptRadius] = useState(initialRadius)
     const seenOrderIdsRef = useRef(new Set())
     const isMountedRef = useRef(true)
 
@@ -48,8 +55,15 @@ export function useDriverDashboard(user) {
         try {
             const data = await dashboardService.getDriverStats(user.id)
             if (isMountedRef.current) setEarnings({ ...data, loading: false })
+            
+            // Also fetch long-term stats for Performance Card
+            const stats = await driverService.getDriverStats(user.id)
+            if (isMountedRef.current) setPerformanceStats({ ...stats, loading: false })
         } catch (err) {
-            if (isMountedRef.current) setEarnings(prev => ({ ...prev, loading: false }))
+            if (isMountedRef.current) {
+                setEarnings(prev => ({ ...prev, loading: false }))
+                setPerformanceStats(prev => ({ ...prev, loading: false }))
+            }
         }
     }
 
@@ -118,14 +132,36 @@ export function useDriverDashboard(user) {
                 const order = orders[0]
                 if (!seenOrderIdsRef.current.has(order.id)) {
                     seenOrderIdsRef.current.add(order.id)
-                    addNotification({
-                        type: 'order',
-                        title: 'Pesanan Baru Masuk!',
-                        message: `Jarak: ${order.distance_to_merchant?.toFixed(1) || '?'}km - Warung ${order.merchant_name}`,
-                        actionLabel: 'Ambil Order',
-                        actionUrl: `/driver/order/incoming/${order.id}`,
-                        sticky: true
-                    })
+                    
+                    const distance = parseFloat(order.distance_to_merchant) || 999
+                    
+                    if (isAutoAccept && distance <= autoAcceptRadius) {
+                        // Auto-Accept logic
+                        try {
+                            if (import.meta.env.DEV) console.log(`Auto-accepting order ${order.id} (Distance: ${distance}km <= ${autoAcceptRadius}km)`)
+                            await driverService.acceptOrder(order.id)
+                            addNotification({
+                                type: 'success',
+                                title: 'Pesanan Diterima Otomatis',
+                                message: `Menuju Warung ${order.merchant_name} (${distance.toFixed(1)}km)`,
+                                duration: 4000
+                            })
+                            // Fetch active order and navigate
+                            await checkActiveOrder()
+                        } catch (acceptErr) {
+                            if (import.meta.env.DEV) console.error('Auto-accept failed:', acceptErr)
+                        }
+                    } else {
+                        // Manual accept notification
+                        addNotification({
+                            type: 'order',
+                            title: 'Pesanan Baru Masuk!',
+                            message: `Jarak: ${distance.toFixed(1)}km - Warung ${order.merchant_name}`,
+                            actionLabel: 'Ambil Order',
+                            actionUrl: `/driver/order/incoming/${order.id}`,
+                            sticky: true
+                        })
+                    }
                 }
             }
         } catch (error) {
@@ -284,9 +320,22 @@ export function useDriverDashboard(user) {
         }
     }
 
+    // Toggle Auto Accept
+    const toggleAutoAccept = () => {
+        const newValue = !isAutoAccept
+        setIsAutoAccept(newValue)
+        localStorage.setItem('driver_autoAccept', newValue)
+    }
+
+    const updateAutoAcceptRadius = (radius) => {
+        setAutoAcceptRadius(radius)
+        localStorage.setItem('driver_autoAcceptRadius', radius)
+    }
+
     return {
-        isOnline, driverStatus, earnings, driverProfile, isLoadingProfile,
+        isOnline, driverStatus, earnings, performanceStats, driverProfile, isLoadingProfile,
         availableOrders, hasUnreadNotification, codFeeBalance,
+        isAutoAccept, autoAcceptRadius, toggleAutoAccept, updateAutoAcceptRadius,
         toggleOnline, checkAvailableOrders, navigate,
     }
 }

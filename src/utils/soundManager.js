@@ -17,21 +17,47 @@ function getAudioContext() {
     return audioContext
 }
 
+let activeAudio = null
+let synthInterval = null
+
 /**
  * Play a pleasant notification beep (for new orders)
+ * Will loop continuously until stopNewOrderSound is called
  */
 export function playNewOrderSound() {
     try {
-        const audio = new Audio('/sounds/mixkit-human-male-enjoy-humm-129.wav')
+        // Stop any existing sound first
+        stopNewOrderSound()
+
+        activeAudio = new Audio('/sounds/mixkit-human-male-enjoy-humm-129.wav')
+        activeAudio.loop = true // Continuous ringing
 
         // Try to play the custom sound
-        audio.play().catch(err => {
+        activeAudio.play().catch(err => {
             // If browser blocks autoplay or file fails, fallback to synth beep
             if (import.meta.env.DEV) console.warn('Custom notification sound failed, falling back to synth beep:', err)
             playSynthBeep()
+            
+            // Loop synth beep every 2 seconds
+            synthInterval = setInterval(playSynthBeep, 2000)
         })
     } catch (e) {
         // Silent fail — audio not critical
+    }
+}
+
+/**
+ * Stop the continuous new order sound
+ */
+export function stopNewOrderSound() {
+    if (activeAudio) {
+        activeAudio.pause()
+        activeAudio.currentTime = 0
+        activeAudio = null
+    }
+    if (synthInterval) {
+        clearInterval(synthInterval)
+        synthInterval = null
     }
 }
 

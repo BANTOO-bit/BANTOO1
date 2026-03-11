@@ -11,6 +11,7 @@ import SlideToConfirm from '@/features/shared/components/SlideToConfirm'
 import DriverIssueModal from '@/features/driver/components/DriverIssueModal'
 import { formatId } from '@/utils/formatters'
 import { isCODPayment } from '@/utils/paymentUtils'
+import { useUnreadChat } from '@/hooks/useUnreadChat'
 
 function DriverPickupOrder() {
     const navigate = useNavigate()
@@ -21,6 +22,8 @@ function DriverPickupOrder() {
     const [checkedItems, setCheckedItems] = useState({})
     const [isConfirming, setIsConfirming] = useState(false)
     const [showIssueModal, setShowIssueModal] = useState(false)
+    
+    const unreadCount = useUnreadChat(activeOrder?.id, 'driver')
 
     // Protected route: redirect if no active order
     useEffect(() => {
@@ -166,9 +169,14 @@ function DriverPickupOrder() {
                     <div className="flex gap-3">
                         <button
                             onClick={() => navigate(`/driver/chat/${activeOrder.id}`)}
-                            className="flex items-center justify-center rounded-full size-10 bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                            className="flex items-center justify-center rounded-full size-10 bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors relative"
                         >
                             <span className="material-symbols-outlined text-[24px]">chat</span>
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
                         </button>
                         <button
                             onClick={() => setShowIssueModal(true)}
@@ -205,15 +213,6 @@ function DriverPickupOrder() {
                             </div>
                         </div>
                     </div>
-                    <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${merchantCoords.join(',')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-4 w-full py-2.5 px-4 bg-blue-50 text-blue-600 font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
-                    >
-                        <span className="material-symbols-outlined text-[20px] rotate-45">navigation</span>
-                        Buka di Google Maps
-                    </a>
                 </div>
 
                 {/* COD Warning (Conditional) */}
@@ -289,6 +288,15 @@ function DriverPickupOrder() {
             <div className="fixed bottom-[72px] left-0 right-0 px-4 pb-2 z-40 bg-gradient-to-t from-background-light via-background-light to-transparent pt-4 max-w-md mx-auto">
                 {!hasArrived ? (
                     <div className="flex flex-col gap-2">
+                        <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${merchantCoords.join(',')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
+                        >
+                            <span className="material-symbols-outlined rotate-45">navigation</span>
+                            BUKA NAVIGASI PETA
+                        </a>
                         <button
                             onClick={handleArriveAtMerchant}
                             disabled={!allItemsChecked}

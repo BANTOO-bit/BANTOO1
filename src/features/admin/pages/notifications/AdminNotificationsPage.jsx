@@ -57,6 +57,17 @@ export default function AdminNotificationsPage() {
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
     }
 
+    const handleClearAll = async () => {
+        if (window.confirm('Apakah kamu yakin ingin menghapus semua notifikasi?')) {
+            setNotifications([])
+            try {
+                await notificationService.clearAll()
+            } catch (err) {
+                if (import.meta.env.DEV) console.error('Error clearing notifications:', err)
+            }
+        }
+    }
+
     const handleMarkRead = async (id) => {
         try {
             await notificationService.markAsRead(id)
@@ -90,15 +101,28 @@ export default function AdminNotificationsPage() {
                         Belum Dibaca ({unreadCount})
                     </button>
                 </div>
-                {unreadCount > 0 && (
-                    <button
-                        onClick={handleMarkAllRead}
-                        className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-                    >
-                        <span className="material-symbols-outlined text-sm">done_all</span>
-                        Tandai Semua Dibaca
-                    </button>
-                )}
+                
+                <div className="flex items-center gap-3">
+                    {unreadCount > 0 && (
+                        <button
+                            onClick={handleMarkAllRead}
+                            className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+                        >
+                            <span className="material-symbols-outlined text-sm">done_all</span>
+                            Tandai Semua
+                        </button>
+                    )}
+                    {notifications.length > 0 && (
+                        <button
+                            onClick={handleClearAll}
+                            className="text-xs font-semibold text-red-500 hover:text-red-600 hover:underline flex items-center gap-1"
+                            disabled={loading}
+                        >
+                            <span className="material-symbols-outlined text-sm">delete_sweep</span>
+                            Hapus Semua
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Notifications List */}

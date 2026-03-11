@@ -11,6 +11,49 @@ import logger from '../utils/logger'
 /**
  * Merchant Service - Handle merchant and menu data from Supabase
  */
+
+/**
+ * Helper to compute if merchant is actually open based on operating hours JSON
+ * @param {Merchant} merchant 
+ * @returns {boolean} true if open, false if manually closed or automatically outside hours
+ */
+function computeActualIsOpen(merchant) {
+    if (!merchant) return false
+    // If manually closed, definitely closed
+    if (!merchant.is_open) return false
+
+    // If no operating hours defined, fallback to manual status (is_open)
+    if (!merchant.operating_hours) return merchant.is_open
+
+    const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+    const now = new Date()
+    // Default to Indonesia time or localized context time. Using system local time for simplicity.
+    const todayStr = dayMap[now.getDay()]
+    const todaySchedule = merchant.operating_hours[todayStr]
+
+    // If merchant explicitly marked this day as closed
+    if (!todaySchedule || !todaySchedule.isOpen) return false
+
+    // Example time: "08:00"
+    const [openH, openM] = todaySchedule.open.split(':').map(Number)
+    const [closeH, closeM] = todaySchedule.close.split(':').map(Number)
+
+    const currentH = now.getHours()
+    const currentM = now.getMinutes()
+
+    const openMinutes = openH * 60 + openM
+    const closeMinutes = closeH * 60 + closeM
+    const currentMinutes = currentH * 60 + currentM
+
+    // Handle overnight schedules (e.g. 20:00 to 04:00)
+    if (openMinutes > closeMinutes) {
+        return currentMinutes >= openMinutes || currentMinutes <= closeMinutes
+    }
+
+    // Normal schedule (e.g. 08:00 to 21:00)
+    return currentMinutes >= openMinutes && currentMinutes <= closeMinutes
+}
+
 export const merchantService = {
     // Simple in-memory cache
     _cache: {
@@ -104,13 +147,11 @@ export const merchantService = {
                 .select(`
                     id, name, category, rating, rating_count, 
                     delivery_time, delivery_fee, distance, 
-                    is_open, has_promo, image:image_url, address, phone,
+                    is_open, operating_hours, has_promo, image:image_url, address, phone,
                     created_at
                 `)
                 .eq('status', 'approved')
-                // Sort by Open status first (Open on top), then Rating
-                .order('is_open', { ascending: false })
-                .order('rating', { ascending: false })
+                // Wait to sort in JS so we can use computed open status
 
             if (category) {
                 query = query.eq('category', category)
@@ -129,7 +170,20 @@ export const merchantService = {
             const { data, error } = await query
 
             if (error) throw error
-            return data || []
+
+            let computedData = (data || []).map(m => ({
+                ...m,
+                is_open: computeActualIsOpen(m)
+            }))
+
+            // Sort: Open -> Rating
+            computedData.sort((a, b) => {
+                if (a.is_open && !b.is_open) return -1
+                if (!a.is_open && b.is_open) return 1
+                return (b.rating || 0) - (a.rating || 0)
+            })
+
+            return computedData
         } catch (error) {
             logger.error('Failed to fetch merchants', error, 'merchantService')
             throw error
@@ -157,13 +211,16 @@ export const merchantService = {
                 .select(`
                     id, name, category, rating, rating_count,
                     delivery_time, delivery_fee, distance,
-                    is_open, has_promo, image:image_url, address, phone,
+                    is_open, operating_hours, has_promo, image:image_url, address, phone,
                     description, created_at, latitude, longitude
                 `)
                 .eq('id', id)
                 .single()
 
             if (error) throw error
+            if (data) {
+                data.is_open = computeActualIsOpen(data)
+            }
             return data
         } catch (error) {
             logger.error('Failed to fetch merchant by ID', error, 'merchantService')
@@ -536,6 +593,11 @@ export const merchantService = {
             const totalRevenue = sales.reduce((sum, order) => sum + (order.subtotal || 0), 0)
             const totalOrders = sales.length
             const averageOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
+            
+            // Commission calculation (10%)
+            const commissionPercent = 10
+            const totalCommission = Math.round(totalRevenue * (commissionPercent / 100))
+            const netRevenue = totalRevenue - totalCommission
 
             // Group by day for graph
             const graphData = {}
@@ -580,7 +642,9 @@ export const merchantService = {
             })
 
             return {
-                totalRevenue,
+                totalRevenue,         // Gross
+                totalCommission,      // 10% Commission
+                netRevenue,           // Net after commission
                 totalOrders,
                 averageOrderValue,
                 graphData: Object.entries(graphData).map(([name, value]) => ({ name, value })),

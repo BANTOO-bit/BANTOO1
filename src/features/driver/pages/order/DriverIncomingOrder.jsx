@@ -272,6 +272,19 @@ function DriverIncomingOrder() {
                                     </div>
                                 </div>
                             </div>
+                            
+                            {/* Navigation Preview Button */}
+                            {availableOrder.merchant?.latitude && availableOrder.merchant?.longitude && (
+                                <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${availableOrder.merchant.latitude},${availableOrder.merchant.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full py-1.5 px-3 bg-blue-50 text-blue-600 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 hover:bg-blue-100 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[16px] rotate-45">navigation</span>
+                                    Pratinjau Rute di Peta
+                                </a>
+                            )}
                         </div>
                         <div className="h-px bg-slate-100 w-full my-1"></div>
                         <div className="text-center space-y-1">

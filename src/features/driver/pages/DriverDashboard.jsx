@@ -2,6 +2,7 @@ import { useAuth } from '@/context/AuthContext'
 import useDriverDashboard from '@/hooks/useDriverDashboard'
 import DriverDashboardHeader from '@/features/driver/components/DriverDashboardHeader'
 import DriverEarningsCard from '@/features/driver/components/DriverEarningsCard'
+import DriverPerformanceCard from '@/features/driver/components/DriverPerformanceCard'
 import DriverAvailableOrders from '@/features/driver/components/DriverAvailableOrders'
 import DriverBottomNavigation from '@/features/driver/components/DriverBottomNavigation'
 import driverService from '@/services/driverService'
@@ -10,8 +11,9 @@ import { formatCurrency } from '@/utils/formatters'
 function DriverDashboard() {
     const { user } = useAuth()
     const {
-        isOnline, driverStatus, earnings, driverProfile, isLoadingProfile,
+        isOnline, driverStatus, earnings, performanceStats, driverProfile, isLoadingProfile,
         availableOrders, hasUnreadNotification, codFeeBalance,
+        isAutoAccept, autoAcceptRadius, toggleAutoAccept, updateAutoAcceptRadius,
         toggleOnline, navigate,
     } = useDriverDashboard(user)
 
@@ -114,6 +116,11 @@ function DriverDashboard() {
                                 </div>
                             </div>
 
+                            {/* Performance Gamification Card */}
+                            {!performanceStats?.loading && (
+                                <DriverPerformanceCard stats={performanceStats} />
+                            )}
+
                             {/* COD Admin Fee Warning Banner */}
                             {codFeeBalance && codFeeBalance.balance > 0 && (
                                 <div className="px-4 pb-2">
@@ -165,6 +172,50 @@ function DriverDashboard() {
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Auto Accept Settings */}
+                            {isOnline && (
+                                <div className="px-4 pb-2">
+                                    <div className="bg-white rounded-xl border border-blue-100 p-4 shadow-sm flex flex-col gap-3">
+                                        <div className="flex w-full items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`size-10 rounded-full flex items-center justify-center ${isAutoAccept ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
+                                                    <span className="material-symbols-outlined">bolt</span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-800">Terima Otomatis</p>
+                                                    <p className="text-xs text-slate-500">Ambil order tanpa pencet</p>
+                                                </div>
+                                            </div>
+                                            <label className={`relative flex h-7 w-12 cursor-pointer items-center rounded-full border-none ${isAutoAccept ? 'bg-blue-600' : 'bg-slate-200'} p-1 transition-all`}>
+                                                <input
+                                                    type="checkbox"
+                                                    className="peer sr-only"
+                                                    checked={isAutoAccept}
+                                                    onChange={toggleAutoAccept}
+                                                />
+                                                <span className={`absolute h-5 w-5 rounded-full bg-white transition-all shadow-sm ${isAutoAccept ? 'left-6' : 'left-1'}`} />
+                                            </label>
+                                        </div>
+                                        {isAutoAccept && (
+                                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-4 mt-1">
+                                                <p className="text-xs font-medium text-slate-600">Radius Maksimal:</p>
+                                                <div className="flex bg-slate-100 rounded-lg p-1">
+                                                    {[1, 3, 5, 10].map(rad => (
+                                                        <button
+                                                            key={rad}
+                                                            onClick={() => updateAutoAcceptRadius(rad)}
+                                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${autoAcceptRadius === rad ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                        >
+                                                            {rad} KM
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
