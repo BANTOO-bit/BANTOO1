@@ -182,6 +182,41 @@ export const walletService = {
 
         if (error) throw error
         return data
+    },
+
+    /**
+     * Set wallet PIN (hashed server-side via pgcrypto)
+     * @param {string} pin - 4-6 digit PIN
+     */
+    async setPin(pin) {
+        const { data, error } = await supabase.rpc('set_wallet_pin', {
+            p_pin: pin
+        })
+        if (error) throw new Error(error.message || 'Gagal mengatur PIN')
+        return data
+    },
+
+    /**
+     * Verify wallet PIN (checked server-side, hash never exposed)
+     * @param {string} pin - PIN to verify
+     * @returns {Promise<{valid: boolean, message?: string}>}
+     */
+    async verifyPin(pin) {
+        const { data, error } = await supabase.rpc('verify_wallet_pin', {
+            p_pin: pin
+        })
+        if (error) throw new Error(error.message || 'Gagal memverifikasi PIN')
+        return data
+    },
+
+    /**
+     * Check if user has a PIN set
+     * @returns {Promise<boolean>}
+     */
+    async hasPin() {
+        const { data, error } = await supabase.rpc('has_wallet_pin')
+        if (error) throw new Error(error.message || 'Gagal memeriksa PIN')
+        return data
     }
 }
 
