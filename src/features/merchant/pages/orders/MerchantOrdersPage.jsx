@@ -47,7 +47,7 @@ function MerchantOrdersPage() {
     const [orders, setOrders] = useState([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
-    const [now, setNow] = useState(new Date()) // Live timer state for countdown
+    const autoDispatchedRef = useRef(new Set()) // Guard: track already auto-dispatched orders
 
     // Fetch orders from Supabase
     const fetchOrders = useCallback(async () => {
@@ -220,33 +220,34 @@ function MerchantOrdersPage() {
         !!user?.merchantId
     )
 
-    // Live Timer & Smart Auto-Dispatch
+    // Smart Auto-Dispatch (check every 10 seconds, not every 1 second)
     useEffect(() => {
         const timer = setInterval(() => {
-            setNow(new Date())
-
             // --- Smart Auto Delivery Dispatch Logic ---
             if (!isLoading && !error && orders.length > 0) {
-                const nowTime = new Date().getTime()
+                const nowTime = Date.now()
                 
                 orders.forEach(async (order) => {
                     // Cek jika pesanan sedang diproses dan belum ada driver
                     if ((order.status === 'preparing' || order.status === 'processing') && !order.driver_id) {
+                        // Guard: skip if already auto-dispatched
+                        if (autoDispatchedRef.current.has(order.dbId || order.id)) return
+
                         const acceptedAt = new Date(order.accepted_at).getTime()
                         const targetTime = acceptedAt + (order.prep_time || 0) * 60000
                         const timeLeft = targetTime - nowTime
 
                         // Check if time is less than or equal to 5 minutes (300000 ms)
-                        // Dan memastikan tidak mengeksekusi ini terlalu lambat/berulang terus menerus (lebih dari -1 menit)
-                        if (timeLeft <= 300000 && timeLeft > -60000) { 
-                            // Untuk optimasi di lokal tanpa backend event rumit,
-                            // kita tembak update API jika belum berubah. (Bisa saja double fire tapi update API bersifat idempotency jika di-guard di DB)
+                        if (timeLeft <= 300000 && timeLeft > -60000) {
+                            // Mark as dispatched BEFORE calling API to prevent duplicate calls
+                            autoDispatchedRef.current.add(order.dbId || order.id)
                             try {
                                 if (import.meta.env.DEV) console.log(`[Smart Dispatch] Auto-dispatching driver for order ${order.id}`)
                                 await orderService.updateStatus(order.dbId, 'ready')
                                 handleSuccess(`Sistem otomatis memanggil Driver untuk Order #${order.id.slice(-4)} (Kurang dari 5 menit)`, toast)
                             } catch (e) {
-                                // Silent fail prevent spam
+                                // Remove from guard so it can retry on next interval
+                                autoDispatchedRef.current.delete(order.dbId || order.id)
                             }
                         }
                     }
@@ -254,7 +255,7 @@ function MerchantOrdersPage() {
             }
             // ------------------------------------------
 
-        }, 1000)
+        }, 10000) // Check every 10 seconds (not every 1 second)
         return () => clearInterval(timer)
     }, [orders, isLoading, error])
 
