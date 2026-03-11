@@ -348,11 +348,6 @@ function MerchantOrdersPage() {
     const confirmHandover = async () => {
         if (actionLoading) return // C1: guard
         
-        // Validate PIN (last 4 digits of Order ID)
-        if (pickupPin !== selectedOrder.id.slice(-4)) {
-            handleError(new Error('PIN tidak cocok. Mintalah 4 digit terakhir nomor pesanan (Resi ID) dari Driver.'), toast)
-            return
-        }
 
         setActionLoading(true)
 
