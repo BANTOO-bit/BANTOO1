@@ -388,34 +388,35 @@ function CheckoutPage() {
                         </div>
                         <div className="space-y-2">
                             {paymentMethods.map(method => {
-                                const isCodDisabled = (method.id === 'cash' || method.id === 'cod') && finalGrandTotal > codMaxAmount
+                                const isAmountDisabled = (method.id === 'cash' || method.id === 'cod') && finalGrandTotal > codMaxAmount
+                                const isDisabled = method.disabled || isAmountDisabled
                                 return (
                                     <button
                                         key={method.id}
-                                        disabled={isCodDisabled}
+                                        disabled={isDisabled}
                                         onClick={() => {
-                                            if (!isCodDisabled) {
+                                            if (!isDisabled) {
                                                 setSelectedPayment(method.id)
                                                 setShowPaymentModal(false)
                                             }
                                         }}
-                                        className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${isCodDisabled
+                                        className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${isDisabled
                                             ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
                                             : selectedPayment === method.id
                                                 ? 'border-primary bg-orange-50'
                                                 : 'border-border-color'
                                             }`}
                                     >
-                                        <span className={`material-symbols-outlined text-2xl ${isCodDisabled ? 'text-gray-400' : 'text-primary'}`}>{method.icon}</span>
+                                        <span className={`material-symbols-outlined text-2xl ${isDisabled ? 'text-gray-400' : 'text-primary'}`}>{method.icon}</span>
                                         <div className="flex-1 text-left">
-                                            <p className={`font-medium ${isCodDisabled ? 'text-gray-400' : ''}`}>{method.name}</p>
+                                            <p className={`font-medium ${isDisabled ? 'text-gray-400' : ''}`}>{method.name}</p>
                                             <p className="text-xs text-text-secondary">
-                                                {isCodDisabled
+                                                {isAmountDisabled
                                                     ? `Tidak tersedia untuk pesanan di atas Rp ${codMaxAmount.toLocaleString('id-ID')}`
                                                     : method.description}
                                             </p>
                                         </div>
-                                        {selectedPayment === method.id && !isCodDisabled && (
+                                        {selectedPayment === method.id && !isDisabled && (
                                             <span className="material-symbols-outlined text-primary">check_circle</span>
                                         )}
                                     </button>

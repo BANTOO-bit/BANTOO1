@@ -146,27 +146,31 @@ export const dashboardService = {
                 {
                     id: 'wallet',
                     name: 'BANTOO Wallet',
-                    description: `Saldo: Rp ${walletBalance.toLocaleString('id-ID')}`,
+                    description: 'Segera Hadir',
                     icon: 'account_balance_wallet',
-                    balance: walletBalance
+                    balance: walletBalance,
+                    disabled: true
                 },
                 {
                     id: 'gopay',
                     name: 'GoPay',
-                    description: 'Simulasi Pembayaran Digital',
-                    icon: 'payment'
+                    description: 'Segera Hadir',
+                    icon: 'payment',
+                    disabled: true
                 },
                 {
                     id: 'ovo',
                     name: 'OVO',
-                    description: 'Simulasi Pembayaran Digital',
-                    icon: 'payment'
+                    description: 'Segera Hadir',
+                    icon: 'payment',
+                    disabled: true
                 },
                 {
                     id: 'dana',
                     name: 'DANA',
-                    description: 'Simulasi Pembayaran Digital',
-                    icon: 'payment'
+                    description: 'Segera Hadir',
+                    icon: 'payment',
+                    disabled: true
                 }
             ]
         } catch (error) {
