@@ -47,6 +47,7 @@ function MerchantOrdersPage() {
     const [orders, setOrders] = useState([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [now, setNow] = useState(new Date()) // Live timer state for countdown
 
     // Fetch orders from Supabase
     const fetchOrders = useCallback(async () => {
