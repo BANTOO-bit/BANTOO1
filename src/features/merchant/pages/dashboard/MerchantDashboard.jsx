@@ -71,7 +71,7 @@ function MerchantDashboard() {
                     time: new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     payment: order.payment_method === 'cod' ? 'Tunai' : order.payment_method,
                     status: 'Baru',
-                    total: `Rp ${order.total_amount.toLocaleString('id-ID')}`,
+                    total: `Rp ${(order.subtotal || order.total_amount).toLocaleString('id-ID')}`,
                     items: order.items?.map(item => ({
                         qty: item.quantity,
                         name: item.product_name,
@@ -522,7 +522,7 @@ function OrderCard({ id, time, payment, status, total, items, note, onAccept, on
             <div className="h-px bg-border-color dark:bg-gray-800 w-full"></div>
             <div className="flex justify-between items-center">
                 <div>
-                    <span className="text-xs text-text-secondary">Total</span>
+                    <span className="text-xs text-text-secondary">Subtotal Makanan</span>
                     <p className="text-base font-bold text-text-main dark:text-white">{total}</p>
                 </div>
                 <div className="flex gap-2">

@@ -117,6 +117,7 @@ function DriverIncomingOrder() {
                 customerName: availableOrder.customer?.full_name || 'Customer',
                 customerAddress: availableOrder.delivery_address || '',
                 totalAmount: availableOrder.total_amount,
+                subtotal: availableOrder.subtotal || 0,
                 delivery_fee: availableOrder.delivery_fee || 0,
                 service_fee: availableOrder.service_fee || 0,
                 paymentMethod: isCODPayment(availableOrder.payment_method) ? 'COD' : availableOrder.payment_method.toUpperCase(),
@@ -295,7 +296,7 @@ function DriverIncomingOrder() {
                                 </span>
                             </div>
                             <div>
-                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">Total Bayar</p>
+                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">Total Customer</p>
                                 <p className="text-3xl font-black text-red-600 leading-none tracking-tight">
                                     Rp {availableOrder.total_amount?.toLocaleString('id-ID') || '0'}
                                 </p>

@@ -89,7 +89,8 @@ function DriverPickupOrder() {
 
     const paymentMethod = (activeOrder.payment_method || activeOrder.paymentMethod || '').toLowerCase()
     const isCOD = isCODPayment(paymentMethod)
-    const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
+    const totalAmount = activeOrder.total_amount || activeOrder.totalAmount  // Total customer
+    const subtotalFood = activeOrder.subtotal || totalAmount  // Subtotal makanan untuk warung
     const customerNote = activeOrder.notes || activeOrder.customerNote
 
     const handleConfirmPickup = async () => {
@@ -222,8 +223,11 @@ function DriverPickupOrder() {
                             <span className="material-symbols-outlined text-[20px]">payments</span>
                             TOTAL COD
                         </div>
-                        <div className="text-3xl font-bold text-red-600 mb-1">Rp {totalAmount?.toLocaleString('id-ID')}</div>
-                        <p className="text-xs text-red-500 opacity-90">Bayar tunai ke Warung saat ambil pesanan</p>
+                        <div className="text-3xl font-bold text-red-600 mb-1">Rp {subtotalFood?.toLocaleString('id-ID')}</div>
+                        <p className="text-xs text-red-500 opacity-90">Bayar tunai ke Warung (harga makanan)</p>
+                        {totalAmount !== subtotalFood && (
+                            <p className="text-[10px] text-slate-500 mt-1.5 bg-white/60 px-2 py-0.5 rounded inline-block">Nanti tagih ke customer: Rp {totalAmount?.toLocaleString('id-ID')} (termasuk ongkir)</p>
+                        )}
                     </div>
                 )}
 

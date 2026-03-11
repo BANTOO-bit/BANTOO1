@@ -250,7 +250,10 @@ export const dashboardService = {
                 const dayIndex = last7Days.findIndex(d => d.getTime() === orderDate.getTime())
                 if (dayIndex !== -1) {
                     weeklyOrdersData[dayIndex].value += 1
-                    weeklyRevenueData[dayIndex].value += (order.total_amount || 0)
+                    // Use platform fee (merchant commission + driver admin fee) instead of total_amount
+                    const orderGross = (order.subtotal || 0) - (order.discount || 0)
+                    const merchantComm = Math.round(orderGross * (commissionPercent / 100))
+                    weeklyRevenueData[dayIndex].value += merchantComm + (order.service_fee || 0)
                 }
             })
 

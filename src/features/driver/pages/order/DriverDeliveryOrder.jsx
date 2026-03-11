@@ -107,6 +107,7 @@ function DriverDeliveryOrder() {
 
     const paymentMethod = activeOrder.payment_method || activeOrder.paymentMethod
     const totalAmount = activeOrder.total_amount || activeOrder.totalAmount
+    const subtotalFood = activeOrder.subtotal || totalAmount
     const isCOD = isCODPayment(paymentMethod)
 
     const handleConfirmDelivery = async () => {
@@ -260,7 +261,10 @@ function DriverDeliveryOrder() {
                                     <span className="material-symbols-outlined text-red-600">payments</span>
                                     <span className="font-bold text-sm text-red-700">TOTAL COD</span>
                                 </div>
-                                <div className="text-xl font-bold text-red-600">Rp {totalAmount?.toLocaleString('id-ID')}</div>
+                                <div className="flex flex-col">
+                                    <div className="text-xl font-bold text-red-600">Rp {totalAmount?.toLocaleString('id-ID')}</div>
+                                    <p className="text-[10px] text-red-500/70 mt-0.5">Makanan: Rp {subtotalFood?.toLocaleString('id-ID')} + Ongkir: Rp {(activeOrder.delivery_fee || 0).toLocaleString('id-ID')}</p>
+                                </div>
                             </div>
                         ) : (
                             <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex items-center justify-between">
@@ -274,7 +278,7 @@ function DriverDeliveryOrder() {
 
                         {/* Instruction */}
                         <p className="text-xs text-center text-slate-500">
-                            {isCOD ? 'Pastikan menagih uang tunai sesuai nominal.' : 'Jangan menagih uang tunai ke pelanggan!'}
+                            {isCOD ? `Tagih Rp ${totalAmount?.toLocaleString('id-ID')} dari customer. Bayar Rp ${subtotalFood?.toLocaleString('id-ID')} ke warung.` : 'Jangan menagih uang tunai ke pelanggan!'}
                         </p>
 
                         {/* Complete Button */}

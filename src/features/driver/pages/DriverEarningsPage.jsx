@@ -61,6 +61,7 @@ function DriverEarningsPage() {
                         method_color: isCOD ? 'text-orange-600' : 'text-purple-700',
                         method_icon_color: isCOD ? 'text-orange-500' : 'text-purple-600',
                         total_cod: o.total_amount,
+                        isCOD: isCOD,
                         admin_fee: o.service_fee || 0,
                         delivery_fee: o.delivery_fee
                     }
@@ -347,7 +348,7 @@ function DriverEarningsPage() {
                                         </div>
                                         <div className="h-px w-full bg-slate-100 my-2"></div>
                                         <div className="flex justify-between items-center text-xs">
-                                            <span className="text-slate-500 font-medium">Total COD</span>
+                                        <span className="text-slate-500 font-medium">{trx.isCOD ? 'Total COD' : 'Total Order'}</span>
                                             <span className="text-slate-900 font-bold">{formatCurrency(trx.total_cod)}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-xs mt-1">

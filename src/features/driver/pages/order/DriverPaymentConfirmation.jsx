@@ -140,6 +140,9 @@ function DriverPaymentConfirmation() {
                     <h3 className="text-4xl font-extrabold text-slate-900 mb-1 relative z-10">
                         <span className="text-xl font-bold text-slate-500 align-top mr-1">Rp</span>{(activeOrder.totalAmount || activeOrder.total_amount || 0).toLocaleString('id-ID')}
                     </h3>
+                    <p className="text-[10px] text-slate-500 relative z-10 mt-1">
+                        Makanan: Rp {(activeOrder.subtotal || activeOrder.totalAmount || activeOrder.total_amount || 0).toLocaleString('id-ID')} + Ongkir: Rp {(activeOrder.delivery_fee || 0).toLocaleString('id-ID')}
+                    </p>
                     <p className="text-[10px] text-red-600/80 mt-1 font-medium relative z-10 bg-red-100 inline-block px-2 py-0.5 rounded-full">
                         Wajib Terima Tunai
                     </p>

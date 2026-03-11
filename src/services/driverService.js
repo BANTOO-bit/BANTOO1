@@ -34,7 +34,10 @@ export const driverService = {
                 .from('orders')
                 .select(`
                     id, 
-                    total_amount, 
+                    total_amount,
+                    subtotal,
+                    delivery_fee,
+                    service_fee,
                     payment_method, 
                     created_at,
                     merchants (
@@ -73,6 +76,9 @@ export const driverService = {
                     customer_address: o.delivery_address,
                     distance_to_merchant: distance,
                     total_amount: o.total_amount,
+                    subtotal: o.subtotal,
+                    delivery_fee: o.delivery_fee,
+                    service_fee: o.service_fee,
                     payment_method: o.payment_method,
                     created_at: o.created_at,
                     merchant_lat: o.merchants?.latitude,
@@ -519,6 +525,9 @@ export const driverService = {
                     id,
                     merchant_id,
                     total_amount,
+                    subtotal,
+                    delivery_fee,
+                    service_fee,
                     payment_method,
                     status,
                     created_at,
@@ -554,6 +563,9 @@ export const driverService = {
                 merchant_address: d.merchants?.address,
                 customer_address: d.delivery_address,
                 total_amount: d.total_amount,
+                subtotal: d.subtotal,
+                delivery_fee: d.delivery_fee,
+                service_fee: d.service_fee,
                 payment_method: d.payment_method,
                 status: d.status,
                 created_at: d.created_at,
@@ -895,7 +907,7 @@ export const driverService = {
             .from('orders')
             .select('id, total_amount, delivery_fee, service_fee, payment_method, status, created_at')
             .eq('driver_id', userId)
-            .in('status', ['delivered', 'completed'])
+            .eq('status', 'completed')
             .gte('created_at', start.toISOString())
             .lte('created_at', end.toISOString())
             .order('created_at', { ascending: false })
