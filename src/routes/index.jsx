@@ -15,26 +15,29 @@ import AdminRoutes from './adminRoutes'
 const NotFoundPage = lazy(() => import('@/features/shared/pages/NotFoundPage'))
 
 export default function AppRoutes() {
-    const { isAuthenticated, user, logout } = useAuth()
-
-    // Onboarding state
-    const hasCompletedOnboarding = typeof window !== 'undefined'
-        ? localStorage.getItem('bantoo_onboarding_complete') === 'true'
-        : false
-
-    // Show onboarding for new users
-    if (!hasCompletedOnboarding) {
-        return (
-            <OnboardingPage onComplete={() => {
-                localStorage.setItem('bantoo_onboarding_complete', 'true')
-                window.location.reload()
-            }} />
-        )
-    }
+    const { isAuthenticated, user, logout, refreshProfile } = useAuth()
 
     // Authentication flow
     if (!isAuthenticated) {
         return <AuthRoutes />
+    }
+
+    // Onboarding state (Wait until profile is loaded)
+    const hasCompletedOnboarding = user?.has_completed_onboarding
+
+    // Show onboarding for authenticated users who haven't completed it
+    if (hasCompletedOnboarding === false) {
+        return (
+            <div className="bg-white min-h-screen">
+                <OnboardingPage onComplete={async () => {
+                    const { supabase } = await import('@/services/supabaseClient')
+                    if (user?.id) {
+                        await supabase.from('profiles').update({ has_completed_onboarding: true }).eq('id', user.id)
+                        await refreshProfile()
+                    }
+                }} />
+            </div>
+        )
     }
 
     // ============ ADMIN ROLE LOCK ============

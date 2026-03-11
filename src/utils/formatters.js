@@ -5,7 +5,7 @@
  * @param {number} length - Panjang karakter yang diambil dari belakang (default: 6)
  * @returns {string} - Kode terformat, misal: #ORD-A8F2B1 atau #A8F2B1
  */
-export const formatId = (id: string | null | undefined, prefix: string = '', length: number = 6): string => {
+export const formatId = (id, prefix = '', length = 6) => {
     if (!id) return '-';
     // Ambil beberapa karakter terakhir dan jadikan huruf kapital
     const shortStr = id.slice(-length).toUpperCase();
@@ -24,6 +24,6 @@ export const formatId = (id: string | null | undefined, prefix: string = '', len
  * @param {number} value - Nilai yang ingin diformat
  * @returns {string} - Contoh: "Rp 25.000"
  */
-export const formatCurrency = (value: number | string | null | undefined): string => {
+export const formatCurrency = (value) => {
     return `Rp ${(Number(value) || 0).toLocaleString('id-ID')}`
 }
