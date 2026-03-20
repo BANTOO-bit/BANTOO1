@@ -21,10 +21,16 @@ export default defineConfig(({ mode }) => ({
         // Cache strategies for runtime requests
         runtimeCaching: [
           {
-            // Cache Google Fonts
+            // Cache Google Fonts Stylesheets
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 } }
+            options: { cacheName: 'google-fonts-stylesheets', expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 } }
+          },
+          {
+            // Cache Google Fonts Webfonts
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: { cacheName: 'google-fonts-webfonts', expiration: { maxEntries: 20, maxAgeSeconds: 365 * 24 * 60 * 60 }, cacheableResponse: { statuses: [0, 200] } }
           },
           {
             // Cache map tiles
@@ -49,32 +55,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) {
-            return 'vendor-react'
-          }
-          if (id.includes('node_modules/leaflet') || id.includes('node_modules/react-leaflet')) {
-            return 'vendor-leaflet'
-          }
-          if (id.includes('node_modules/@supabase')) {
-            return 'vendor-supabase'
-          }
-          if (id.includes('node_modules/firebase')) {
-            return 'vendor-firebase'
-          }
-          if (id.includes('node_modules/@sentry')) {
-            return 'vendor-sentry'
-          }
-          if (id.includes('node_modules/@turf')) {
-            return 'vendor-turf'
-          }
-        },
-      },
-    },
-    chunkSizeWarningLimit: 500,
-    minify: 'esbuild',
+    chunkSizeWarningLimit: 1000,
   },
   // Fix #2: Strip console.log/warn in production builds only
   // IMPORTANT: use undefined for dev to preserve Vite's default JSX transform
