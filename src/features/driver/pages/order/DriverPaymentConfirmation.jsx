@@ -126,8 +126,8 @@ function DriverPaymentConfirmation() {
                         <span className="material-symbols-outlined text-[20px]">person</span>
                     </div>
                     <div>
-                        <h2 className="text-sm font-bold text-slate-900">{activeOrder.customerName || activeOrder.customer?.full_name || 'Pelanggan'}</h2>
-                        <p className="text-xs text-slate-500 truncate max-w-[200px]">{activeOrder.customerAddress || activeOrder.delivery_address || ''}</p>
+                        <h2 className="text-sm font-bold text-slate-900">{activeOrder.customer_name || activeOrder.customerName || activeOrder.customer?.full_name || 'Pelanggan'}</h2>
+                        <p className="text-xs text-slate-500 truncate max-w-[200px]">{activeOrder.delivery_address || activeOrder.customerAddress || ''}</p>
                     </div>
                 </div>
 
