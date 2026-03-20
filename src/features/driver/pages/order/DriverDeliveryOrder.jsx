@@ -92,13 +92,15 @@ function DriverDeliveryOrder() {
 
     if (!activeOrder) return null
 
-    // Data Access Helpers
-    const customerName = activeOrder.customer?.full_name || activeOrder.customerName || 'Pelanggan'
+    // Data Access Helpers (support nested, camelCase, AND snake_case from RPC)
+    const customerName = activeOrder.customer?.full_name || activeOrder.customer_name || activeOrder.customerName || 'Pelanggan'
     const customerAddress = activeOrder.delivery_address || activeOrder.customerAddress || ''
-    const customerPhone = activeOrder.customer?.phone || activeOrder.customerPhone || null
+    const customerPhone = activeOrder.customer?.phone || activeOrder.customer_phone || activeOrder.customerPhone || null
     const merchantCoords = activeOrder.merchant?.latitude && activeOrder.merchant?.longitude
         ? [activeOrder.merchant.latitude, activeOrder.merchant.longitude]
-        : (activeOrder.merchantCoords || [-7.0747, 110.8767])
+        : activeOrder.merchant_lat && activeOrder.merchant_lng
+            ? [activeOrder.merchant_lat, activeOrder.merchant_lng]
+            : (activeOrder.merchantCoords || [-7.0747, 110.8767])
 
     // Attempt to parse lat/lng from order if available directly, or fallback
     const customerCoords = activeOrder.customer_lat && activeOrder.customer_lng
@@ -234,7 +236,14 @@ function DriverDeliveryOrder() {
                         {/* Action Buttons */}
                         <div className="flex gap-3 w-full items-center">
                             <button
-                                onClick={() => customerPhone && window.open(`tel:${customerPhone}`, '_self')}
+                                onClick={() => {
+                                    if (customerPhone) {
+                                        let phone = customerPhone.replace(/[^0-9]/g, '')
+                                        if (phone.startsWith('0')) phone = '62' + phone.slice(1)
+                                        if (!phone.startsWith('62')) phone = '62' + phone
+                                        window.open(`https://wa.me/${phone}`, '_blank')
+                                    }
+                                }}
                                 className="w-12 h-12 flex-shrink-0 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors border border-blue-100">
                                 <span className="material-symbols-outlined">call</span>
                             </button>

@@ -109,7 +109,11 @@ function DriverChatPage() {
 
     const handleCall = () => {
         if (customerInfo?.phone && customerInfo.phone !== '-') {
-            window.open(`tel:${customerInfo.phone}`, '_self')
+            // Format phone: remove leading 0 or +, ensure starts with 62
+            let phone = customerInfo.phone.replace(/[^0-9]/g, '')
+            if (phone.startsWith('0')) phone = '62' + phone.slice(1)
+            if (!phone.startsWith('62')) phone = '62' + phone
+            window.open(`https://wa.me/${phone}`, '_blank')
         }
     }
 

@@ -60,8 +60,13 @@ export const chatService = {
      * @returns {function} unsubscribe function
      */
     subscribeToMessages(orderId, onNewMessage) {
+        // Use unique suffix to avoid channel name collisions when multiple
+        // components subscribe to the same orderId (e.g. useUnreadChat + ChatPage)
+        const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID().slice(0, 8)
+            : Math.random().toString(36).slice(2, 10)
         const channel = supabase
-            .channel(`chat-${orderId}`)
+            .channel(`chat-${orderId}-${uniqueId}`)
             .on(
                 'postgres_changes',
                 {

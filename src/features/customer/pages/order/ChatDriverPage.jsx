@@ -118,7 +118,10 @@ function ChatDriverPage() {
 
     const handleCall = () => {
         if (driverInfo?.phone && driverInfo.phone !== '-') {
-            window.open(`tel:${driverInfo.phone}`, '_self')
+            let phone = driverInfo.phone.replace(/[^0-9]/g, '')
+            if (phone.startsWith('0')) phone = '62' + phone.slice(1)
+            if (!phone.startsWith('62')) phone = '62' + phone
+            window.open(`https://wa.me/${phone}`, '_blank')
         }
     }
 

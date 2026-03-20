@@ -101,15 +101,17 @@ BEGIN
     INTO v_orders
     FROM (
         SELECT
-            ord.id, ord.status, ord.total_amount, ord.delivery_fee,
-            ord.delivery_address, ord.customer_name, ord.customer_phone,
+            ord.id, ord.status, ord.total_amount, ord.subtotal, ord.delivery_fee, ord.service_fee,
+            ord.delivery_address, COALESCE(p.full_name, ord.customer_name) as customer_name,
+            COALESCE(p.phone, ord.customer_phone) as customer_phone,
             ord.customer_lat, ord.customer_lng,
-            ord.payment_method, ord.payment_status,
+            ord.payment_method, ord.payment_status, ord.notes,
             ord.merchant_id, ord.created_at,
             m.name as merchant_name, m.address as merchant_address,
             m.latitude as merchant_lat, m.longitude as merchant_lng
         FROM orders ord
         LEFT JOIN merchants m ON m.id = ord.merchant_id
+        LEFT JOIN profiles p ON p.id = ord.customer_id
         WHERE ord.driver_id = v_driver_id
         AND ord.status IN ('pickup', 'picked_up', 'delivering')
         ORDER BY ord.created_at ASC

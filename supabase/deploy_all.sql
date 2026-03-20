@@ -1170,6 +1170,9 @@ RETURNS TABLE (
     merchant_address TEXT,
     customer_address TEXT,
     total_amount INTEGER,
+    subtotal INTEGER,
+    delivery_fee INTEGER,
+    service_fee INTEGER,
     payment_method TEXT,
     status TEXT,
     created_at TIMESTAMPTZ,
@@ -1189,6 +1192,9 @@ BEGIN
         m.address AS merchant_address,
         o.delivery_address AS customer_address,
         o.total_amount,
+        o.subtotal,
+        o.delivery_fee,
+        o.service_fee,
         o.payment_method,
         o.status,
         o.created_at,
@@ -1535,8 +1541,8 @@ BEGIN
     v_driver_id := auth.uid();
     IF v_driver_id IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
     SELECT COALESCE(json_agg(row_to_json(o.*)), '[]'::json)::jsonb INTO v_orders
-    FROM (SELECT ord.id, ord.status, ord.total_amount, ord.delivery_fee, ord.delivery_address, ord.customer_name, ord.customer_phone, ord.customer_lat, ord.customer_lng, ord.payment_method, ord.merchant_id, ord.created_at, m.name as merchant_name, m.address as merchant_address, m.latitude as merchant_lat, m.longitude as merchant_lng
-    FROM orders ord LEFT JOIN merchants m ON m.id = ord.merchant_id WHERE ord.driver_id = v_driver_id AND ord.status IN ('pickup','picked_up','delivering') ORDER BY ord.created_at ASC) o;
+    FROM (SELECT ord.id, ord.status, ord.total_amount, ord.subtotal, ord.delivery_fee, ord.service_fee, ord.delivery_address, COALESCE(p.full_name, ord.customer_name) as customer_name, COALESCE(p.phone, ord.customer_phone) as customer_phone, ord.customer_lat, ord.customer_lng, ord.payment_method, ord.notes, ord.merchant_id, ord.created_at, m.name as merchant_name, m.address as merchant_address, m.latitude as merchant_lat, m.longitude as merchant_lng
+    FROM orders ord LEFT JOIN merchants m ON m.id = ord.merchant_id LEFT JOIN profiles p ON p.id = ord.customer_id WHERE ord.driver_id = v_driver_id AND ord.status IN ('pickup','picked_up','delivering') ORDER BY ord.created_at ASC) o;
     RETURN json_build_object('orders', v_orders, 'count', jsonb_array_length(v_orders));
 END;
 $$;

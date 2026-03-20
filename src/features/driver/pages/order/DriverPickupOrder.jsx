@@ -76,12 +76,14 @@ function DriverPickupOrder() {
     const orderItems = activeOrder.items || []
     const allItemsChecked = orderItems.every((_, index) => checkedItems[index])
 
-    // Data Access Helpers
-    const merchantName = activeOrder.merchant?.name || activeOrder.merchantName || 'Merchant'
-    const merchantAddress = activeOrder.merchant?.address || activeOrder.merchantAddress || ''
+    // Data Access Helpers (support nested, camelCase, AND snake_case from RPC)
+    const merchantName = activeOrder.merchant?.name || activeOrder.merchant_name || activeOrder.merchantName || 'Merchant'
+    const merchantAddress = activeOrder.merchant?.address || activeOrder.merchant_address || activeOrder.merchantAddress || ''
     const merchantCoords = activeOrder.merchant?.latitude && activeOrder.merchant?.longitude
         ? [activeOrder.merchant.latitude, activeOrder.merchant.longitude]
-        : (activeOrder.merchantCoords || [-7.0747, 110.8767])
+        : activeOrder.merchant_lat && activeOrder.merchant_lng
+            ? [activeOrder.merchant_lat, activeOrder.merchant_lng]
+            : (activeOrder.merchantCoords || [-7.0747, 110.8767])
 
     const customerCoords = activeOrder.customer_lat && activeOrder.customer_lng
         ? [activeOrder.customer_lat, activeOrder.customer_lng]
